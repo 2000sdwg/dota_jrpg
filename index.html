@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Dota Idle RPG v3.6</title>
+<link rel="stylesheet" href="style.css?v=36">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+<div id="header">
+    <div id="gold-display" style="color: gold;">💰 0</div>
+    <div style="display:flex; gap:5px; align-items:center;">
+        <button onclick="openRelicsModal()" id="btn-relics" style="padding: 5px; font-size: 8px; background: #431; border-color: #962; display:none;">🏆 ТРОФЕИ</button>
+        <button onclick="document.getElementById('glossary-modal').style.display='flex'" style="padding: 5px; font-size: 8px; background: #242; border-color: #484;">📖 ГАЙД</button>
+        <button onclick="resetGame()" style="padding: 5px; font-size: 8px;">СБРОС</button>
+    </div>
+</div>
+
+<div id="content">
+    <!-- ЛЕС -->
+    <div id="tab-forest" class="tab">
+        <div id="forest-clicker-zone">
+            <div class="card" id="creep-card" onclick="clickCreep(event)" style="cursor:pointer; height: 100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+                <p id="forest-zone-label" style="font-size: 7px; color: #7c7; margin-bottom: 4px;">🌲 Окраина троп</p>
+                <h3 id="forest-creep-name" style="color: #f77;">Крип-мечник</h3>
+                <div style="font-size:40px; margin: 10px auto;" id="forest-creep-icon">🧟</div>
+                <div class="hp-bar-bg" style="width: 80%; margin: 6px auto;"><div id="forest-creep-hp" class="hp-bar-fill"></div></div>
+                <p id="forest-creep-hp-text" style="font-size: 8px; margin-bottom: 6px;">15 / 15 ЗД</p>
+                <p id="forest-dmg-display" style="color:#0f0; font-size: 8px;">Урон клика: 1</p>
+                <p id="forest-army-display" style="color:#fa0; font-size: 8px; margin-top:4px; display:none;">👹 Армия леса: 0/50 (0 УРН/с)</p>
+                <p id="forest-combo-display" style="color:#ff0; font-size: 7px; margin-top:4px;">Боевой азарт: ×1</p>
+                <p id="forest-stack-timer" class="stack-timer" style="display:none;">⏱ Осталось: 8.0с</p>
+                <p id="forest-rune-buff-display" style="color:#0cf; font-size: 7px; margin-top:3px; display:none;"></p>
+                <p id="forest-rune-toast" class="rune-toast" style="display:none;"></p>
+                <p id="forest-tea-buff-display" style="color:#6f8; font-size: 7px; margin-top:4px; display:none;"></p>
+                <p id="forest-shop-progress" style="color:#aaa; font-size: 7px; margin-top:5px;"></p>
+                <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; justify-content:center;">
+                    <button id="btn-stack-camp" onclick="event.stopPropagation(); stackCamp()" style="padding:4px 8px; font-size:7px; background:#430; border-color:#860;">📚 Стакнуть лагерь</button>
+                    <button id="btn-forest-tea" onclick="event.stopPropagation(); openTeaModal()" style="padding:4px 8px; font-size:7px; background:#143; border-color:#3a6;">☕ Сбор чая (🌿 0)</button>
+                </div>
+                <div id="forest-rune-icon" class="floating-rune" onclick="event.stopPropagation(); claimRune()" style="display:none;"></div>
+            </div>
+        </div>
+        <div id="forest-shop-zone">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3 style="color:#aaa;">Лесная Лавка</h3>
+                <button id="btn-toggle-forest-shop" onclick="toggleForestShop()" style="padding:4px 8px; font-size:8px;">Развернуть</button>
+            </div>
+            <div id="forest-shop" class="block-list"></div>
+        </div>
+    </div>
+
+    <!-- ЛАВКА -->
+    <div id="tab-shop" class="tab">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <h3 style="border-bottom: 1px solid #444; padding-bottom: 5px;">Общий инвентарь</h3>
+            <button id="btn-toggle-inv" onclick="toggleInventory()" style="padding:4px 8px; font-size:8px;">Открыть</button>
+        </div>
+        <div id="inventory-content" style="display:none; margin-bottom:10px; background:#1a1a2e; padding:10px; border:1px solid #444;">
+            <div id="inventory-list" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+        </div>
+        <h3 style="border-bottom: 1px solid #444; padding-bottom: 5px;">Артефакты для Рейда</h3>
+        <div id="raid-shop" class="block-list" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- ГЕРОИ -->
+    <div id="tab-heroes" class="tab">
+        <h3 style="border-bottom: 1px solid #444; padding-bottom: 5px;">Наём и Прокачка</h3>
+        <div id="heroes-list" class="block-list" style="margin-top: 10px;"></div>
+    </div>
+
+    <!-- ОТРЯД -->
+    <div id="tab-squad" class="tab">
+        <h3 id="squad-header-title" style="border-bottom: 1px solid #444; padding-bottom: 5px;">Ваш Отряд (Расстановка и Снаряжение)</h3>
+        <div id="squad-list" class="block-list" style="margin-top: 10px;"></div>
+    </div>
+
+    <!-- РЕЙД И КАМПАНИЯ -->
+    <div id="tab-raid" class="tab active">
+        <!-- ЭКРАН КАМПАНИИ (ВНЕ БОЯ) -->
+        <div id="raid-campaign-view">
+            <div class="card campaign-card" id="campaign-act-banner"></div>
+            <div class="card" id="campaign-stage-card"></div>
+            <div id="campaign-contracts-box"></div>
+        </div>
+
+        <!-- ЭКРАН БОЯ (В БОЮ) -->
+        <div id="raid-battle-view" style="display:none;">
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <h4 style="color:#f55;"><span id="raid-level-display">Акт 1 • Этап 1</span></h4>
+                <button onclick="toggleSpeed()" id="btn-speed" style="padding:4px 8px; font-size:8px; background:#252; border-color:#484;">Ускорение x2: ВЫКЛ</button>
+            </div>
+            <div style="font-size:7px; color:#888; text-align:center; margin-bottom:4px;">Нажмите на врага, чтобы посмотреть его статы и скиллы [?]</div>
+            <div id="arena">
+                <div id="arena-heroes" class="arena-side heroes-side"></div>
+                <div class="arena-divider"></div>
+                <div id="arena-enemies" class="arena-side enemies-side"></div>
+            </div>
+            <div id="raid-ui" class="card">
+                <h4 id="turn-indicator" style="color:#ffaa00; margin-bottom:10px; text-align: center;">Подготовка...</h4>
+                <div style="display:flex; gap:5px;">
+                    <button style="flex:1;" onclick="raidAction('attack')" id="btn-attack">УДАР</button>
+                    <button style="flex:1; background: #005; border-color: #008;" onclick="raidAction('skills')" id="btn-skills">СКИЛЛЫ</button>
+                    <button style="flex:1; background: #520; border-color: #840;" onclick="openItemUse()" id="btn-items">ПРЕДМЕТЫ</button>
+                </div>
+                <div id="skills-submenu" style="display:none; margin-top:5px;"></div>
+            </div>
+            <div class="log" id="battle-log"></div>
+        </div>
+    </div>
+</div>
+
+<div id="nav">
+    <button class="nav-btn" id="nav-forest" onclick="switchTab('forest', this)">🌲 Лес</button>
+    <button class="nav-btn" id="nav-shop" onclick="switchTab('shop', this)">💰 Лавка</button>
+    <button class="nav-btn" id="nav-heroes" onclick="switchTab('heroes', this)">🛡️ Герои</button>
+    <button class="nav-btn" id="nav-squad" onclick="switchTab('squad', this)">⚔️ Отряд</button>
+    <button class="nav-btn active" id="nav-raid" onclick="switchTab('raid', this)">🔥 Рейд</button>
+</div>
+
+<!-- МОДАЛКИ -->
+<div id="story-modal">
+    <div class="modal story-box">
+        <div id="story-speaker" style="font-size: 26px; margin-bottom: 8px;">⚔️</div>
+        <h3 id="story-title" style="color: gold; margin-bottom: 10px;">История</h3>
+        <div id="story-text" style="font-size: 9px; line-height: 1.75; text-align: left; color: #eee; margin-bottom: 14px;"></div>
+        <button id="story-btn" style="width: 100%; background: #050; border-color: #090;" onclick="closeStoryModal()">ДАЛЕЕ</button>
+    </div>
+</div>
+
+<div id="relics-modal">
+    <div class="modal">
+        <h3 style="color: gold; margin-bottom: 10px;">🏆 Трофеи Кампании</h3>
+        <div id="relics-list" style="text-align: left; font-size: 8px; line-height: 1.65;"></div>
+        <button style="width: 100%; margin-top: 15px; background: #333; border-color:#555;" onclick="closeRelicsModal()">ЗАКРЫТЬ</button>
+    </div>
+</div>
+
+<div id="tea-modal">
+    <div class="modal">
+        <h3 style="color: #6f8; margin-bottom: 8px;">☕ Сбор чая и Котелок</h3>
+        <div id="tea-herbs-display" style="font-size: 8px; color: #ff0; margin-bottom: 8px;">🌿 Собранные травы: 0</div>
+        <div style="font-size: 7px; color: #aaa; margin-bottom: 10px; line-height: 1.5;">Травы добываются в Лесу: +1 🌿 за каждые 50 крипов, +1 🌿 за Стак, +1 🌿 за Руну и +1 🌿 за Золотого Гоблина!</div>
+        <div id="tea-kettle-box" style="text-align: left; margin-bottom: 10px;"></div>
+        <div style="font-size: 8px; color: #0cf; text-align: left; margin-bottom: 6px;">Заварить чай на следующий Рейд:</div>
+        <div id="tea-list" style="text-align: left;"></div>
+        <button style="width: 100%; margin-top: 12px; background: #333; border-color:#555;" onclick="closeTeaModal()">ЗАКРЫТЬ</button>
+    </div>
+</div>
+
+<div id="glossary-modal">
+    <div class="modal">
+        <h3 style="color: #0af; margin-bottom: 10px;">📖 Справочник</h3>
+        <div style="text-align: left; font-size: 8px; line-height: 1.7; color: #ccc;">
+            <b style="color:#f55;">СИЛ:</b> +22 <span style="color:#0f0;">ЗД</span>, +0.1 реген/х • <b style="color:#0af;">ИНТ:</b> +12 <span style="color:#48f;">МН</span>, +0.05 реген/х. Профильный атрибут даёт +1 <span style="color:#fa0;">УРН</span>.<br>
+            <b style="color:#ddd;">БРО:</b> режет только <span style="color:#fa0;">Физ. урон</span> • <b style="color:#6cf;">МАГ.РЕЗ:</b> 25% базово, режет <span style="color:#c6f;">Маг. урон</span>.<br><br>
+            <b style="color:#fa0;">Ряды:</b> 1-й ряд (+2 БРО, 80% ближних атак) • 2-й ряд (−15% ближ. урона; ближники со 2-го ряда бьют на −25% слабее).<br><br>
+            <b style="color:#f80;">Щиты (🛡️) и 💥 Пробитие:</b> целые щиты режут <b>−20%</b> урона и защищают от оглушения. Магия/криты: −1 🛡️, Пробитие: −2 🛡️ (+25% по пробитому). На 0 🛡️: сбитие каста, +15 Ярости, <b>+20% урона</b> и оглушение на 1 х. Щиты восстанавливаются в конце активного хода врага.<br><br>
+            <b style="color:#ff8;">Контроль:</b><br>
+            • <b>💥 Пробитие:</b> оглушает на 1 х. После выхода — <b>⛓️ Иммунитет</b> (2 х. / 3 х. боссам).<br>
+            • <b>🔇 Безмолвие:</b> поверх щитов и ⛓️ — сбивает каст и запрещает скиллы (1–2 х.).<br>
+            • <b>❄️ Оцепенение:</b> поверх щитов и ⛓️ — запрещает атаки с руки (2 х.).<br><br>
+            <b style="color:#0ef;">⏳ Подготовка (1 х.):</b> ульты заряжаются 1 х. (сбиваются оглушением/безмолвием; возврат 50% МН).<br>
+            <b style="color:#fc0;">⚡ Ярость (100%):</b> 0 МН, ×1.5 урона/хила, мгновенный каст без подготовки и +1 х. к эффектам.<br>
+            <b style="color:#0f0;">Лес ⇄ Рейд:</b> боссы открывают Лес и героев; Лес открывает Тиры Лавки, Рубежи Актов и даёт 🌿 Травы для ☕ Чая и 🫖 Котелка.
+        </div>
+        <button style="width: 100%; margin-top: 15px; background: #333; border-color:#555;" onclick="document.getElementById('glossary-modal').style.display='none'">ЗАКРЫТЬ</button>
+    </div>
+</div>
+
+<div id="enemy-info-modal">
+    <div class="modal">
+        <h3 id="enemy-modal-title" style="color: #f55; margin-bottom: 8px;">Враг</h3>
+        <div id="enemy-modal-stats" style="font-size: 8px; line-height: 1.7; text-align: left; color: #ccc; margin-bottom: 10px; background:#151515; padding:8px; border:1px solid #444;"></div>
+        <h4 style="color:#fa0; text-align:left; margin-bottom:6px; font-size:9px;">Способности врага</h4>
+        <div id="enemy-modal-skills" style="text-align: left; font-size: 8px; line-height: 1.6;"></div>
+        <button style="width: 100%; margin-top: 15px; background: #333; border-color:#555;" onclick="closeEnemyInfo()">ЗАКРЫТЬ</button>
+    </div>
+</div>
+
+<div id="item-info-modal">
+    <div class="modal">
+        <h3 id="item-modal-title" style="color: gold; margin-bottom: 10px;">Название</h3>
+        <div id="item-modal-desc" style="font-size: 9px; line-height: 1.7; text-align: left; color: #ddd;"></div>
+        <button style="width: 100%; margin-top: 15px; background: #333; border-color:#555;" onclick="closeItemInfo()">ЗАКРЫТЬ</button>
+    </div>
+</div>
+
+<div id="skill-info-modal">
+    <div class="modal">
+        <h3 id="skill-modal-title" style="color: #0af; margin-bottom: 10px;"></h3>
+        <div id="skill-modal-desc" style="font-size: 9px; line-height: 1.7; text-align: left; color: #ddd;"></div>
+        <button style="width: 100%; margin-top: 15px; background: #333; border-color:#555;" onclick="closeSkillInfo()">ЗАКРЫТЬ</button>
+    </div>
+</div>
+
+<div id="item-use-modal">
+    <div class="modal">
+        <h3 style="color: #fa0; margin-bottom: 10px;">Использовать предмет</h3>
+        <div id="item-use-list" style="text-align: left;"></div>
+        <button style="width: 100%; margin-top: 15px; background: #333; border-color:#555;" onclick="closeItemUse()">ЗАКРЫТЬ</button>
+    </div>
+</div>
+
+<div id="hero-setup-modal">
+    <div class="modal">
+        <h3 id="hs-name" style="color: gold; margin-bottom: 10px;">Герой</h3>
+        <div id="hs-stats" style="font-size:8px; color:#aaa; margin-bottom:15px; text-align:left; line-height:1.7;"></div>
+        <h4 style="color:#0af; text-align:left; margin-bottom:5px;">Скиллы</h4>
+        <div id="hs-skills" style="margin-bottom:15px; text-align:left; font-size:8px;"></div>
+        <h4 style="color:#a0f; text-align:left; margin-bottom:5px;">Артефакты (6 слотов)</h4>
+        <div id="hs-items" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:12px; justify-content:center;"></div>
+        <h4 style="color:#0ef; text-align:left; margin-bottom:5px;">🎁 Нейтральный предмет (1 слот)</h4>
+        <div id="hs-neutral-slot" style="display:flex; justify-content:center; margin-bottom:15px;"></div>
+        <h4 style="color:#f55; text-align:left; margin-bottom:5px;">Улучшения (Аганим)</h4>
+        <div id="hs-buffs" style="margin-bottom:15px; text-align:left; font-size:8px;"></div>
+        <button style="width:100%; background:#333; border-color:#555;" onclick="closeHeroSetup()">ЗАКРЫТЬ</button>
+    </div>
+</div>
+
+<div id="item-select-modal">
+    <div class="modal">
+        <h3 style="color: #fa0; margin-bottom: 10px;">Выберите предмет</h3>
+        <div id="item-select-list" style="display:flex; flex-direction:column; gap:5px; text-align:left; max-height:60vh; overflow-y:auto;"></div>
+        <button style="width: 100%; margin-top: 15px; background: #333; border-color:#555;" onclick="closeItemSelect()">ЗАКРЫТЬ</button>
+    </div>
+</div>
+
+<div id="modal-overlay">
+    <div class="modal">
+        <h3 id="modal-title" style="color:#f55;">Цель</h3>
+        <div id="modal-desc" style="margin: 15px 0; line-height:1.8; text-align:left; font-size: 9px;"></div>
+        <div style="display:flex; gap:10px; margin-top:15px;">
+            <button style="flex:1; background:#050; border-color:#080;" onclick="confirmAction()">Применить</button>
+            <button style="flex:1; background:#500;" onclick="closeModal()">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<div id="victory-modal">
+    <div class="modal">
+        <h2 id="victory-title" style="color: gold; margin-bottom: 10px;">ПОБЕДА!</h2>
+        <div id="victory-desc" style="line-height: 1.8; margin-bottom: 15px; font-size: 9px;"></div>
+        <button style="width: 100%; background: #050; border-color:#080;" onclick="closeVictory()">Продолжить</button>
+    </div>
+</div>
+
+<script src="config.js?v=36"></script>
+<script src="db.js?v=36"></script>
+<script src="forest.js?v=36"></script>
+<script src="ui.js?v=36"></script>
+<script src="combat.js?v=36"></script>
+<!-- DEBUG: удали строку ниже и файл debug.js перед релизом -->
+<script src="debug.js?v=36"></script>
+<script>
+if (window.Telegram && window.Telegram.WebApp) {
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
+}
+</script>
+</body>
+</html>
