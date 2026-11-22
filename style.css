@@ -68,6 +68,12 @@ button:disabled { background: #333; border-color: #555; color: #777; cursor: not
 .sprite { width: 44px; height: 44px; background: #555; border: 2px solid #fff; text-align: center; line-height: 40px; font-size: 17px; transition: transform 0.35s ease; position: relative; display: inline-block; border-radius: 4px; }
 .sprite.enemy { background: #500; cursor: pointer; }
 .sprite.enemy:active { transform: scale(0.95); }
+.sprite.enemy.selected-target { border-color: #f22 !important; box-shadow: 0 0 14px #f22, inset 0 0 6px #f66 !important; animation: targetPulse 0.5s infinite alternate; }
+@keyframes targetPulse { from { transform: scale(1.0); } to { transform: scale(1.08); } }
+.target-crosshair { position: absolute; top: -10px; right: -10px; font-size: 13px; z-index: 25; pointer-events: none; filter: drop-shadow(0 0 4px #f00); }
+.enemy-inspect-btn { background: #112; border: 1px solid #48a; color: #0cf; font-size: 7px; padding: 1px 4px; border-radius: 3px; cursor: pointer; display: inline-block; margin-left: 2px; }
+.enemy-inspect-btn:hover { background: #225; color: #fff; }
+.enemy-unit-wrap.selected-wrap { background: rgba(255, 50, 50, 0.15); border-radius: 6px; }
 .sprite.broken-state { border-color: #f80; box-shadow: 0 0 10px #f80; }
 .sprite.xmark-state { border-color: #0ff; box-shadow: 0 0 10px #0ff; }
 .sprite.rum-state { border-color: #0f8; box-shadow: 0 0 8px #0f8; }

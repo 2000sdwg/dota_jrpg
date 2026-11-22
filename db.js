@@ -96,9 +96,26 @@ const STORY_EVENTS = {
         icon:'🌲', title:'Лес открыт!',
         text:'Бельчонок повержен... но раненый зверёк успевает удрать в чащу, оставив тебя наедине с дорогой к Замку. Впереди — разбойники, а одному тебе не выстоять.<br><br><span style="color:#0f0;">🌲 Открыт ЛЕС:</span> кликай по крипам, копи комбо, лови 1-секундные руны и <b>стакай лагерь</b> на время.<br><span style="color:#fa0;">💰 Связь Лес ⇄ Рейд:</span> фарм крипов, Стаков и Рун в Лесу даёт золото, открывает новые тиры <b>Рейдовой лавки</b> и приносит <b>🌿 Травы</b> для <b>☕ Сбора чая</b> (Иван-чай, Ромашка, Мята) и прокачки <b>🫖 Походного котелка</b>! А победы над боссами Актов открывают новые земли Леса, героев и слоты отряда!'
     },
+    stage3_shaman_intro: {
+        icon:'⚡', title:'Возвращение Отшельника',
+        get text() {
+            if (typeof state !== 'undefined' && state.chickenKilled) {
+                return 'Хотя на прошлом этапе вам удалось развеять куриную форму Безмолвием, Шаман-отшельник оправился от удара и преграждает путь вместе с бандой разбойников!<br><br><i>«Вы дерзнули разрушить мои чары немотой! Но в честном бою вам не выстоять — познайте гнев змеиных молний!»</i>';
+            }
+            return 'Та самая сбежавшая курица выскакивает из кустов, сбрасывает перья и превращается в грозного Шамана-отшельника с боевыми змеями и бандой разбойников!<br><br><i>«Ха-ха! Не смогли поймать меня? Теперь познайте гнев змеиных чар!»</i>';
+        }
+    },
     stage6_intro: {
         icon:'🦔', title:'Акт 2: Непробиваемая спина',
         text:'Тропу в Тёмную чащу перекрывает огромный <b>Бристлбэк</b>. Его спина покрыта каменными иглами!<br><br><span style="color:#f80;">💡 Механика Пробития (🛡️):</span> Пока у Бристлбэка целы щиты, его <b>Колючая спина</b> со щитами режет 55% урона и бьёт иглами в ответ. Ломай щиты навыками <b>💥 Пробития</b>, магией и критами, чтобы оглушить его и наносить +20% урона!'
+    },
+    stage8_pudge_intro: {
+        icon:'🪝', title:'Поляна Мясника',
+        text:'Среди тумана Тёмной чащи возвышается гигантская туша Мясника. Он хрипло дышит, точит ржавый крюк и бормочет себе под нос, словно ищет что-то потерянное... Он выглядит не столько злым, сколько невероятно одиноким.'
+    },
+    pudge_join: {
+        icon:'🌰', title:'Угощение для Мясника',
+        text:'Пудж замирает, разгрызает заколдованный орех могучими зубами и довольно причмокивает! По его щеке катится скупая слеза:<br><br><i>«Орешек... Заколдованный! Вкуснятина! Я... я думал, все только боятся меня и хотят убить. А ты угостил, рыцарь! Ты добрый. Я пойду с тобой, будем вместе рубить плохих парней!»</i><br><br><span style="color:#0f0;">✨ Пудж навсегда присоединился к вашим героям!</span>'
     },
     stage11_intro: {
         icon:'🏹', title:'Акт 3: Старые долги',
@@ -241,6 +258,14 @@ const DB = {
             {id:'s2',name:'Селестиал Хаммер',type:'magic',dmg:[100,155,210,265],mp:[75,85,95,105],cd:2,duration:2,torrentWeaken:0.20,full:'Огненный молот: Маг. урон и −20% УРН цели (2 х.).'},
             {id:'s3',name:'Люминосити',type:'passive',dmg:[0,0,0,0],mp:[0,0,0,0],lumiHeal:[0.30,0.40,0.50,0.60],full:'Пассивка. Каждая 3-я атака Донбрейкер критует (×1.8) и лечит ВЕСЬ отряд на 30/40/50/60% нанесённого урона!'},
             {id:'s4',name:'Солар Гардиан',type:'magic',dmg:[290,435,580],mp:[150,200,250],cd:5,prep:1,aoe:true,breakHits:2,brokenBonus:0.25,solarHeal:[200,310,420],full:'Ультимейт с Подготовкой (1 х.) + 💥 Массовое Пробитие (−2 щита ВСЕМ врагам, +25% по пробитым) + лечит отряд на 200/310/420 ЗД! Под Яростью — мгновенно!'}
+          ]},
+        { id:'pudge', name:'Пудж', cost:0, icon:'🪝', role:'Танк / Контроль', unlockAct:99, storyUnlock:true, mainAttr:'str', isMelee:true,
+          baseStr:28, gainStr:4.0, baseInt:16, gainInt:1.5, baseMp:75, baseArmor:2, gainArmor:0.5,
+          skills:[
+            {id:'s1',name:'Мит Хук',type:'magic',dmg:[110,175,240,310],mp:[85,95,105,115],cd:3,breakHits:2,brokenBonus:0.25,silence:1,full:'💥 Пробитие (−2 щита) + 🔇 Безмолвие (1 х.): бросает крюк, наносит Маг. урон, сбивает каст и ломает 2 щита (+25% урона по уже пробитому).'},
+            {id:'s2',name:'Рот',type:'magic',dmg:[75,120,165,210],mp:[60,70,80,90],cd:2,aoe:true,weaken:0.20,selfHpCostPct:0.05,full:'Ядовитое облако: AoE Маг. урон ВСЕМ врагам (−1 щит) и −20% к их УРН на 2 хода. Тратит 5% макс. ЗД Пуджа (не может опустить ниже 1 ЗД).'},
+            {id:'s3',name:'Флеш Хип',type:'passive',dmg:[0,0,0,0],mp:[0,0,0,0],pudgeArmor:[3,5,7,9],pudgeMres:[0.06,0.10,0.14,0.18],full:'Пассивка. Накапливает плоть, давая Пуджу +3/5/7/9 БРО и +6/10/14/18% МАГ.РЕЗ.'},
+            {id:'s4',name:'Дисмембер',type:'magic',dmg:[350,520,700],mp:[140,180,220],cd:4,breakHits:2,brokenBonus:0.25,silence:1,drainHeal:1.0,full:'Ультимейт (мгновенный). 💥 Пробитие (−2 щита) + 🔇 Безмолвие (1 х.): чудовищный Маг. урон по 1 цели и лечение Пуджа на 100% нанесённого урона!'}
           ]}
     ],
     forestItems: [
@@ -331,12 +356,39 @@ const DB = {
         {id:'scepter',tier:5,icon:'🌀',name:'Аганим Блессинг',cost:5800,consumable:true,short:'Поглощается: +30% урона ульты.',full:'Поглощается героем в Отряде. Навсегда +30% урона ультимейта.'}
     ],
     neutralItems: [
-        {id:'pig_pole',icon:'🐷',name:'Пиг Поул',stats:{str:6},short:'+6 СИЛ.',full:'Нейтральный предмет (1 разряд). Даёт +6 СИЛ.'},
-        {id:'trust_orb',icon:'🔮',name:'Траст Орб',stats:{int:6},short:'+6 ИНТ.',full:'Нейтральный предмет (1 разряд). Даёт +6 ИНТ.'},
-        {id:'occult',icon:'📿',name:'Оккульт Брейсер',stats:{str:5,int:5},magicRes:0.10,short:'+5 СИЛ, +5 ИНТ, +10% МАГ.РЕЗ.',full:'Нейтральный предмет (2 разряд). Даёт +5 СИЛ, +5 ИНТ и +10% МАГ.РЕЗ.'},
-        {id:'grove',icon:'🌳',name:'Гроув Боул',hpRegen:10,short:'+10 реген ЗД/ход.',full:'Нейтральный предмет (2 разряд). Регенерация 10 ЗД каждый ход.'},
-        {id:'titan_sliver',icon:'🪨',name:'Титан Сливер',stats:{str:10,armor:4},magicRes:0.12,short:'+10 СИЛ, +4 БРО, +12% МАГ.РЕЗ.',full:'Нейтральный предмет (3 разряд). Отличный защитный слот для 1-го ряда.'},
-        {id:'timeless_relic',icon:'⏳',name:'Таймлесс Релик',stats:{int:12},spellAmp:0.15,short:'+12 ИНТ, +15% к Маг. урон скиллов.',full:'Нейтральный предмет (3 разряд). Усиливает урон магических скиллов.'}
+        /* Разряд 1 (Акт 1) */
+        {id:'pig_pole',tier:1,icon:'🐷',name:'Пиг Поул',stats:{str:6},short:'+6 СИЛ.',full:'Нейтральный предмет (1 разряд). Даёт +6 СИЛ.'},
+        {id:'trust_orb',tier:1,icon:'🔮',name:'Траст Орб',stats:{int:6},short:'+6 ИНТ.',full:'Нейтральный предмет (1 разряд). Даёт +6 ИНТ.'},
+        {id:'broom_handle',tier:1,icon:'🧹',name:'Брум Хэндл',stats:{armor:2},dmg:10,short:'+10 УРН, +2 БРО.',full:'Нейтральный предмет (1 разряд). Даёт +10 УРН и +2 БРО.'},
+        {id:'fairy_trinket',tier:1,icon:'🧚',name:'Фейри Тринкет',bonusHp:80,spellAmp:0.05,short:'+5% маг. скиллы, +80 ЗД.',full:'Нейтральный предмет (1 разряд). Даёт +5% к Маг. урону способностей и +80 ЗД.'},
+
+        /* Разряд 2 (Акт 2) */
+        {id:'occult',tier:2,icon:'📿',name:'Оккульт Брейсер',stats:{str:5,int:5},magicRes:0.10,short:'+5 СИЛ, +5 ИНТ, +10% МАГ.РЕЗ.',full:'Нейтральный предмет (2 разряд). Даёт +5 СИЛ, +5 ИНТ и +10% МАГ.РЕЗ.'},
+        {id:'grove',tier:2,icon:'🌳',name:'Гроув Боул',hpRegen:10,short:'+10 реген ЗД/ход.',full:'Нейтральный предмет (2 разряд). Регенерация 10 ЗД каждый ход.'},
+        {id:'philosophers_stone',tier:2,icon:'🪙',name:'Философерс Стоун',bonusMp:150,mpRegen:12,short:'+12 МН/ход, +150 МН.',full:'Нейтральный предмет (2 разряд). Даёт +12 реген МН/ход и +150 МН.'},
+        {id:'vambrace',tier:2,icon:'🧤',name:'Вамбрейс',stats:{str:8,int:8},magicRes:0.08,short:'+8 СИЛ, +8 ИНТ, +8% МАГ.РЕЗ.',full:'Нейтральный предмет (2 разряд). Даёт +8 СИЛ, +8 ИНТ и +8% МАГ.РЕЗ.'},
+
+        /* Разряд 3 (Акт 3) */
+        {id:'titan_sliver',tier:3,icon:'🪨',name:'Титан Сливер',stats:{str:10,armor:4},magicRes:0.12,short:'+10 СИЛ, +4 БРО, +12% МАГ.РЕЗ.',full:'Нейтральный предмет (3 разряд). Отличный защитный слот для 1-го ряда.'},
+        {id:'paladin_sword',tier:3,icon:'🗡️',name:'Паладин Сворд',dmg:20,physLifesteal:0.15,short:'+20 УРН, +15% физ. вампиризм.',full:'Нейтральный предмет (3 разряд). Даёт +20 УРН и +15% физ. вампиризма.'},
+        {id:'mind_breaker',tier:3,icon:'🧠',name:'Майнд Брейкер',stats:{int:18},magicRes:0.15,short:'+18 ИНТ, +15% МАГ.РЕЗ.',full:'Нейтральный предмет (3 разряд). Даёт +18 ИНТ и +15% МАГ.РЕЗ.'},
+        {id:'elven_tunic',tier:3,icon:'🦺',name:'Эльфийская туника',stats:{armor:4},critChance:0.12,critMult:1.8,short:'+4 БРО, +12% крит (×1.8).',full:'Нейтральный предмет (3 разряд). Даёт +4 БРО и +12% шанс критического удара (×1.8).'},
+
+        /* Разряд 4 (Акт 4) */
+        {id:'timeless_relic',tier:4,icon:'⏳',name:'Таймлесс Релик',stats:{int:16},spellAmp:0.18,short:'+16 ИНТ, +18% маг. скиллы.',full:'Нейтральный предмет (4 разряд). Значительно усиливает магический урон.'},
+        {id:'ninja_gear',tier:4,icon:'🥷',name:'Нинзя Гир',dmg:25,physLifesteal:0.15,stats:{armor:3},short:'+25 УРН, +3 БРО, +15% вампиризм.',full:'Нейтральный предмет (4 разряд). Даёт +25 УРН, +3 БРО и +15% физ. вампиризма.'},
+        {id:'prismatic',tier:4,icon:'💎',name:'Призматик',bonusHp:200,bonusMp:200,magicRes:0.15,short:'+200 ЗД, +200 МН, +15% МАГ.РЕЗ.',full:'Нейтральный предмет (4 разряд). Универсальная защита: +200 ЗД, +200 МН и +15% МАГ.РЕЗ.'},
+        {id:'spell_prism',tier:4,icon:'🔮',name:'Спелл Призм',stats:{str:12,int:12},mpRegen:15,short:'+12 СИЛ, +12 ИНТ, +15 МН/ход.',full:'Нейтральный предмет (4 разряд). Даёт +12 ко всем статам и +15 реген МН/ход.'},
+
+        /* Разряд 5 (Акт 5) */
+        {id:'apex',tier:5,icon:'👑',name:'Апекс',stats:{str:25,int:25},dmg:25,short:'+25 СИЛ, +25 ИНТ, +25 УРН.',full:'Нейтральный предмет (5 разряд). Легендарная корона, дающая колоссальные характеристики.'},
+        {id:'mirror_shield',tier:5,icon:'🪞',name:'Миррор Шилд',stats:{armor:6},magicRes:0.20,hpRegen:25,short:'+6 БРО, +20% МАГ.РЕЗ, +25 реген ЗД/ход.',full:'Нейтральный предмет (5 разряд). Зеркальный щит абсолютной защиты.'},
+        {id:'pirate_hat',tier:5,icon:'🏴‍☠️',name:'Пиратская шляпа',dmg:45,physLifesteal:0.20,short:'+45 УРН, +20% физ. вампиризм.',full:'Нейтральный предмет (5 разряд). Огромная прибавка к физическому урону и вампиризму.'},
+        {id:'book_of_shadows',tier:5,icon:'📖',name:'Бук оф Шэдоуз',stats:{int:30},spellAmp:0.25,bonusHp:250,short:'+30 ИНТ, +25% маг. скиллы, +250 ЗД.',full:'Нейтральный предмет (5 разряд). Древний гримуар невообразимой магической мощи.'},
+
+        /* Квестовый предмет Акта 2 */
+        {id:'enchanted_nut',tier:2,isQuestItem:true,consumable:true,usableInCombat:true,icon:'🌰',name:'Заколдованный орех',short:'Особый орех. Можно применить в бою на подходящего врага.',full:'Крепкий лесной орех, покрытый рунами. Поговаривают, в Тёмной чаще бродит огромный мясник, который обожает лесные лакомства... Примените на него в бою!'},
+        {id:'nutcracker',tier:2,isQuestItem:true,consumable:true,usableInCombat:true,icon:'🌰',name:'Заколдованный орех',short:'Особый орех. Можно применить в бою на подходящего врага.',full:'Крепкий лесной орех, покрытый рунами. Поговаривают, в Тёмной чаще бродит огромный мясник, который обожает лесные лакомства... Примените на него в бою!'}
     ]
 };
 
@@ -367,39 +419,300 @@ const FOREST_CREEPS = {
     ]
 };
 
-/* ===== ПУЛ ОБЫЧНЫХ ВРАГОВ + ОСОБЫЕ БОССЫ КАМПАНИИ ===== */
-const ENEMY_HEROES = [
-    { name:'Разбойник', icon:'🗡️', armor:1, isMelee:true, skills:[
-        { name:'Подлый удар', type:'phys', mult:1.35, aoe:false, stun:0, mpCost:50, desc:'Быстрый Физ. удар ножом.' },
-        { name:'Пыль в глаза', type:'magic', mult:0.9, aoe:true, stun:0, armorDebuff:2, mpCost:60, desc:'Лёгкий AoE урон и −2 БРО (2 х.).' }
-    ]},
-    { name:'Снайпер', icon:'🎯', armor:2, isMelee:false, skills:[
-        { name:'Шрапнель', type:'magic', mult:0.85, aoe:true, stun:0, armorDebuff:2, mpCost:60, desc:'AoE Маг. урон по всем героям и −2 БРО (2 х.).' },
-        { name:'Ассассинейт', type:'magic', mult:1.9, aoe:false, stun:0, silence:1, targetLowest:true, mpCost:90, desc:'Выстрел в героя с наименьшим ЗД (2-й ряд). 🔇 Безмолвие (1 х.): сбивает подготовку и запрещает скиллы!' }
-    ]},
-    { name:'Акс', icon:'🪓', armor:4, isMelee:true, skills:[
-        { name:'Контр Хеликс', type:'phys', mult:1.1, aoe:true, frontOnly:true, stun:0, mpCost:60, desc:'Круговой Физ. урон по 1-му ряду.' },
-        { name:'Каллинг Блейд', type:'phys', mult:1.6, aoe:false, stun:0, execute:true, mpCost:90, desc:'Физ. удар; если у цели меньше 30% ЗД — урон ×1.5.' }
-    ]},
-    { name:'Луна', icon:'🌙', armor:3, isMelee:false, skills:[
-        { name:'Люсент Бим', type:'magic', mult:1.5, aoe:false, stun:1, mpCost:70, desc:'Маг. урон по 1 цели и стан 1 х.' },
-        { name:'Эклипс', type:'magic', mult:1.2, aoe:true, stun:0, mpCost:100, desc:'Сильный AoE Маг. урон по всему отряду.' }
-    ]},
-    { name:'Пудж', icon:'🪝', armor:5, isMelee:true, skills:[
-        { name:'Рот', type:'magic', mult:0.9, aoe:true, stun:0, mpCost:50, desc:'AoE Маг. урон по всему отряду.' },
-        { name:'Мит Хук', type:'magic', mult:1.85, aoe:false, stun:0, silence:1, targetBackRow:true, mpCost:80, desc:'Крюк бьёт героя 2-го ряда. 🔇 Безмолвие (1 х.): сбивает подготовку и запрещает скиллы!' }
-    ]},
-    { name:'Антимаг', icon:'🚫', armor:4, isMelee:true, skills:[
-        { name:'Мана Брейк', type:'phys', mult:1.25, aoe:false, stun:0, manaBurn:60, mpCost:50, desc:'Физ. урон и сжигание 60 МН.' },
-        { name:'Мана Войд', type:'magic', mult:1.25, aoe:false, stun:0, manaVoid:true, mpCost:90, desc:'Маг. урон + доп. урон за недостающую МН.' }
-    ]},
-    { name:'Шторм', icon:'🌪️', armor:2, isMelee:false, skills:[
-        { name:'Статик Ремнант', type:'magic', mult:1.1, aoe:true, stun:0, mpCost:70, desc:'AoE Маг. урон по отряду.' },
-        { name:'Электрик Вортекс', type:'magic', mult:1.25, aoe:false, stun:1, armorDebuff:3, mpCost:80, desc:'Маг. урон, стан 1 х. и −3 БРО (2 х.).' }
-    ]}
-];
+/* ===== ПОАКТОВЫЕ ПУЛЫ ВРАГОВ (АКТЫ 1–5: ГЕРОИ + БЕЗЛИКИЕ МОБЫ) ===== */
+const ACT_ENEMY_POOLS = {
+    1: {
+        minions: [
+            { name:'Разбойник-головорез', icon:'🗡️', archetype:'minion', armor:1, isMelee:true, shieldMax:1,
+              skills:[{ name:'Подлый удар', type:'phys', mult:1.25, aoe:false, stun:0, mpCost:40, desc:'Быстрый удар кинжалом.' }] },
+            { name:'Разбойник-арбалетчик', icon:'🏹', archetype:'minion', armor:1, isMelee:false, shieldMax:1,
+              skills:[{ name:'Выстрел в тыл', type:'phys', mult:1.2, aoe:false, targetBackRow:true, stun:0, mpCost:40, desc:'Стреляет во 2-й ряд.' }] },
+            { name:'Лесной поджигатель', icon:'🔥', archetype:'minion', armor:0, isMelee:false, shieldMax:1,
+              skills:[{ name:'Огненная смесь', type:'magic', mult:0.9, aoe:false, burnDot:25, stun:0, mpCost:40, desc:'Бросает склянку с огнём (поджог на 2 х.).' }] }
+        ],
+        heroes: [
+            { name:'Снайпер', icon:'🎯', archetype:'dd', armor:2, isMelee:false,
+              skills:[
+                { name:'Шрапнель', type:'magic', mult:0.85, aoe:true, stun:0, armorDebuff:2, mpCost:60, desc:'AoE Маг. урон по всем героям и −2 БРО (2 х.).' },
+                { name:'Ассассинейт', type:'magic', mult:1.9, aoe:false, stun:0, silence:1, targetLowest:true, mpCost:85, desc:'Выстрел в героя с наименьшим ЗД (🔇 Безмолвие 1 х.).' }
+              ]},
+            { name:'Акс', icon:'🪓', archetype:'tank', armor:4, isMelee:true,
+              skills:[
+                { name:'Контр Хеликс', type:'phys', mult:1.1, aoe:true, frontOnly:true, stun:0, mpCost:55, desc:'Круговой Физ. урон по 1-му ряду.' },
+                { name:'Каллинг Блейд', type:'phys', mult:1.6, aoe:false, stun:0, execute:true, mpCost:80, desc:'Казнь: ×1.5 урона по цели с <30% ЗД.' }
+              ]},
+            { name:'Дроу Рейнджер', icon:'🏹', archetype:'dd', armor:2, isMelee:false,
+              skills:[
+                { name:'Ледяные стрелы', type:'phys', mult:1.3, aoe:false, stun:0, mpCost:50, desc:'Ледяная стрела: точный Физ. урон.' },
+                { name:'Сайленс', type:'magic', mult:0.75, aoe:true, stun:0, silence:1, mpCost:75, desc:'Порыв ветра: AoE Маг. урон и 🔇 Безмолвие (1 х.).' }
+              ]},
+            { name:'Вайпер', icon:'🐍', archetype:'mage', armor:2, isMelee:false,
+              skills:[
+                { name:'Пойзон Аттак', type:'magic', mult:1.15, aoe:false, poisonDot:35, stun:0, mpCost:55, desc:'Ядовитый плевок (DoT на 2 х.).' },
+                { name:'Коррозив Скин', type:'magic', mult:0.9, aoe:false, armorDebuff:3, stun:0, mpCost:60, desc:'Едкая кислота: −3 БРО (2 х.).' }
+              ]},
+            { name:'Огр Маг', icon:'👹', archetype:'support', armor:4, isMelee:true,
+              skills:[
+                { name:'Игнайт', type:'magic', mult:1.0, aoe:false, burnDot:30, stun:0, mpCost:50, desc:'Поджог цели на 2 хода.' },
+                { name:'Бладласт', type:'buff_ally', mult:0, selfAtkBuff:1.3, mpCost:60, desc:'Усиливает УРН союзника (+30% на 2 х.).' }
+              ]},
+            { name:'Тускар', icon:'🦭', archetype:'tank', armor:3, isMelee:true,
+              skills:[
+                { name:'Айс Шардс', type:'magic', mult:1.1, aoe:true, frontOnly:true, stun:0, mpCost:55, desc:'Ледяные осколки по 1-му ряду.' },
+                { name:'Валрус Панч', type:'phys', mult:1.85, aoe:false, breakHits:2, stun:0, mpCost:75, desc:'💥 Сокрушительный апперкот: ломает 2 щита!' }
+              ]},
+            { name:'Бладсикер', icon:'🩸', archetype:'dd', armor:2, isMelee:true,
+              skills:[
+                { name:'Бладрейдж', type:'self_buff', mult:0, selfAtkBuff:1.35, mpCost:45, desc:'Впадает в бешенство (+35% УРН на 2 х.).' },
+                { name:'Руптура', type:'phys', mult:1.5, aoe:false, targetLowest:true, lifesteal:0.5, stun:0, mpCost:75, desc:'Рвёт раненую цель и лечится на 50% урона.' }
+              ]},
+            { name:'Шаман-отшельник', icon:'⚡', archetype:'support', armor:2, isMelee:false, reqShamanStory:true,
+              skills:[
+                { name:'Змеиные оковы', type:'magic', mult:1.15, aoe:false, root:2, stun:0, mpCost:60, desc:'Опутывает змеями: Маг. урон и ❄️ Оцепенение (2 х.).' },
+                { name:'Эфирный шок', type:'magic', mult:1.0, aoe:true, stun:0, mpCost:65, desc:'AoE Маг. урон по отряду.' }
+              ]}
+        ]
+    },
+    2: {
+        minions: [
+            { name:'Болотный упырь', icon:'🧟', archetype:'minion', armor:2, isMelee:true, shieldMax:2,
+              skills:[{ name:'Гнилостный укус', type:'phys', mult:1.2, aoe:false, stun:0, mpCost:40, desc:'Тяжёлый укус мертвеца.' }] },
+            { name:'Ядовитый паук', icon:'🕷️', archetype:'minion', armor:1, isMelee:false, shieldMax:1,
+              skills:[{ name:'Ядовитый плевок', type:'magic', mult:0.95, aoe:false, poisonDot:35, stun:0, mpCost:40, desc:'Плевок ядом (DoT на 2 х.).' }] },
+            { name:'Дикий волк', icon:'🐺', archetype:'minion', armor:2, isMelee:true, shieldMax:2,
+              skills:[{ name:'Хватка за горло', type:'phys', mult:1.3, aoe:false, stun:0, mpCost:40, desc:'Яростный бросок волка.' }] }
+        ],
+        heroes: [
+            { name:'Луна', icon:'🌙', archetype:'dd', armor:3, isMelee:false,
+              skills:[
+                { name:'Люсент Бим', type:'magic', mult:1.5, aoe:false, stun:1, mpCost:70, desc:'Маг. урон по 1 цели и стан 1 х.' },
+                { name:'Эклипс', type:'magic', mult:1.2, aoe:true, stun:0, mpCost:95, desc:'Сильный AoE Маг. урон по всему отряду.' }
+              ]},
+            { name:'Веномансер', icon:'🐍', archetype:'mage', armor:2, isMelee:false,
+              skills:[
+                { name:'Веномоус Гейл', type:'magic', mult:0.8, aoe:true, poisonDot:35, stun:0, mpCost:65, desc:'AoE волна яда (DoT на 2 х.).' },
+                { name:'Пойзон Нова', type:'magic', mult:1.15, aoe:true, armorDebuff:2, stun:0, mpCost:85, desc:'Взрыв яда по всем героям и −2 БРО.' }
+              ]},
+            { name:'Омникнайт-изгой', icon:'🔨', archetype:'support', armor:4, isMelee:true,
+              skills:[
+                { name:'Пурификейшн', type:'heal_ally', mult:0, healAmt:220, mpCost:60, desc:'Лечит раненого союзника на +220 ЗД.' },
+                { name:'Благословение', type:'shield_buff', mult:0, addShield:true, mpCost:55, desc:'Восстанавливает +1 🛡️ союзнику.' }
+              ]},
+            { name:'Энчантресс', icon:'🦌', archetype:'support', armor:2, isMelee:false,
+              skills:[
+                { name:'Натурс Аттендантс', type:'heal_ally', mult:0, healAmt:190, mpCost:50, desc:'Светлячки лечат союзника на +190 ЗД.' },
+                { name:'Антачэбл', type:'magic', mult:1.1, aoe:false, weaken:0.25, stun:0, mpCost:55, desc:'Маг. урон и −25% УРН цели (2 х.).' }
+              ]},
+            { name:'Трент Протектор', icon:'🌲', archetype:'tank', armor:5, isMelee:true,
+              skills:[
+                { name:'Овергроус', type:'magic', mult:0.9, aoe:true, frontOnly:true, root:2, stun:0, mpCost:70, desc:'Корни сковывают 1-й ряд (❄️ Оцепенение 2 х.).' },
+                { name:'Ливинг Армор', type:'shield_buff', mult:0, addShield:true, mpCost:50, desc:'Древесная броня: даёт союзнику +1 🛡️.' }
+              ]},
+            { name:'Бруда', icon:'🕷️', archetype:'dd', armor:2, isMelee:true,
+              skills:[
+                { name:'Инсатиэбл Хангер', type:'phys', mult:1.45, aoe:false, lifesteal:0.6, stun:0, mpCost:55, desc:'Вампирический укус с отхилом 60%.' },
+                { name:'Спин Веб', type:'magic', mult:1.0, aoe:false, root:1, stun:0, mpCost:50, desc:'Паутина: Маг. урон и ❄️ Оцепенение (1 х.).' }
+              ]},
+            { name:'Спирит Брейкер', icon:'🐂', archetype:'tank', armor:4, isMelee:true,
+              skills:[
+                { name:'Чардж оф Даркнесс', type:'phys', mult:1.4, aoe:false, stun:1, targetLowest:true, mpCost:65, desc:'Разгон в слабейшего со станом 1 х.' },
+                { name:'Грейтер Баш', type:'phys', mult:1.6, aoe:false, breakHits:2, stun:0, mpCost:70, desc:'💥 Удар копытом: ломает 2 щита!' }
+              ]},
+            { name:'Белка-разведчик', icon:'🐿️', archetype:'dd', armor:2, isMelee:false,
+              skills:[
+                { name:'Акробатика', type:'magic', mult:1.1, aoe:true, stun:0, mpCost:55, desc:'Ловкий маневр: AoE Маг. урон.' },
+                { name:'Залп из ветвей', type:'phys', mult:1.4, aoe:false, targetBackRow:true, stun:0, mpCost:60, desc:'Прицельный выстрел во 2-й ряд.' }
+              ]}
+        ]
+    },
+    3: {
+        minions: [
+            { name:'Пещерный голем', icon:'🪨', archetype:'minion', armor:4, isMelee:true, shieldMax:2,
+              skills:[{ name:'Каменный удар', type:'phys', mult:1.25, aoe:false, stun:0, mpCost:40, desc:'Тяжёлый удар камнем.' }] },
+            { name:'Летучая мышь-вампир', icon:'🦇', archetype:'minion', armor:2, isMelee:false, shieldMax:1,
+              skills:[{ name:'Кровопийца', type:'phys', mult:1.2, aoe:false, lifesteal:0.5, stun:0, mpCost:40, desc:'Укус с вампиризмом.' }] },
+            { name:'Культист Рошана', icon:'🕯️', archetype:'minion', armor:2, isMelee:false, shieldMax:2,
+              skills:[{ name:'Тёмное пламя', type:'magic', mult:1.15, aoe:false, stun:0, mpCost:40, desc:'Маг. урон огнём.' }] }
+        ],
+        heroes: [
+            { name:'Антимаг', icon:'🚫', archetype:'dd', armor:3, isMelee:true,
+              skills:[
+                { name:'Мана Брейк', type:'phys', mult:1.3, aoe:false, stun:0, manaBurn:60, mpCost:50, desc:'Физ. урон и сжигание 60 МН.' },
+                { name:'Мана Войд', type:'magic', mult:1.3, aoe:false, stun:0, manaVoid:true, mpCost:85, desc:'Маг. урон + урон за недостающую МН.' }
+              ]},
+            { name:'Шторм Спирит', icon:'🌪️', archetype:'mage', armor:2, isMelee:false,
+              skills:[
+                { name:'Статик Ремнант', type:'magic', mult:1.15, aoe:true, stun:0, mpCost:70, desc:'AoE Маг. урон по отряду.' },
+                { name:'Электрик Вортекс', type:'magic', mult:1.3, aoe:false, stun:1, armorDebuff:3, mpCost:80, desc:'Маг. урон, стан 1 х. и −3 БРО.' }
+              ]},
+            { name:'Некрофос', icon:'💀', archetype:'support', armor:3, isMelee:false,
+              skills:[
+                { name:'Дез Пульс', type:'magic', mult:1.1, aoe:true, healAmt:160, stun:0, mpCost:70, desc:'AoE Маг. урон героям и лечение союзников (+160 ЗД).' },
+                { name:'Риперс Сайс', type:'magic', mult:1.7, aoe:false, execute:true, targetLowest:true, stun:0, mpCost:95, desc:'Казнь раненого (урон ×1.6 при <35% ЗД).' }
+              ]},
+            { name:'Никс Ассассин', icon:'🪲', archetype:'tank', armor:4, isMelee:true,
+              skills:[
+                { name:'Спайкд Карапас', type:'thorns_buff', mult:0, thorns:true, mpCost:50, desc:'Включает 🦔 Шипы на 1 ход (возврат 50% урона)!' },
+                { name:'Мана Бёрн', type:'magic', mult:1.3, aoe:false, manaBurn:70, stun:0, mpCost:65, desc:'Сжигает 70 МН и наносит Маг. урон.' }
+              ]},
+            { name:'Алхимик', icon:'🧪', archetype:'tank', armor:2, isMelee:true,
+              skills:[
+                { name:'Асид Спрей', type:'magic', mult:0.9, aoe:true, armorDebuff:4, stun:0, mpCost:65, desc:'Кислота: AoE урон и −4 БРО (2 х.).' },
+                { name:'Кемикал Рейдж', type:'self_buff', mult:0, selfAtkBuff:1.4, healAmt:200, mpCost:75, desc:'Химическая ярость (+40% УРН, +200 ЗД).' }
+              ]},
+            { name:'Сларк', icon:'🦈', archetype:'dd', armor:3, isMelee:true,
+              skills:[
+                { name:'Дарк Пак', type:'magic', mult:1.2, aoe:true, stun:0, mpCost:55, desc:'Тёмный всплеск: AoE Маг. урон.' },
+                { name:'Эссенс Шифт', type:'phys', mult:1.4, aoe:false, selfAtkBuff:1.25, stun:0, mpCost:60, desc:'Кража силы: Физ. урон и +25% к своему УРН.' }
+              ]},
+            { name:'Лайфстилер', icon:'🥩', archetype:'tank', armor:4, isMelee:true,
+              skills:[
+                { name:'Оупен Вундс', type:'phys', mult:1.4, aoe:false, lifesteal:0.65, stun:0, mpCost:55, desc:'Рваные раны: Физ. урон и 65% вампиризм.' },
+                { name:'Рейдж', type:'self_buff', mult:0, bkbBuff:true, selfAtkBuff:1.2, mpCost:70, desc:'Бешенство: БКБ-иммунитет и +20% УРН на 1 ход!' }
+              ]},
+            { name:'Сэнд Кинг', icon:'🦂', archetype:'mage', armor:3, isMelee:true,
+              skills:[
+                { name:'Берроустрайк', type:'magic', mult:1.2, aoe:true, frontOnly:true, stun:1, mpCost:70, desc:'Подкоп: Маг. урон и стан 1-го ряда (1 х.).' },
+                { name:'Сэнд Сторм', type:'magic', mult:1.15, aoe:true, stun:0, mpCost:65, desc:'Песчаная буря: AoE Маг. урон по отряду.' }
+              ]}
+        ]
+    },
+    4: {
+        minions: [
+            { name:'Гвардеец Замка', icon:'🛡️', archetype:'minion', armor:4, isMelee:true, shieldMax:2,
+              skills:[{ name:'Удар палашом', type:'phys', mult:1.25, aoe:false, stun:0, mpCost:40, desc:'Физ. удар палашом.' }] },
+            { name:'Арбалетчик башни', icon:'🏹', archetype:'minion', armor:3, isMelee:false, shieldMax:2,
+              skills:[{ name:'Бронебойный болт', type:'phys', mult:1.3, aoe:false, targetBackRow:true, stun:0, mpCost:40, desc:'Выстрел во 2-й ряд.' }] },
+            { name:'Боевой маг Завоевателей', icon:'🔮', archetype:'minion', armor:2, isMelee:false, shieldMax:2,
+              skills:[{ name:'Вспышка магии', type:'magic', mult:1.2, aoe:false, stun:0, mpCost:40, desc:'Маг. урон по цели.' }] }
+        ],
+        heroes: [
+            { name:'Марс', icon:'🛡️', archetype:'tank', armor:6, isMelee:true,
+              skills:[
+                { name:'Годс Ребук', type:'phys', mult:1.3, aoe:true, frontOnly:true, stun:0, mpCost:65, desc:'Удар щитом по 1-му ряду.' },
+                { name:'Спир оф Марс', type:'phys', mult:1.5, aoe:false, stun:1, breakHits:2, mpCost:75, desc:'💥 Копьё: ломает 2 щита и оглушает на 1 х.!' }
+              ]},
+            { name:'Лич', icon:'❄️', archetype:'support', armor:3, isMelee:false,
+              skills:[
+                { name:'Фрост Шилд', type:'shield_buff', mult:0, addShield:true, mpCost:55, desc:'Ледяной щит: даёт +1 🛡️ союзнику.' },
+                { name:'Чейн Фрост', type:'magic', mult:1.25, aoe:true, stun:1, mpCost:90, desc:'Ледяной шар: AoE Маг. урон и стан 1 х.' }
+              ]},
+            { name:'Темплар Ассассин', icon:'🌸', archetype:'dd', armor:3, isMelee:false,
+              skills:[
+                { name:'Мелд', type:'phys', mult:1.6, aoe:false, armorDebuff:5, stun:0, mpCost:65, desc:'Удар из невидимости: Физ. урон и −5 БРО (2 х.).' },
+                { name:'Пси Блейдс', type:'phys', mult:1.3, aoe:true, breakHits:2, stun:0, mpCost:80, desc:'💥 Пси-лезвия: пробивают оба ряда (−2 щита)!' }
+              ]},
+            { name:'Эмбер Спирит', icon:'🔥', archetype:'mage', armor:3, isMelee:true,
+              skills:[
+                { name:'Флейм Гард', type:'magic', mult:1.1, aoe:true, stun:0, mpCost:65, desc:'Огненный щит: AoE Маг. урон по отряду.' },
+                { name:'Слейт оф Фист', type:'phys', mult:1.35, aoe:true, stun:0, mpCost:75, desc:'Шквал ударов по всем героям.' }
+              ]},
+            { name:'Лешрак', icon:'🦌', archetype:'mage', armor:3, isMelee:false,
+              skills:[
+                { name:'Сплит Эрс', type:'magic', mult:1.2, aoe:true, stun:1, mpCost:80, desc:'Раскол земли: AoE Маг. урон и стан 1 х.' },
+                { name:'Пульс Нова', type:'magic', mult:1.35, aoe:true, stun:0, mpCost:85, desc:'Всплеск тайной магии по всем героям.' }
+              ]},
+            { name:'Слардар', icon:'🔱', archetype:'tank', armor:5, isMelee:true,
+              skills:[
+                { name:'Коррозив Хейз', type:'magic', mult:0.9, aoe:false, armorDebuff:6, stun:0, mpCost:60, desc:'Снижает БРО цели на −6 (2 х.).' },
+                { name:'Слитрэк Краш', type:'phys', mult:1.45, aoe:false, stun:1, breakHits:2, mpCost:75, desc:'💥 Сокрушение глубин: стан 1 х. и слом 2 щитов!' }
+              ]},
+            { name:'Магнус', icon:'🦏', archetype:'support', armor:4, isMelee:true,
+              skills:[
+                { name:'Эмпауэр', type:'buff_ally', mult:0, selfAtkBuff:1.35, mpCost:55, desc:'Даёт +35% УРН союзнику на 2 хода.' },
+                { name:'Реверс Поларити', type:'magic', mult:1.2, aoe:true, stun:1, mpCost:90, desc:'Магнитный удар: AoE Маг. урон и стан 1 х.' }
+              ]},
+            { name:'Скаймаг', icon:'🪶', archetype:'mage', armor:2, isMelee:false,
+              skills:[
+                { name:'Аркейн Болт', type:'magic', mult:1.6, aoe:false, stun:0, mpCost:65, desc:'Стрела чистой тайной магии (высокий урон).' },
+                { name:'Эншент Сил', type:'magic', mult:0.8, aoe:false, silence:1, stun:0, mpCost:70, desc:'Печать безмолвия (🔇 Безмолвие 1 х., сбивает каст).' }
+              ]}
+        ]
+    },
+    5: {
+        minions: [
+            { name:'Проклятый рыцарь', icon:'⚔️', archetype:'minion', armor:5, isMelee:true, shieldMax:2,
+              skills:[{ name:'Проклятый клинок', type:'phys', mult:1.3, aoe:false, stun:0, mpCost:40, desc:'Тёмный Физ. удар.' }] },
+            { name:'Тень Древних', icon:'👤', archetype:'minion', armor:3, isMelee:false, shieldMax:2,
+              skills:[{ name:'Теневой укол', type:'magic', mult:1.2, aoe:false, stun:0, mpCost:40, desc:'Маг. урон из тени.' }] },
+            { name:'Осколок порчи', icon:'💎', archetype:'minion', armor:3, isMelee:false, shieldMax:2,
+              skills:[{ name:'Порченое пламя', type:'magic', mult:1.25, aoe:false, stun:0, mpCost:40, desc:'Выброс порчи.' }] }
+        ],
+        heroes: [
+            { name:'Энигма', icon:'🌌', archetype:'mage', armor:3, isMelee:false,
+              skills:[
+                { name:'Миднайт Палс', type:'magic', mult:1.2, aoe:true, stun:0, mpCost:75, desc:'Пульсация бездны: AoE Маг. урон по отряду.' },
+                { name:'Малефис', type:'magic', mult:1.3, aoe:false, stun:1, mpCost:70, desc:'Маг. урон и оглушение 1 х.' }
+              ]},
+            { name:'Сайленсер', icon:'🤫', archetype:'support', armor:3, isMelee:false,
+              skills:[
+                { name:'Глобал Сайленс', type:'magic', mult:0.8, aoe:true, silence:1, stun:0, mpCost:85, desc:'🔇 Массовое Безмолвие на весь отряд (1 х.)!' },
+                { name:'Аркейн Кёрс', type:'magic', mult:1.0, aoe:true, burnDot:35, stun:0, mpCost:65, desc:'Проклятие тайной магии (DoT на 2 х.).' }
+              ]},
+            { name:'Дум', icon:'👿', archetype:'tank', armor:5, isMelee:true,
+              skills:[
+                { name:'Дум', type:'magic', mult:1.4, aoe:false, silence:2, burnDot:50, stun:0, mpCost:95, desc:'Печать Дума: 🔇 Безмолвие (2 х.) и сильный DoT!' },
+                { name:'Скорчд Эрс', type:'magic', mult:1.15, aoe:true, stun:0, mpCost:70, desc:'Пылающая земля: AoE Маг. урон.' }
+              ]},
+            { name:'Спектра', icon:'👻', archetype:'tank', armor:5, isMelee:true,
+              skills:[
+                { name:'Дисперсия', type:'thorns_buff', mult:0, thorns:true, mpCost:60, desc:'Включает 🦔 Дисперсию на 1 ход (возврат 50% урона)!' },
+                { name:'Десолейт', type:'phys', mult:1.6, aoe:false, targetBackRow:true, stun:0, mpCost:70, desc:'Призрачный удар во 2-й ряд.' }
+              ]},
+            { name:'Террорблейд', icon:'😈', archetype:'dd', armor:6, isMelee:true,
+              skills:[
+                { name:'Метаморфоза', type:'phys', mult:1.8, aoe:false, stun:0, mpCost:70, desc:'Чудовищный Физ. удар демона.' },
+                { name:'Конджур Имедж', type:'magic', mult:1.1, aoe:true, stun:0, mpCost:60, desc:'Призрачный всплеск: AoE Маг. урон.' }
+              ]},
+            { name:'Шэдоу Финд', icon:'💀', archetype:'dd', armor:3, isMelee:false,
+              skills:[
+                { name:'Шедоурейз', type:'magic', mult:1.35, aoe:true, stun:0, mpCost:65, desc:'Койлы тьмы: AoE Маг. урон.' },
+                { name:'Реквием оф Соулс', type:'magic', mult:1.5, aoe:true, armorDebuff:4, stun:0, mpCost:95, desc:'Реквием: сокрушительный AoE урон и −4 БРО (2 х.).' }
+              ]},
+            { name:'Войд', icon:'⏳', archetype:'dd', armor:4, isMelee:true,
+              skills:[
+                { name:'Хроносфера', type:'magic', mult:1.2, aoe:true, frontOnly:true, stun:1, mpCost:90, desc:'Купол времени: оглушает 1-й ряд (1 х.).' },
+                { name:'Таймлок', type:'phys', mult:1.6, aoe:false, stun:1, mpCost:65, desc:'Останавливающий Физ. удар со станом 1 х.' }
+              ]},
+            { name:'Варлок', icon:'📖', archetype:'support', armor:3, isMelee:false,
+              skills:[
+                { name:'Шадоу Ворд', type:'heal_ally', mult:0, healAmt:260, mpCost:60, desc:'Лечит раненого союзника на +260 ЗД.' },
+                { name:'Фейтал Бондс', type:'magic', mult:1.15, aoe:true, poisonDot:30, stun:0, mpCost:75, desc:'Смертельные узы: AoE урон и DoT (2 х.).' }
+              ]}
+        ]
+    }
+};
+
+const ENEMY_HEROES = ACT_ENEMY_POOLS[1].heroes;
 
 const SPECIAL_ENEMIES = {
+    traveler: {
+        name:'Странствующий путник', icon:'🧓', hp:180, mp:100, atk:22, armor:1, isMelee:false, shieldMax:1, isTraveler:true,
+        skills:[{ name:'Удар посохом', type:'phys', mult:1.0, aoe:false, stun:0, mpCost:30, desc:'Дряхлый старик отмахивается сучковатым посохом.' }]
+    },
+    hermit_shaman_boss: {
+        name:'Шаман-отшельник', icon:'⚡', hp:550, mp:240, atk:46, armor:3, isMelee:false, isBoss:true, shieldMax:3,
+        skills:[
+            { name:'Змеиные оковы', type:'magic', mult:1.2, aoe:false, stun:0, root:2, mpCost:60, desc:'Опутывает змеями: Маг. урон и ❄️ Оцепенение (2 х.).' },
+            { name:'Эфирный шок', type:'magic', mult:1.05, aoe:true, stun:0, mpCost:70, desc:'AoE Маг. урон по всему отряду.' },
+            { name:'Знахарский настой', type:'heal_ally', mult:0, healAmt:180, mpCost:50, desc:'Лечит раненого союзника на +180 ЗД.' }
+        ]
+    },
+    pudge_stage8: {
+        name:'Пудж', icon:'🪝', hp:1400, mp:240, atk:72, armor:5, isMelee:true, isBoss:true, shieldMax:3, pudgeRecruitable:true,
+        skills:[
+            { name:'Мит Хук', type:'magic', mult:1.85, aoe:false, stun:0, silence:1, targetBackRow:true, mpCost:80, desc:'Крюк бьёт героя 2-го ряда. 🔇 Безмолвие (1 х.): сбивает подготовку и запрещает скиллы!' },
+            { name:'Рот', type:'magic', mult:0.9, aoe:true, stun:0, mpCost:50, desc:'AoE Маг. урон по всему отряду.' }
+        ]
+    },
+    bog_ghoul: {
+        name:'Болотный упырь', icon:'🧟', hp:420, mp:100, atk:50, armor:2, isMelee:true, shieldMax:2,
+        skills:[{ name:'Гнилостный укус', type:'phys', mult:1.2, aoe:false, stun:0, mpCost:40, desc:'Грязный укус мертвеца.' }]
+    },
+    poison_spider: {
+        name:'Ядовитый паук', icon:'🕷️', hp:360, mp:100, atk:46, armor:1, isMelee:false, shieldMax:1,
+        skills:[{ name:'Ядовитый плевок', type:'magic', mult:0.95, aoe:false, poisonDot:30, stun:0, mpCost:40, desc:'Плевок ядом (DoT на 2 х.).' }]
+    },
     squirrel: {
         name:'Лесной бельчонок', icon:'🐿️', hp:280, mp:120, atk:48, armor:0, isMelee:true, shieldMax:2,
         skills:[{ name:'Укус за сапог', type:'phys', mult:1.2, aoe:false, stun:0, mpCost:60, desc:'Обычный бельчонок отчаянно кусается!' }]
@@ -563,11 +876,13 @@ function createInitialState() {
         forestItemLevels: { dominator: 0, midas: 0, radiance: 0 },
         milestones: [],
         relics: [],
-        seenStories: []
+        seenStories: [],
+        chickenKilled: false
     };
 }
 
 let state = JSON.parse(localStorage.getItem(SAVE_KEY)) ||
+            JSON.parse(localStorage.getItem('dotaSave_v3_6')) ||
             JSON.parse(localStorage.getItem('dotaSave_v3_5')) ||
             JSON.parse(localStorage.getItem('dotaSave_v3_4')) ||
             createInitialState();
@@ -586,6 +901,10 @@ state.teasBrewed = state.teasBrewed || 0;
 state.kettleLevel = state.kettleLevel || 0;
 state.maxRaidCleared = state.maxRaidCleared || 0;
 state.selectedStage = state.selectedStage || Math.min(25, state.maxRaidCleared + 1);
+state.shamanFled = state.shamanFled || false;
+state.chickenKilled = state.chickenKilled || false;
+state.nutcrackerDropped = state.nutcrackerDropped || false;
+state.act2CreepsKilled = state.act2CreepsKilled || 0;
 state.heroes.forEach(h => {
     if (!h.row) {
         let dbH = DB.heroes.find(x => x.id === h.dbId);
@@ -635,6 +954,7 @@ function save() {
 function resetGame() {
     if (confirm('Начать кампанию полностью с нуля (с 0 золота и Свеном)?')) {
         localStorage.removeItem(SAVE_KEY);
+        localStorage.removeItem('dotaSave_v3_6');
         localStorage.removeItem('dotaSave_v3_5');
         localStorage.removeItem('dotaSave_v3_4');
         location.reload();
@@ -733,11 +1053,25 @@ function getHeroEquippedItems(actor) {
     return arr;
 }
 
-function pickRandomNeutralDrop() {
+function pickRandomNeutralDrop(tier = null) {
     let ownedSet = new Set(state.neutralInv || []);
     (state.heroes || []).forEach(h => { if (h.neutralItem) ownedSet.add(h.neutralItem); });
-    let unowned = DB.neutralItems.filter(n => !ownedSet.has(n.id));
-    let pool = unowned.length > 0 ? unowned : DB.neutralItems;
+
+    let targetTier = tier;
+    if (!targetTier) {
+        if (typeof combat !== 'undefined' && combat.active) {
+            targetTier = getActForStage(combat.stage).id;
+        } else {
+            let act = getActForStage(state.selectedStage || 1);
+            targetTier = act ? act.id : 1;
+        }
+    }
+    targetTier = Math.max(1, Math.min(5, targetTier));
+
+    let eligible = DB.neutralItems.filter(n => !n.isQuestItem && n.tier === targetTier);
+    let unowned = eligible.filter(n => !ownedSet.has(n.id));
+    let pool = unowned.length > 0 ? unowned : eligible;
+    if (pool.length === 0) return null;
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -750,7 +1084,7 @@ function isForestActive() {
 function getHeroItemBonuses(heroData) {
     let b = {
         str:0, int:0, armor:0, dmg:0, bonusHp:0, bonusMp:0,
-        physLifesteal:0, spellLifesteal:0, hpRegen:0, spellAmp:0,
+        physLifesteal:0, spellLifesteal:0, hpRegen:0, mpRegen:0, spellAmp:0,
         critChance:0, critMult:0, magicResBonuses:[]
     };
     let allEq = [...(heroData.items || []).filter(Boolean)];
@@ -769,6 +1103,7 @@ function getHeroItemBonuses(heroData) {
         if (it.physLifesteal) b.physLifesteal += it.physLifesteal;
         if (it.spellLifesteal) b.spellLifesteal += it.spellLifesteal;
         if (it.hpRegen) b.hpRegen += it.hpRegen;
+        if (it.mpRegen) b.mpRegen += it.mpRegen;
         if (it.spellAmp) b.spellAmp += it.spellAmp;
         if (it.magicRes) b.magicResBonuses.push(it.magicRes);
         if (it.critMult && (it.critMult > b.critMult || (it.critMult === b.critMult && (it.critChance || 0) > b.critChance))) {
@@ -788,19 +1123,34 @@ function getHeroStats(heroData, dbHero) {
     let maxHp = Math.floor((Math.floor(str * 22) + 200 + b.bonusHp) * kettleHpMult);
     let maxMp = Math.floor(int * 12) + dbHero.baseMp + b.bonusMp;
     let hpRegen = Math.max(1, Math.floor(str * 0.1)) + b.hpRegen;
-    let mpRegen = Math.max(1, Math.floor(int * 0.05));
+    let mpRegenMult = CONFIG.combat.intMpRegenMult || 0.18;
+    let mpRegen = Math.max(4, Math.floor(int * mpRegenMult)) + (b.mpRegen || 0);
     let mainVal = (dbHero.mainAttr === 'str') ? str : int;
     let atk = Math.floor(20 + mainVal + b.dmg + (heroData.duelDmg || 0));
     let row = heroData.row || (dbHero.isMelee ? 'front' : 'back');
     let frontArmorBonus = (row === 'front') ? 2 : 0;
-    let armor = dbHero.baseArmor + Math.floor(dbHero.gainArmor * (lvl - 1)) + b.armor + frontArmorBonus;
-    let magicRes = getMagicReduction({ baseRes: 0.25, magicResBonuses: b.magicResBonuses });
+    let extraArmor = 0;
+    let extraMresBonuses = [...b.magicResBonuses];
+    if (dbHero.id === 'pudge') {
+        let skLvl = (heroData.skillLevels && heroData.skillLevels[2]) || 1;
+        let s3 = dbHero.skills && dbHero.skills[2];
+        if (s3 && s3.pudgeArmor) {
+            extraArmor += s3.pudgeArmor[Math.min(skLvl - 1, s3.pudgeArmor.length - 1)] || 0;
+        }
+        if (s3 && s3.pudgeMres) {
+            extraMresBonuses.push(s3.pudgeMres[Math.min(skLvl - 1, s3.pudgeMres.length - 1)] || 0);
+        }
+    }
+    let armor = dbHero.baseArmor + Math.floor(dbHero.gainArmor * (lvl - 1)) + b.armor + frontArmorBonus + extraArmor;
+    let magicRes = getMagicReduction({ baseRes: 0.25, magicResBonuses: extraMresBonuses });
+    let intSpellAmp = int * (CONFIG.combat.intSpellAmpPerPoint || 0.005);
+    let spellAmp = (b.spellAmp || 0) + intSpellAmp;
     return {
         str, int, maxHp, maxMp, hpRegen, mpRegen, atk, armor, magicRes, row,
-        magicResBonuses: b.magicResBonuses,
+        magicResBonuses: extraMresBonuses,
         physLifesteal: b.physLifesteal,
         spellLifesteal: b.spellLifesteal,
-        spellAmp: b.spellAmp,
+        spellAmp,
         itemCritChance: b.critChance,
         itemCritMult: b.critMult
     };

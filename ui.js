@@ -105,10 +105,16 @@ function getStageMeta(stage) {
     const special = {
         1:  { title:'Обучение: Лесной бельчонок', icon:'🐿️', tag:'СЮЖЕТ • ОБУЧЕНИЕ', isStory:true,
               desc:'Свен ранен после изгнания (34% ЗД). Одолейте бешеного бельчонка, чтобы раздобыть пропитание и открыть Лес!', enemies:'🐿️ Лесной бельчонок' },
+        2:  { title:'Засада у развилки', icon:'🧓', tag:'СЮЖЕТ • ТАИНСТВЕННЫЙ ПУТНИК', isStory:true,
+              desc:'На узкой лесной тропе вас встречает подозрительный старик в окружении разбойников. Что он скрывает?', enemies:'🧓 Странствующий путник + 2 разбойника' },
+        3:  { title:'Возвращение Отшельника', icon:'⚡', tag:'МИНИ-БОСС • РАЗОБЛАЧЕНИЕ', isStory:true,
+              desc:'Беглый старик сбросил маску! Перед вами грозный Шаман-отшельник, повелевающий молниями и змеями.', enemies:'⚡ Шаман-отшельник + 2 разбойника' },
         5:  { title:'БОСС АКТА 1: Банда разбойников', icon:'🥷', tag:'БОСС АКТА 1', isBoss:true, isStory:true,
               desc:'Шайка разбойников во главе с Баунти Хантером. Награда: 🚩 Знамя Изгнанника (+4-й слот, Мидас, Средний лес).', enemies:'🥷 Баунти Хантер + 2 разбойника' },
         6:  { title:'Обучение: Колючая спина', icon:'🦔', tag:'СЮЖЕТ • ПРОБИТИЕ', isStory:true,
               desc:'Жирный Бристлбэк режет 55% урона, пока целы щиты 🛡️. Ломайте их магией и критами!', enemies:'🦔 Бристлбэк' },
+        8:  { title:'Поляна Мясника', icon:'🪝', tag:'МИНИ-БОСС • СЮЖЕТНЫЙ СОЮЗНИК', isStory:true,
+              desc:'Огромный Мясник орудует крюком и ядовитой гнилью. Поговаривают, его ярость можно растопить заколдованным орехом из Леса...', enemies:'🪝 Пудж + 2 лесные твари' },
         10: { title:'БОСС АКТА 2: Стражи Тёмной чащи', icon:'🐺', tag:'БОСС АКТА 2', isBoss:true, isStory:true,
               desc:'Ио лечит и усиливает Тини и Люкана — фокусите Ио первым! Награда: 🛡️ Эгида Чащи (+5-й слот, Доминатор).', enemies:'🔵 Ио + 🗿 Тини + 🐺 Люкан' },
         11: { title:'Обучение: Месть из ветвей', icon:'🏹', tag:'СЮЖЕТ • НАМЕРЕНИЯ', isStory:true,
@@ -129,7 +135,7 @@ function getStageMeta(stage) {
     if (special[stage]) return special[stage];
 
     let act = getActForStage(stage);
-    let cnt = stage <= 3 ? 1 : (stage <= 9 ? 2 : 3);
+    let cnt = act.id <= 2 ? '2–3' : '3–4';
     return {
         title: `Разведка: ${act.name.split('. ')[1]}`,
         icon: act.icon,
@@ -137,7 +143,7 @@ function getStageMeta(stage) {
         isStory: false,
         isBoss: false,
         desc: `Пробейтесь через патрули врагов (${cnt} враг.), чтобы приблизиться к боссу Акта.`,
-        enemies: `${cnt} вражеских героя`
+        enemies: `${cnt} врага (герои и миньоны)`
     };
 }
 
@@ -446,10 +452,13 @@ function formatHeroStatsBlock(stats, mainAttr) {
     let magPct = Math.round(stats.magicRes * 100);
     let attrBadge = mainAttr === 'str' ? '<span style="color:#f55;">[СИЛ]</span>' : '<span style="color:#0af;">[ИНТ]</span>';
     let extras = [];
-    if (stats.spellAmp > 0) extras.push(`<span style="color:#c6f;">+${Math.round(stats.spellAmp * 100)}% маг.скиллы</span>`);
+    if (stats.spellAmp > 0) {
+        let ampVal = (stats.spellAmp * 100).toFixed(1).replace(/\.0$/, '');
+        extras.push(`<span style="color:#c6f;">+${ampVal}% маг.скиллы</span>`);
+    }
     if (stats.itemCritChance > 0) extras.push(`<span style="color:#f80;">Крит ${Math.round(stats.itemCritChance * 100)}% (×${stats.itemCritMult})</span>`);
     return `${attrBadge} <span style="color:#f55;">СИЛ:</span> ${Math.floor(stats.str)} | <span style="color:#0af;">ИНТ:</span> ${Math.floor(stats.int)}<br>` +
-           `<span style="color:#0f0;">ЗД:</span> ${stats.maxHp} | <span style="color:#48f;">МН:</span> ${stats.maxMp} | <span style="color:#fa0;">УРН:</span> ${stats.atk}<br>` +
+           `<span style="color:#0f0;">ЗД:</span> ${stats.maxHp} | <span style="color:#48f;">МН:</span> ${stats.maxMp} (+${stats.mpRegen}/х) | <span style="color:#fa0;">УРН:</span> ${stats.atk}<br>` +
            `<span style="color:#ddd;">БРО:</span> ${stats.armor} (${physPct}%) | <span style="color:#6cf;">МАГ.РЕЗ:</span> ${magPct}%` +
            (extras.length ? `<br>${extras.join(' | ')}` : '');
 }
@@ -473,6 +482,15 @@ function renderHeroes() {
         const owned = state.heroes.find(h => h.dbId === dbH.id);
 
         if (!owned && dbH.storyUnlock) {
+            if (dbH.id === 'pudge') {
+                if (state.maxRaidCleared >= 5) {
+                    list.innerHTML += `<div class="card locked-card">
+                        <div style="color:#fc0;">🔒 ??? (Сюжетный союзник — Тёмная чаща, Акт 2)</div>
+                        <div style="font-size:7px; color:#aaa; margin-top:4px;">Обитает на Этапе 8. Попробуйте угостить его Заколдованным орехом из Леса...</div>
+                    </div>`;
+                }
+                return;
+            }
             if (state.maxRaidCleared >= 10) {
                 list.innerHTML += `<div class="card locked-card">
                     <div style="color:#fc0;">🔒 ??? (Сюжетный союзник)</div>

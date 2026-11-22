@@ -306,10 +306,37 @@ function updateForestUI() {
 
 function tryDropNeutral(chance) {
     if (Math.random() >= chance) return;
-    let n = pickRandomNeutralDrop();
+    let tier = 1;
+    if (state.maxRaidCleared >= 20) tier = 5;
+    else if (state.maxRaidCleared >= 15) tier = 4;
+    else if (state.maxRaidCleared >= 10) tier = 3;
+    else if (state.maxRaidCleared >= 5)  tier = 2;
+    let n = pickRandomNeutralDrop(tier);
     if (n) {
         state.neutralInv.push(n.id);
-        if (isForestActive()) showRuneToast(`🎁 Выпал нейтральный предмет: ${n.icon} ${n.name}!`);
+        if (isForestActive()) showRuneToast(`🎁 Выпал нейтральный предмет (${tier} разряд): ${n.icon} ${n.name}!`);
+    }
+}
+
+function checkNutcrackerDrop() {
+    if (state.maxRaidCleared < 5) return;
+    let hasPudge = (state.heroes || []).some(h => h.dbId === 'pudge');
+    if (hasPudge) return;
+    let hasNutcracker = (state.neutralInv || []).includes('enchanted_nut') ||
+                        (state.neutralInv || []).includes('nutcracker') ||
+                        (state.raidInv || []).includes('enchanted_nut') ||
+                        (state.raidInv || []).includes('nutcracker') ||
+                        (state.heroes || []).some(h => h.neutralItem === 'enchanted_nut' || h.neutralItem === 'nutcracker' || (h.items && (h.items.includes('enchanted_nut') || h.items.includes('nutcracker')))) ||
+                        state.nutcrackerDropped;
+    if (hasNutcracker) return;
+
+    state.act2CreepsKilled = (state.act2CreepsKilled || 0) + 1;
+    let drop = Math.random() < 0.12 || state.act2CreepsKilled >= 10;
+    if (drop) {
+        state.neutralInv.push('enchanted_nut');
+        state.nutcrackerDropped = true;
+        showRuneToast('🎁 В кустах найдено странное лакомство: 🌰 Заколдованный орех! Похоже, его можно применить на кого-то в бою...');
+        save();
     }
 }
 
@@ -378,6 +405,7 @@ function clickCreep(e) {
         }
         let nChance = currentCreep.name === 'Золотой Гоблин' ? CONFIG.neutrals.forestGoblinChance : (currentCreep.isStacked ? CONFIG.neutrals.forestStackChance : CONFIG.neutrals.forestCreepChance);
         tryDropNeutral(nChance);
+        checkNutcrackerDrop();
         state.creepsKilled++;
         awardForestHerbProgress(currentCreep.name === 'Золотой Гоблин');
         checkShopTierUnlockToast(prevTier);
@@ -429,6 +457,7 @@ setInterval(() => {
         let prevTier = getHighestUnlockedShopTier();
         state.gold += currentCreep.gold;
         if (currentCreep.isStacked) { state.stacksKilled = (state.stacksKilled || 0) + 1; state.herbs = (state.herbs || 0) + CONFIG.forest.stackHerbs; }
+        checkNutcrackerDrop();
         state.creepsKilled++;
         awardForestHerbProgress(currentCreep.name === 'Золотой Гоблин');
         checkShopTierUnlockToast(prevTier);

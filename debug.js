@@ -114,6 +114,14 @@
                 <button class="dbg-btn" onclick="dbgUnlockAllRelics()">🏆 Все Трофеи (5 слотов)</button>
             </div>
         </div>
+
+        <div class="dbg-sec">
+            <div class="dbg-title">🌰 СЮЖЕТ И КВЕСТЫ (ШАМАН / ПУДЖ)</div>
+            <div class="dbg-row">
+                <button class="dbg-btn ok" onclick="dbgGiveNutcracker()">🌰 Выдать Заколдованный орех</button>
+                <button class="dbg-btn warn" onclick="dbgResetShamanPudge()">🔄 Сбросить Шамана/Пуджа</button>
+            </div>
+        </div>
     `;
     document.body.appendChild(panel);
 
@@ -219,5 +227,35 @@
             if (!state.relics.includes(rid)) state.relics.push(rid);
         });
         save();
+    };
+
+    window.dbgGiveNutcracker = function() {
+        if (!state.neutralInv.includes('enchanted_nut')) {
+            state.neutralInv.push('enchanted_nut');
+        }
+        state.nutcrackerDropped = true;
+        save();
+        alert('🌰 Заколдованный орех добавлен в нейтральный инвентарь!');
+    };
+
+    window.dbgResetShamanPudge = function() {
+        state.shamanFled = false;
+        state.chickenKilled = false;
+        state.nutcrackerDropped = false;
+        state.act2CreepsKilled = 0;
+        state.seenStories = (state.seenStories || []).filter(s => !['stage3_shaman_intro', 'stage8_pudge_intro', 'pudge_join'].includes(s));
+        let pudge = state.heroes.find(h => h.dbId === 'pudge');
+        if (pudge) {
+            state.squad = state.squad.filter(id => id !== pudge.id);
+            state.heroes = state.heroes.filter(h => h.id !== pudge.id);
+        }
+        state.neutralInv = (state.neutralInv || []).filter(id => id !== 'nutcracker' && id !== 'enchanted_nut');
+        state.raidInv = (state.raidInv || []).filter(id => id !== 'nutcracker' && id !== 'enchanted_nut');
+        state.heroes.forEach(h => {
+            if (h.neutralItem === 'nutcracker' || h.neutralItem === 'enchanted_nut') h.neutralItem = null;
+            if (h.items) h.items = h.items.map(it => (it === 'nutcracker' || it === 'enchanted_nut') ? null : it);
+        });
+        save();
+        alert('🔄 Шаман, Пудж и Заколдованный орех сброшены!');
     };
 })();
