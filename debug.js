@@ -125,14 +125,18 @@
         </div>
 
         <div class="dbg-sec">
-            <div class="dbg-title">🌰 СЮЖЕТ И ЭНКАУНТЕРЫ</div>
+            <div class="dbg-title">🎣 РЫБАЛКА И ЭНКАУНТЕРЫ</div>
             <div class="dbg-row">
-                <button class="dbg-btn ok" onclick="dbgStartCircus()">🎪 Бродячий цирк (Этап 14)</button>
-                <button class="dbg-btn ok" onclick="dbgGiveNutcracker()">🌰 Заколдованный орех</button>
+                <button class="dbg-btn ok" onclick="dbgRecruitBeaver()">🦫 Вербовать Бобра + 10 🪱</button>
+                <button class="dbg-btn ok" onclick="dbgAddFishingPoints(100)">🐟 +100 очков улова</button>
+            </div>
+            <div class="dbg-row">
+                <button class="dbg-btn ok" onclick="dbgStartStage8()">🎣 Запуск Этапа 8 (Бобёр)</button>
+                <button class="dbg-btn ok" onclick="dbgStartCircus()">🎪 Цирк (Этап 14)</button>
             </div>
             <div class="dbg-row">
                 <button class="dbg-btn ok" onclick="dbgGiveOrchidRecipe()">📜 Чертёж Орчида</button>
-                <button class="dbg-btn warn" onclick="dbgResetShamanPudge()">🔄 Сбросить Шамана/Моржа</button>
+                <button class="dbg-btn warn" onclick="dbgResetShamanPudge()">🔄 Сбросить Шамана/Бобра</button>
             </div>
         </div>
     `;
@@ -242,13 +246,54 @@
         save();
     };
 
-    window.dbgGiveNutcracker = function() {
-        if (!state.neutralInv.includes('enchanted_nut')) {
-            state.neutralInv.push('enchanted_nut');
+    window.dbgRecruitBeaver = function() {
+        let hasPudge = (state.heroes || []).some(h => h.dbId === 'pudge');
+        if (!hasPudge) {
+            let pId = 'hero_pudge_' + Date.now();
+            let newHero = {
+                id: pId,
+                dbId: 'pudge',
+                level: 5,
+                xp: 0,
+                sp: 5,
+                skillLevels: [2, 1, 1, 1],
+                skills: { s1: 2, s2: 1, s3: 1, s4: 1 },
+                items: [null, null, null, null],
+                neutralItem: null,
+                row: 'front'
+            };
+            state.heroes.push(newHero);
+            if (state.squad.length < 5) state.squad.push(pId);
         }
-        state.nutcrackerDropped = true;
+        state.fishing = state.fishing || { bait: 0, points: 0, rodLevel: 0, caughtSpecies: {}, foundCurios: {}, freshCatchBuff: false };
+        let maxB = (CONFIG.fishing ? CONFIG.fishing.maxBait : 12);
+        state.fishing.bait = Math.min(maxB, (state.fishing.bait || 0) + 10);
+        state.seenTabs = state.seenTabs || {};
+        state.seenTabs.river = false;
+        if (typeof setTabBadge === 'function') setTabBadge('river', true);
+        if (typeof updateNavLocks === 'function') updateNavLocks();
         save();
-        alert('🌰 Заколдованный орех добавлен в нейтральный инвентарь!');
+        updateUI();
+        alert('🦫 Бобёр-удильщик завербован, открыта вкладка 🎣 Речка и начислено +10 наживки!');
+    };
+
+    window.dbgAddFishingPoints = function(pts = 100) {
+        state.fishing = state.fishing || { bait: 0, points: 0, rodLevel: 0, caughtSpecies: {}, foundCurios: {}, freshCatchBuff: false };
+        state.fishing.points = (state.fishing.points || 0) + pts;
+        save();
+        if (typeof renderRiverUI === 'function') renderRiverUI();
+        updateUI();
+        alert(`🐟 Начислено +${pts} очков улова (всего: ${state.fishing.points})!`);
+    };
+
+    window.dbgStartStage8 = function() {
+        state.forestUnlocked = true;
+        if (state.maxRaidCleared < 7) state.maxRaidCleared = 7;
+        state.selectedStage = 8;
+        save();
+        switchTab('raid');
+        startRaid(8, 'normal');
+        document.getElementById('dbg-panel').style.display = 'none';
     };
 
     window.dbgGiveOrchidRecipe = function() {
@@ -299,22 +344,16 @@
         state.shamanFled = false;
         state.shamanKilled = false;
         state.chickenKilled = false;
-        state.nutcrackerDropped = false;
-        state.act2CreepsKilled = 0;
-        state.seenStories = (state.seenStories || []).filter(s => !['silence_tutorial', 'stage9_no_shaman', 'stage9_shaman_reveal', 'stage3_shaman_intro', 'stage8_pudge_intro', 'pudge_join'].includes(s));
-        let pudge = state.heroes.find(h => h.dbId === 'pudge');
+        state.seenStories = (state.seenStories || []).filter(s => !['silence_escape', 'stage9_no_shaman', 'stage9_shaman_reveal', 'stage3_shaman_intro', 'stage8_pudge_intro', 'stage8_beaver_win'].includes(s));
+        let pudge = (state.heroes || []).find(h => h.dbId === 'pudge');
         if (pudge) {
             state.squad = state.squad.filter(id => id !== pudge.id);
             state.heroes = state.heroes.filter(h => h.id !== pudge.id);
         }
-        state.neutralInv = (state.neutralInv || []).filter(id => id !== 'nutcracker' && id !== 'enchanted_nut');
-        state.raidInv = (state.raidInv || []).filter(id => id !== 'nutcracker' && id !== 'enchanted_nut');
-        state.heroes.forEach(h => {
-            if (h.neutralItem === 'nutcracker' || h.neutralItem === 'enchanted_nut') h.neutralItem = null;
-            if (h.items) h.items = h.items.map(it => (it === 'nutcracker' || it === 'enchanted_nut') ? null : it);
-        });
+        state.fishing = { bait: 0, points: 0, rodLevel: 0, caughtSpecies: {}, foundCurios: {}, freshCatchBuff: false };
         save();
-        alert('🔄 Шаман, Морж-рыболов и Заколдованный орех сброшены!');
+        updateUI();
+        alert('🔄 Шаман и Бобёр-удильщик (вместе со снастью) сброшены!');
     };
 
     window.dbgResetAct0 = function() {

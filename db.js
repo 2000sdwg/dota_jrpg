@@ -144,7 +144,7 @@ const STORY_EVENTS = {
     },
     silence_escape: {
         icon:'🔇', title:'Чары побега и Безмолвие!',
-        text:'Старик сбросил человеческий облик и обернулся <b>зачарованной курицей</b>! Она расправляет крылья и готовится удрать в кусты на своём ходу.<br><br><span style="color:#f55;">⚠️ Внимание:</span> Курица неуязвима к обычному урону! Единственный способ сорвать побег и уничтожить её — наложить <b>🔇 Безмолвие</b> (активный <b>Орчид</b>, <b>Сайленсер</b>, <b>Сглаз</b> Лиона, <b>Фишинг хук</b> Моржа-рыболова, <b>Морской поток / Крест</b> Кункки, <b>Удар молнии</b> Зевса) прямо сейчас!'
+        text:'Старик сбросил человеческий облик и обернулся <b>зачарованной курицей</b>! Она расправляет крылья и готовится удрать в кусты на своём ходу.<br><br><span style="color:#f55;">⚠️ Внимание:</span> Курица неуязвима к обычному урону! Единственный способ сорвать побег и уничтожить её — наложить <b>🔇 Безмолвие</b> (активный <b>Орчид</b>, <b>Сайленсер</b>, <b>Сглаз</b> Лиона, <b>Фишинг хук</b> Бобра-удильщика, <b>Морской поток / Крест</b> Кункки, <b>Удар молнии</b> Зевса) прямо сейчас!'
     },
     stage9_no_shaman: {
         icon:'🗡️', title:'Тёмная чаща: Засада без вожака',
@@ -172,12 +172,12 @@ const STORY_EVENTS = {
         text:'Тропу в Тёмную чащу перекрывает свирепый <b>Бристлбэк</b> со своей лесной свитой! За его каменной спиной из <b>8 щитов 🛡️</b> укрылись болотный знахарь и паук.<br><br><span style="color:#f80;">💡 Механика Пробития (🛡️):</span> Пока у Бристлбэка целы щиты, его <b>Колючая спина</b> режет 72% урона и бьёт иглами в ответ. Ломайте щиты навыками <b>💥 Пробития</b>, магией и критами или пробивайте его 2-й ряд!'
     },
     stage8_pudge_intro: {
-        icon:'🦭', title:'Берег реки: Морж-рыболов',
-        text:'На тихой речной заводи среди камышей сидит могучий <b>Морж-рыболов</b> в панаме. Он сосредоточенно следит за поплавком, сжимая в ластах длинную удочку с острым крюком и тяжёлую сеть. Похоже, лесные твари распугали всю рыбу, и добродушный рыболов не на шутку раздосадован...'
+        icon:'🦫', title:'Берег реки: Бобёр-удильщик',
+        text:'На тихой речной заводи среди камышей сидит сосредоточенный <b>Бобёр-удильщик</b> с верной удочкой и тяжёлой сетью. Похоже, лесные твари распугали всю рыбу у его заводи, и сердитый рыболов не на шутку раздосадован...'
     },
-    pudge_join: {
-        icon:'🌰', title:'Угощение для Моржа-рыболова',
-        text:'Морж-рыболов замирает, ловит заколдованный орех на лету, с хрустом разгрызает бивнями и довольно жмурится! Его усы довольно топорщатся:<br><br><i>«Ого! Вот это клёв! Заколдованный орешек — лучшая наживка на свете! А я-то думал, вы очередные браконьеры, распугавшие мою рыбу. Ты добрый путник, рыцарь! С такой наживкой мы с тобой всю чащу прочешем — беру удочку, сеть и иду в твой отряд!»</i><br><br><span style="color:#0f0;">✨ Морж-рыболов навсегда присоединился к вашим героям!</span>'
+    stage8_beaver_win: {
+        icon:'🦫', title:'Вербовка Бобра-удильщика',
+        text:'🦫 Бобёр-удильщик отряхивает мокрый хвост и ухмыляется:<br><br><i>«Крепко бьёте. У моей заводи рыба совсем перевелась — распугала всякая нечисть. Возьмёте с собой? Удочка у меня верная, а за новые рыбные места в долгу не останусь.»</i><br><br><span style="color:#0f0;">✨ Бобёр-удильщик бесплатно присоединился к вашему отряду (+3 🪱 Наживки)!</span>'
     },
     stage11_intro: {
         icon:'🏹', title:'Акт 3: Старые долги',
@@ -329,13 +329,13 @@ const DB = {
             {id:'s3',name:'Сияние',type:'passive',dmg:[0,0,0,0],mp:[0,0,0,0],lumiCrit:1.6,lumiTeamHealPct:0.12,full:'Пассивка. Каждое 3-е действие гарантированно критует (×1.6) и лечит весь отряд на 12% макс. ЗД.'},
             {id:'s4',name:'Солнечный страж',type:'magic',dmg:[240,360,480],mp:[85,90,95],cd:5,prep:1,aoe:true,teamShieldDmgRed:0.25,teamHealVal:[150,240,330],breakHitsNormal:1,breakHitsBurn:2,full:'Ультимейт с Подготовкой (1 х.). Щит отряду (−25% входящего урона на 2 х.), лечит союзников (+150/240/330 ЗД) и ломает −1 🛡️ всем врагам (−2 🛡️ горящим 🔥)! Под Яростью — мгновенно!'}
           ]},
-        { id:'pudge', name:'Морж-рыболов', cost:0, icon:'🦭', role:'Танк / Контроль', unlockAct:99, storyUnlock:true, mainAttr:'str', isMelee:true,
+        { id:'pudge', name:'Бобёр-удильщик', cost:0, icon:'🦫', role:'Танк / Контроль', unlockAct:99, storyUnlock:true, mainAttr:'str', isMelee:true,
           baseStr:28, gainStr:4.0, baseInt:16, gainInt:1.5, baseMp:75, baseArmor:2, gainArmor:0.5,
           skills:[
-            {id:'s1',name:'Фишинг хук',type:'magic',dmg:[100,155,210,265],mp:[46,48,50,52],cd:3,hookPull:true,breakHits:2,full:'💥 Пробитие (−2 🛡️): забрасывает удочку через поле боя, вытягивает цель из 2-го ряда в 1-й (накладывает «Без прикрытия» +20% физ. урона), игнорирует штраф тыла и ломает 2 щита!'},
-            {id:'s2',name:'Рыбная приманка',type:'magic',dmg:[65,105,145,185],mp:[32,34,36,38],cd:2,aoe:true,weaken:0.20,selfHpCostPct:0.05,full:'Запах наживки: AoE Маг. урон ВСЕМ врагам (−1 🛡️) и −20% к их УРН на 2 хода. Тратит 5% макс. ЗД Моржа-рыболова (не убивает).'},
+            {id:'s1',name:'Фишинг хук',type:'magic',dmg:[100,155,210,265],mp:[46,48,50,52],cd:3,hookPull:true,breakHits:2,full:'💥 Пробитие (−2 🛡️): забрасывает удочку через поле боя, вытягивает цель из 2-го ряда в 1-й (накладывает «Без прикрытия» +20% физ. урона), игнорирует штраф тыла и ломает 2 щита! Улучшается на вкладке 🎣 Речка за очки улова.'},
+            {id:'s2',name:'Рыбная приманка',type:'magic',dmg:[65,105,145,185],mp:[32,34,36,38],cd:2,aoe:true,weaken:0.20,selfHpCostPct:0.05,full:'Запах наживки: AoE Маг. урон ВСЕМ врагам (−1 🛡️) и −20% к их УРН на 2 хода. Тратит 5% макс. ЗД Бобра-удильщика (не убивает).'},
             {id:'s3',name:'Рыбацкий улов',type:'passive',dmg:[0,0,0,0],mp:[0,0,0,0],fleshHeapHpPerKill:0.04,backRowAoeRes:0.15,full:'Пассивка. +4% макс. ЗД за каждого убитого врага в бою + снижает получаемый союзниками 2-го ряда AoE-урон на 15%.'},
-            {id:'s4',name:'Тяжёлая сеть',type:'magic',dmg:[320,480,640],mp:[80,85,90],cd:4,rootTurns:2,poisonTurns:2,poisonDmg:[40,60,80],breakHits:2,drainHealPct:0.50,full:'Ультимейт (мгновенный). Опутывает цель прочной сетью (❄️ Оцепенение на 2 х. + 🧪 Кровотечение на 2 х.), ломает −2 🛡️ и лечит Моржа-рыболова на 50% нанесённого урона!'}
+            {id:'s4',name:'Тяжёлая сеть',type:'magic',dmg:[320,480,640],mp:[80,85,90],cd:4,rootTurns:2,poisonTurns:2,poisonDmg:[40,60,80],breakHits:2,drainHealPct:0.50,full:'Ультимейт (мгновенный). Опутывает цель прочной сетью (❄️ Оцепенение на 2 х. + 🧪 Кровотечение на 2 х.), ломает −2 🛡️ и лечит Бобра-удильщика на 50% нанесённого урона!'}
           ]},
     ],
     forestItems: [
@@ -454,11 +454,7 @@ const DB = {
         {id:'apex',tier:5,icon:'👑',name:'Вершина (Апекс)',stats:{str:25,int:25},dmg:25,short:'+25 СИЛ, +25 ИНТ, +25 УРН.',full:'Нейтральный предмет (5 разряд). Легендарная корона, дающая колоссальные характеристики.'},
         {id:'mirror_shield',tier:5,icon:'🪞',name:'Зеркальный щит',stats:{armor:6},magicRes:0.20,hpRegen:25,short:'+6 БРО, +20% МАГ.РЕЗ, +25 реген ЗД/ход.',full:'Нейтральный предмет (5 разряд). Зеркальный щит абсолютной защиты.'},
         {id:'pirate_hat',tier:5,icon:'🏴‍☠️',name:'Пиратская шляпа',dmg:45,physLifesteal:0.20,short:'+45 УРН, +20% физ. вампиризм.',full:'Нейтральный предмет (5 разряд). Огромная прибавка к физическому урону и вампиризму.'},
-        {id:'book_of_shadows',tier:5,icon:'📖',name:'Книга теней',stats:{int:30},spellAmp:0.25,bonusHp:250,short:'+30 ИНТ, +25% маг. скиллы, +250 ЗД.',full:'Нейтральный предмет (5 разряд). Древний гримуар невообразимой магической мощи.'},
-
-        /* Квестовый предмет Акта 2 */
-        {id:'enchanted_nut',tier:2,isQuestItem:true,consumable:true,usableInCombat:true,icon:'🌰',name:'Заколдованный орех',short:'Особый орех. Можно применить в бою на подходящего врага.',full:'Крепкий лесной орех, покрытый рунами. Поговаривают, в Тёмной чаще бродит огромный мясник, который обожает лесные лакомства... Примените на него в бою!'},
-        {id:'nutcracker',tier:2,isQuestItem:true,consumable:true,usableInCombat:true,icon:'🌰',name:'Заколдованный орех',short:'Особый орех. Можно применить в бою на подходящего врага.',full:'Крепкий лесной орех, покрытый рунами. Поговаривают, в Тёмной чаще бродит огромный мясник, который обожает лесные лакомства... Примените на него в бою!'}
+        {id:'book_of_shadows',tier:5,icon:'📖',name:'Книга теней',stats:{int:30},spellAmp:0.25,bonusHp:250,short:'+30 ИНТ, +25% маг. скиллы, +250 ЗД.',full:'Нейтральный предмет (5 разряд). Древний гримуар невообразимой магической мощи.'}
     ]
 };
 
@@ -810,7 +806,7 @@ const SPECIAL_ENEMIES = {
         ]
     },
     pudge_stage8: {
-        name:'Морж-рыболов', icon:'🦭', hp:1400, mp:240, atk:72, armor:5, isMelee:true, isBoss:true, shieldMax:3, row:'front', pudgeRecruitable:true,
+        name:'Бобёр-удильщик', icon:'🦫', hp:1400, mp:240, atk:72, armor:5, isMelee:true, isBoss:true, shieldMax:3, row:'front', pudgeRecruitable:true,
         skills:[
             { name:'Фишинг хук', type:'magic', mult:1.85, aoe:false, stun:0, silence:1, targetBackRow:true, mpCost:80, desc:'Забрасывает удочку во 2-й ряд. 🔇 Безмолвие (1 х.): сбивает подготовку и запрещает скиллы!' },
             { name:'Рыбная приманка', type:'magic', mult:0.9, aoe:true, stun:0, mpCost:50, desc:'AoE Маг. урон по всему отряду.' }
@@ -1027,8 +1023,7 @@ function createInitialState() {
         shamanKilled: false,
         shamanFled: false,
         orchidRecipeDropped: false,
-        act2CreepsKilled: 0,
-        nutcrackerDropped: false
+        fishing: { bait: 0, points: 0, rodLevel: 0, caughtSpecies: {}, foundCurios: {}, freshCatchBuff: false }
     };
 }
 
@@ -1068,9 +1063,10 @@ state.selectedStage = state.selectedStage || Math.min(25, state.maxRaidCleared +
 state.shamanFled = state.shamanFled || false;
 state.shamanKilled = state.shamanKilled || false;
 state.chickenKilled = state.chickenKilled || false;
-state.nutcrackerDropped = state.nutcrackerDropped || false;
-state.act2CreepsKilled = state.act2CreepsKilled || 0;
 state.orchidRecipeDropped = state.orchidRecipeDropped || false;
+state.fishing = state.fishing || { bait: 0, points: 0, rodLevel: 0, caughtSpecies: {}, foundCurios: {}, freshCatchBuff: false };
+state.fishing.caughtSpecies = state.fishing.caughtSpecies || {};
+state.fishing.foundCurios = state.fishing.foundCurios || {};
 
 state.heroes.forEach(h => {
     h.skillLevels = h.skillLevels || [0, 0, 0, 0];
@@ -1086,7 +1082,7 @@ function getUnlockedFeatures(s) {
     let st = s || (typeof state !== 'undefined' ? state : null);
     if (!st) {
         return {
-            forestTab: true, raidTab: false, shopTab: false, partyTab: false, tavernTab: false,
+            forestTab: true, raidTab: false, shopTab: false, partyTab: false, tavernTab: false, riverTab: false,
             forestCombo: false, forestUpgrades: false, forestEvents: false, forestHerbsAndTea: false,
             combatShields: false, combatBlock: false, combatTurnBar: false,
             combatUlt: false, combatRage: false, combatTargeting: false, combatRows: false,
@@ -1105,6 +1101,7 @@ function getUnlockedFeatures(s) {
         shopTab: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
         tavernTab: !!(st.prologueCleared >= 3 || st.maxRaidCleared >= 1),
         partyTab: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
+        riverTab: !!(st.heroes && st.heroes.some(h => h.dbId === 'pudge')),
         forestCombo: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
         forestUpgrades: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
         forestEvents: !!(st.prologueCleared >= 2 || st.maxRaidCleared >= 1),
@@ -1218,10 +1215,16 @@ function getIncomingDmgMult(unit, dmgType) {
     } else if (unit.isEnemy && (unit.shield || 0) > 0) {
         mult *= unit.bristlePassive ? CONFIG.combat.bristleShieldDmgMult : CONFIG.combat.shieldDmgMult;
     }
-    if (unit.isEnemy && unit.row === 'front' && (!unit.isMelee || unit.archetype === 'mage' || unit.archetype === 'support') && dmgType === 'phys') {
+    let unc = unit.buffs && unit.buffs.find(b => b.type === 'uncovered');
+    if (unc && dmgType === 'phys') {
+        let uncBonus = (unc.bonus !== undefined) ? unc.bonus : 0.20;
+        mult *= (1 + uncBonus);
+    } else if (unit.isEnemy && unit.row === 'front' && (!unit.isMelee || unit.archetype === 'mage' || unit.archetype === 'support') && dmgType === 'phys') {
         mult *= 1.20; // Без прикрытия: +20% физ. урона
     }
     if (unit.buffs) {
+        let rdr = unit.buffs.find(b => b.type === 'rod_dr');
+        if (rdr && rdr.value) mult *= Math.max(0, 1 - rdr.value);
         let dec = unit.buffs.find(b => b.type === 'decrepify');
         if (dec) {
             if (dmgType === 'phys') return 0;

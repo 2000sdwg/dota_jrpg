@@ -287,3 +287,353 @@ button:disabled { background: #333; border-color: #555; color: #777; cursor: not
     from { border-color: #a80; box-shadow: 0 0 6px rgba(212, 175, 55, 0.15); }
     to { border-color: #fc0; box-shadow: 0 0 12px rgba(255, 215, 0, 0.35); }
 }
+
+/* ===== ВЫДЕЛЕННАЯ ВКЛАДКА «РЕЧКА» И МИНИ-ИГРА (v4.7) ===== */
+.river-header-card {
+    background: linear-gradient(180deg, #091f2c, #05121b);
+    border: 1px solid #1a5276;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 8px;
+    box-shadow: inset 0 0 8px rgba(0, 150, 255, 0.15);
+}
+.river-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.river-game-box {
+    margin-top: 8px;
+    background: #081721;
+    border: 1px solid #1c3b52;
+    border-radius: 6px;
+    padding: 8px;
+}
+
+.river-water-view {
+    position: relative;
+    height: 110px;
+    background: linear-gradient(180deg, #0f3854, #082132);
+    border: 1px solid #00aaff;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.river-water-waves {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 10px, transparent 10px, transparent 20px);
+    pointer-events: none;
+}
+.river-water-waves.animated {
+    animation: riverFlowWaves 4s linear infinite;
+}
+@keyframes riverFlowWaves {
+    from { background-position: 0 0; }
+    to { background-position: 100px 0; }
+}
+
+.river-beaver-sprite {
+    position: absolute;
+    left: 12px;
+    bottom: 8px;
+    font-size: 28px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+}
+.river-float-idle {
+    font-size: 26px;
+    animation: floatIdleBob 2s ease-in-out infinite alternate;
+}
+.river-float-bobbing {
+    font-size: 26px;
+    animation: floatBobbing 0.7s ease-in-out infinite alternate;
+}
+.nibble-wobble {
+    animation: nibbleShake 0.15s ease-in-out 4 alternate !important;
+}
+.river-float-diving {
+    font-size: 32px;
+    animation: floatPlunge 0.3s ease-in-out infinite alternate;
+}
+@keyframes floatIdleBob {
+    from { transform: translateY(-3px) rotate(-3deg); }
+    to { transform: translateY(3px) rotate(3deg); }
+}
+@keyframes floatBobbing {
+    from { transform: translateY(-6px); }
+    to { transform: translateY(6px); }
+}
+@keyframes nibbleShake {
+    from { transform: translate(-3px, 2px) rotate(-8deg); }
+    to { transform: translate(3px, -2px) rotate(8deg); }
+}
+@keyframes floatPlunge {
+    from { transform: translateY(6px) scale(0.95); }
+    to { transform: translateY(14px) scale(1.1); }
+}
+
+.river-water-hint {
+    margin-top: 8px;
+    font-size: 7px;
+    color: #8df;
+    text-shadow: 0 1px 2px #000;
+}
+.bite-alert-banner {
+    color: #ff0;
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 0 0 8px #f50;
+    animation: bitePulse 0.25s infinite alternate;
+}
+@keyframes bitePulse {
+    from { transform: scale(1); filter: brightness(1); }
+    to { transform: scale(1.15); filter: brightness(1.5); }
+}
+
+.cast-rod-btn {
+    width: 100%;
+    margin-top: 6px;
+    padding: 10px;
+    background: #06402b;
+    border: 1px solid #00aa66;
+    color: #fff;
+    font-size: 9px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.cast-rod-btn:disabled {
+    background: #222;
+    border-color: #444;
+    color: #777;
+    cursor: not-allowed;
+}
+.cast-rod-btn.bite-btn {
+    background: #a80000;
+    border-color: #ff3333;
+    color: #fff;
+    font-weight: bold;
+    animation: biteBtnGlow 0.3s infinite alternate;
+}
+@keyframes biteBtnGlow {
+    from { box-shadow: 0 0 4px #f00; }
+    to { box-shadow: 0 0 14px #ff3333; }
+}
+
+/* ФАЗА ВЫВАЖИВАНИЯ (REELING TRACK) */
+.reeling-arena {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.reeling-status-bar {
+    display: flex;
+    justify-content: space-between;
+    font-size: 8px;
+}
+.reeling-track {
+    position: relative;
+    height: 44px;
+    background: #041019;
+    border: 2px solid #005588;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+}
+.reeling-hook-frame {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    background: rgba(0, 255, 100, 0.28);
+    border: 2px solid #00ff66;
+    border-radius: 4px;
+    box-shadow: 0 0 8px rgba(0, 255, 100, 0.4);
+    transition: background 0.1s, border-color 0.1s;
+    pointer-events: none;
+}
+.reeling-hook-frame.in-zone {
+    background: rgba(0, 255, 100, 0.48);
+    border-color: #aaffaa;
+    box-shadow: 0 0 14px #00ff66;
+}
+
+.reeling-fish-target {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    pointer-events: none;
+    filter: drop-shadow(0 0 4px #000);
+    z-index: 2;
+}
+
+.reeling-risk-bundle {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 14px;
+    animation: riskSparkle 0.4s infinite alternate;
+    z-index: 1;
+}
+.reeling-risk-bundle.claimed {
+    opacity: 0.3;
+    filter: grayscale(1);
+}
+@keyframes riskSparkle {
+    from { transform: translate(-50%, -50%) scale(0.9); }
+    to { transform: translate(-50%, -50%) scale(1.2); }
+}
+
+.catch-progress-track {
+    position: relative;
+    height: 14px;
+    background: #111;
+    border: 1px solid #444;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.catch-progress-bar {
+    height: 100%;
+    background: #00aa44;
+    width: 25%;
+    transition: width 0.05s linear;
+}
+.catch-progress-bar.filling {
+    background: linear-gradient(90deg, #00aa44, #00ff66);
+    box-shadow: 0 0 8px #00ff66;
+}
+.catch-progress-bar.draining {
+    background: linear-gradient(90deg, #880000, #ff2222);
+}
+.catch-progress-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    color: #fff;
+    text-shadow: 0 0 3px #000;
+}
+
+.reeling-hold-zone {
+    background: linear-gradient(180deg, #123d57, #0a2536);
+    border: 2px solid #00aaff;
+    border-radius: 6px;
+    padding: 16px 10px;
+    text-align: center;
+    color: #fff;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+    transition: background 0.1s, transform 0.05s;
+}
+.reeling-hold-zone:active, .reeling-hold-zone.active {
+    background: linear-gradient(180deg, #1f648f, #123d57);
+    border-color: #33ccff;
+    transform: scale(0.98);
+}
+
+.rod-upgrade-card {
+    background: #081a26;
+    border: 1px solid #14405c;
+    border-radius: 6px;
+    padding: 8px;
+}
+.upgrade-rod-btn {
+    padding: 8px;
+    background: #124d32;
+    border: 1px solid #00cc66;
+    color: #fff;
+    font-size: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.upgrade-rod-btn:disabled {
+    background: #222;
+    border-color: #444;
+    color: #777;
+    cursor: not-allowed;
+}
+
+.dump-btn {
+    padding: 8px;
+    background: #112838;
+    border: 1px solid #235d84;
+    color: #eee;
+    font-size: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    line-height: 1.4;
+}
+.dump-btn:disabled {
+    background: #1a1a1a;
+    border-color: #333;
+    color: #666;
+    cursor: not-allowed;
+}
+
+.river-keepnet-card {
+    background: #081721;
+    border: 1px solid #1c3b52;
+    border-radius: 6px;
+    padding: 8px;
+}
+.keepnet-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+}
+.keepnet-item {
+    background: #0d2230;
+    border: 1px solid #17425f;
+    border-radius: 4px;
+    padding: 4px 2px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+}
+.keepnet-item.unknown {
+    opacity: 0.45;
+    border-color: #24333d;
+    background: #09131a;
+}
+.keepnet-icon {
+    font-size: 14px;
+}
+.keepnet-name {
+    font-size: 6px;
+    color: #ddd;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* МОДАЛКА УЛОВА */
+#fish-catch-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+}
+.fish-catch-box {
+    width: 85%;
+    max-width: 320px;
+    background: #081c29;
+    border: 2px solid #00aaff;
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0, 170, 255, 0.4);
+}

@@ -112,7 +112,8 @@ function updateNavLocks() {
         { id: 'shop',   unlocked: f.shopTab,   btn: document.getElementById('nav-shop') },
         { id: 'heroes', unlocked: f.tavernTab, btn: document.getElementById('nav-heroes') },
         { id: 'squad',  unlocked: f.partyTab,  btn: document.getElementById('nav-squad') },
-        { id: 'raid',   unlocked: f.raidTab,   btn: document.getElementById('nav-raid') }
+        { id: 'raid',   unlocked: f.raidTab,   btn: document.getElementById('nav-raid') },
+        { id: 'river',  unlocked: f.riverTab,  btn: document.getElementById('nav-river') }
     ];
 
     state.seenTabs = state.seenTabs || { forest: true };
@@ -162,6 +163,8 @@ function updateUI() {
     renderSquad();
     renderInventory();
     renderCampaign();
+    let f = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures() : null;
+    if (typeof renderRiverUI === 'function' && f && f.riverTab) renderRiverUI();
     if (isForestActive() && state.forestUnlocked) updateForestUI();
 }
 
@@ -200,8 +203,8 @@ function getStageMeta(stage) {
               desc:'Бристлбэк прячется за 8 щитами и свитой! Разбейте прикрытие союзников или пробейте стену щитов.', enemies:'🦔 Бристлбэк + 🧙‍♂️ Знахарь + 🕷️ Паук' },
         7:  { title:'Таинственный путник', icon:'🧓', tag:'СЮЖЕТ • ТАЙНА ТЁМНОЙ ЧАЩИ', isStory:true,
               desc:'На тропе стоит одинокий старец, опираясь на сучковатый посох. Он пристально смотрит на вас...', enemies:'🧓 Таинственный путник (СОЛО)' },
-        8:  { title:'Речная заводь: Морж-рыболов', icon:'🦭', tag:'МИНИ-БОСС • СЮЖЕТНЫЙ СОЮЗНИК', isStory:true,
-              desc:'У реки рыбачит добродушный Морж-рыболов, готовый зацепить удочкой любого из 2-го ряда. Попробуйте угостить его Заколдованным орехом из Леса...', enemies:'🦭 Морж-рыболов + 2 лесные твари' },
+        8:  { title:'Речная заводь: Бобёр-удильщик', icon:'🦫', tag:'МИНИ-БОСС • СЮЖЕТНЫЙ СОЮЗНИК', isStory:true,
+              desc:'У тихой заводи рыбачит Бобёр-удильщик, готовый зацепить удочкой любого из 2-го ряда. Одолейте его в бою, чтобы он бесплатно присоединился к отряду и открыл Речку!', enemies:'🦫 Бобёр-удильщик + 2 лесные твари' },
         10: { title:'БОСС АКТА 2: Стражи Тёмной чащи', icon:'🐺', tag:'БОСС АКТА 2', isBoss:true, isStory:true,
               desc:'Ио лечит и усиливает Тини и Люкана — фокусите Ио первым! Награда: 🛡️ Эгида Чащи (+5-й слот, Доминатор).', enemies:'🔵 Ио + 🗿 Тини + 🐺 Люкан' },
         11: { title:'Снайпер в ветвях', icon:'🐿️', tag:'СЮЖЕТ • НАМЕРЕНИЯ', isStory:true,
@@ -527,6 +530,30 @@ function showSkillInfo(heroDbId, idx) {
     let metaHtml = getSkillMetaHtml(sk, heroLvl);
     let reqHtml = (idx === 3) ? `<div style="color:#fa0; margin-top:8px;">🔒 Ультимейт:<br>Ур.1 — 6 ур. героя<br>Ур.2 — 12 ур. героя<br>Ур.3 — 18 ур. героя</div>` : '';
 
+    let rodExtraHtml = '';
+    if (heroDbId === 'pudge' && idx === 0 && typeof getRodStats === 'function') {
+        let rLvl = (state.fishing && state.fishing.rodLevel) || 0;
+        let rStat = getRodStats(rLvl);
+        let rParts = [];
+        if (rStat.dmgBonus) rParts.push(`+${Math.round(rStat.dmgBonus * 100)}% урона`);
+        if (rStat.mpSave) rParts.push(`−${rStat.mpSave} МН (мин. 20)`);
+        if (rStat.exposedBonus) rParts.push(`Без прикрытия +${Math.round(rStat.exposedBonus * 100)}% физ.`);
+        if (rStat.extraShieldBreak) rParts.push(`+${rStat.extraShieldBreak} слом 🛡️`);
+        if (rStat.interruptCast) rParts.push(`сбивает подготовку 🔥`);
+        if (rStat.rageGain) rParts.push(`+${rStat.rageGain} Ярости`);
+        if (rStat.frontRowRoot) rParts.push(`❄️ Оцепенение 1-го ряда (2 х.)`);
+        if (rStat.drPct) rParts.push(`Упор на леску: −${Math.round(rStat.drPct * 100)}% урона (1 х.)`);
+        if (rStat.brokenMaxHpPct) rParts.push(`+${Math.round(rStat.brokenMaxHpPct * 100)}% макс. ЗД чистым по пробитым`);
+        if (rStat.bleedTurns) rParts.push(`🩸 Кровотечение (${rStat.bleedTurns} х.)`);
+        if (rStat.executeNormal) rParts.push(`добивание (<15% обычные, <10% боссы)`);
+
+        rodExtraHtml = `<div style="margin-top:8px; padding:6px; background:#023; border:1px solid #0af; border-radius:3px;">
+            <b style="color:#0ef;">🎣 Снасть Бобра: ${rStat.name} (Ур. ${rLvl}/12)</b><br>
+            <span style="color:#aff; font-size:8px;">${rParts.join(', ') || 'Базовая удочка без улучшений'}</span><br>
+            <span style="color:#888; font-size:7px;">Улучшается на вкладке 🎣 Речка за очки улова!</span>
+        </div>`;
+    }
+
     document.getElementById('skill-modal-title').innerText = sk.name;
     document.getElementById('skill-modal-desc').innerHTML = `
         <b style="color:#aaa;">Тип:</b> ${typeRu}<br>
@@ -534,6 +561,7 @@ function showSkillInfo(heroDbId, idx) {
         ${metaHtml}
         <b style="color:#aaa;">Макс. уровень:</b> ${maxLvl}<br>
         ${levelsHtml ? '<b style="color:#aaa; margin-top:6px; display:block;">По уровням:</b>' + levelsHtml : ''}
+        ${rodExtraHtml}
         <div style="margin-top:10px; padding:8px; background:#111; border-left:3px solid #0af;">${fmtStats(sk.full)}</div>
         ${reqHtml}`;
     document.getElementById('skill-info-modal').style.display = 'flex';

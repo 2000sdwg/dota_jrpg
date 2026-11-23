@@ -154,19 +154,27 @@ function claimRune() {
     if (features.forestHerbsAndTea) {
         state.herbs = (state.herbs || 0) + CONFIG.forest.runeHerbs;
     }
+    let gotBait = false;
+    if (features.riverTab && state.fishing && state.fishing.bait < (CONFIG.fishing ? CONFIG.fishing.maxBait : 12)) {
+        state.fishing.bait++;
+        gotBait = true;
+    }
     let herbTag = features.forestHerbsAndTea ? ' и +1 🌿 Трава' : '';
+    let baitTag = gotBait ? ' и +1 🪱 Наживка' : '';
     let herbPlus = features.forestHerbsAndTea ? ' • +1🌿' : '';
+    let baitPlus = gotBait ? ' • +1🪱' : '';
 
     if (r.type === 'bounty') {
         let totalPower = getForestDamage() + getArmyDps();
         let bonus = Math.max(50, Math.floor(25 * totalPower * getForestGoldMult()));
         state.gold += bonus;
-        showRuneToast(`💰 Руна Богатства: +${bonus} G${herbTag}!`);
-        spawnDamageNumber(window.innerWidth / 2, window.innerHeight / 3, `+${bonus} G${herbPlus}`, true);
+        showRuneToast(`💰 Руна Богатства: +${bonus} G${herbTag}${baitTag}!`);
+        spawnDamageNumber(window.innerWidth / 2, window.innerHeight / 3, `+${bonus} G${herbPlus}${baitPlus}`, true);
     } else {
         activeRuneBuff = { type: r.type, sec: 15 };
-        showRuneToast(`${r.desc}${herbTag ? ' (' + herbTag.trim() + ')' : ''}`);
-        spawnDamageNumber(window.innerWidth / 2, window.innerHeight / 3, r.type === 'dd' ? `⚡ ×2 КЛИК${herbPlus}` : `💨 ×2 АРМИЯ${herbPlus}`, true);
+        let fullTag = `${herbTag}${baitTag}`.trim();
+        showRuneToast(`${r.desc}${fullTag ? ' (' + fullTag.replace(/^и\s*/, '') + ')' : ''}`);
+        spawnDamageNumber(window.innerWidth / 2, window.innerHeight / 3, (r.type === 'dd' ? `⚡ ×2 КЛИК` : `💨 ×2 АРМИЯ`) + `${herbPlus}${baitPlus}`, true);
     }
     checkShopTierUnlockToast(prevTier);
     save();
@@ -455,28 +463,6 @@ function tryDropNeutral(chance) {
     }
 }
 
-function checkNutcrackerDrop() {
-    if (state.maxRaidCleared < 5) return;
-    let hasPudge = (state.heroes || []).some(h => h.dbId === 'pudge');
-    if (hasPudge) return;
-    let hasNutcracker = (state.neutralInv || []).includes('enchanted_nut') ||
-                        (state.neutralInv || []).includes('nutcracker') ||
-                        (state.raidInv || []).includes('enchanted_nut') ||
-                        (state.raidInv || []).includes('nutcracker') ||
-                        (state.heroes || []).some(h => h.neutralItem === 'enchanted_nut' || h.neutralItem === 'nutcracker' || (h.items && (h.items.includes('enchanted_nut') || h.items.includes('nutcracker')))) ||
-                        state.nutcrackerDropped;
-    if (hasNutcracker) return;
-
-    state.act2CreepsKilled = (state.act2CreepsKilled || 0) + 1;
-    let drop = Math.random() < 0.12 || state.act2CreepsKilled >= 10;
-    if (drop) {
-        state.neutralInv.push('enchanted_nut');
-        state.nutcrackerDropped = true;
-        showRuneToast('🎁 В кустах найдено странное лакомство: 🌰 Заколдованный орех! Похоже, его можно применить на кого-то в бою...');
-        save();
-    }
-}
-
 function checkShopTierUnlockToast(prevTier) {
     let curTier = getHighestUnlockedShopTier();
     if (curTier > prevTier) {
@@ -528,6 +514,9 @@ function clickCreep(e) {
         let prevTier = getHighestUnlockedShopTier();
         let recruitChance = 0.04 + domLvl * 0.01;
         let armyCap = domLvl * 50;
+        let isGoblin = (currentCreep.name === 'Золотой Гоблин');
+        let features = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : {};
+
         if (domLvl > 0 && state.forestArmy < armyCap && !currentCreep.isAncient && !currentCreep.isStacked && Math.random() < recruitChance) {
             state.forestArmy++;
             spawnDamageNumber(e.clientX, e.clientY, 'ВЕРБОВКА!', false);
@@ -535,19 +524,35 @@ function clickCreep(e) {
             state.gold += currentCreep.gold;
             if (currentCreep.isStacked) {
                 state.stacksKilled = (state.stacksKilled || 0) + 1;
-                let featTea = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state).forestHerbsAndTea : true;
+                let featTea = features.forestHerbsAndTea !== false;
+                let gotStackBait = false;
+                if (features.riverTab && state.fishing && state.fishing.bait < (CONFIG.fishing ? CONFIG.fishing.maxBait : 12)) {
+                    state.fishing.bait++;
+                    gotStackBait = true;
+                }
                 if (featTea) {
                     state.herbs = (state.herbs || 0) + CONFIG.forest.stackHerbs;
                 }
-                showRuneToast(`🏆 Стак убит: +${currentCreep.gold} G${featTea ? ' и +1 🌿 Трава' : ''}!`);
-                spawnDamageNumber(e.clientX, e.clientY - 26, `🏆 +${currentCreep.gold} G${featTea ? ' • +1🌿' : ''}`, true);
+                let extraTag = `${featTea ? ' и +1 🌿 Трава' : ''}${gotStackBait ? ' и +1 🪱 Наживка' : ''}`;
+                let extraPlus = `${featTea ? ' • +1🌿' : ''}${gotStackBait ? ' • +1🪱' : ''}`;
+                showRuneToast(`🏆 Стак убит: +${currentCreep.gold} G${extraTag}!`);
+                spawnDamageNumber(e.clientX, e.clientY - 26, `🏆 +${currentCreep.gold} G${extraPlus}`, true);
+            } else if (isGoblin) {
+                let gotGoblinBait = false;
+                if (features.riverTab && state.fishing && state.fishing.bait < (CONFIG.fishing ? CONFIG.fishing.maxBait : 12)) {
+                    state.fishing.bait++;
+                    gotGoblinBait = true;
+                }
+                if (gotGoblinBait) {
+                    showRuneToast(`💰 Золотой Гоблин повержен: +${currentCreep.gold} G и +1 🪱 Наживка!`);
+                    spawnDamageNumber(e.clientX, e.clientY - 40, '+1 🪱 Наживка', true);
+                }
             }
         }
-        let nChance = currentCreep.name === 'Золотой Гоблин' ? CONFIG.neutrals.forestGoblinChance : (currentCreep.isStacked ? CONFIG.neutrals.forestStackChance : CONFIG.neutrals.forestCreepChance);
+        let nChance = isGoblin ? CONFIG.neutrals.forestGoblinChance : (currentCreep.isStacked ? CONFIG.neutrals.forestStackChance : CONFIG.neutrals.forestCreepChance);
         tryDropNeutral(nChance);
-        checkNutcrackerDrop();
         state.creepsKilled++;
-        awardForestHerbProgress(currentCreep.name === 'Золотой Гоблин');
+        awardForestHerbProgress(isGoblin);
         checkShopTierUnlockToast(prevTier);
 
         if (!state.raidUnlocked && (state.gold >= 30 || state.creepsKilled >= 5)) {

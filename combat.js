@@ -552,6 +552,18 @@ function launchCombat(stage, contract) {
         if (svenCombatHero) svenCombatHero.rage = 50;
     }
 
+    if (state.fishing && state.fishing.freshCatchBuff) {
+        let beaver = combat.targets.find(t => !t.isEnemy && t.dbId === 'pudge');
+        if (beaver) {
+            let hpBonus = Math.floor(beaver.maxHp * 0.12);
+            beaver.maxHp += hpBonus;
+            beaver.hp += hpBonus;
+            log(`🍲 «Свежий улов»: Бобёр-удильщик получает +${hpBonus} ЗД (+12%) на этот бой!`);
+        }
+        state.fishing.freshCatchBuff = false;
+        save();
+    }
+
     // Ауры брони (Кираса / Баклер — не стакаются)
     let heroesList = combat.targets.filter(t => !t.isEnemy);
     let enemiesList = combat.targets.filter(t => t.isEnemy);
@@ -883,7 +895,7 @@ function checkEnemyLethal(enemy) {
             let hpGain = Math.floor(p.maxHp * 0.04);
             p.maxHp += hpGain;
             p.hp = Math.min(p.maxHp, p.hp + hpGain);
-            log(`🎣 «Рыбацкий улов»: Морж-рыболов лакомится добычей (+4% макс. ЗД, +${hpGain} ЗД)!`);
+            log(`🎣 «Рыбацкий улов»: Бобёр-удильщик лакомится добычей (+4% макс. ЗД, +${hpGain} ЗД)!`);
         });
     }
 }
@@ -1303,6 +1315,14 @@ function raidAction(type) {
                 let stun = (sk.stun && sk.stun[lvl - 1]) || 0;
                 let cost = sk.mp[lvl - 1];
                 let cdLeft = (actor.skillCooldowns && actor.skillCooldowns[sk.id]) || 0;
+                if (actor.dbId === 'pudge' && (sk.id === 's1' || sk.name === 'Фишинг хук')) {
+                    let rLvl = (state.fishing && state.fishing.rodLevel) || 0;
+                    let rStat = (typeof getRodStats === 'function') ? getRodStats(rLvl) : null;
+                    if (rStat) {
+                        if (rStat.mpSave) cost = Math.max(20, cost - rStat.mpSave);
+                        if (rStat.dmgBonus) dmg = Math.floor(dmg * (1 + rStat.dmgBonus));
+                    }
+                }
                 let canCast = actor.mp >= cost && cdLeft === 0;
                 let ampMult = (sk.type === 'magic' && actor.spellAmp > 0) ? (1 + actor.spellAmp) : 1;
                 let dispDmg = Math.floor(dmg * ampMult * (isRage ? 1.5 : 1));
@@ -1360,6 +1380,14 @@ function prepareSkill(idx, calcDmg, stunDur, cost) {
         if (skill.id === 's1') calcDmg = Math.floor(1.2 * actor.atk + 2.2 * (actor.int || 0));
         if (skill.id === 's4') calcDmg = Math.floor(0.85 * actor.atk + 1.5 * (actor.int || 0));
     }
+    if (actor.dbId === 'pudge' && (skill.id === 's1' || skill.name === 'Фишинг хук')) {
+        let rLvl = (state.fishing && state.fishing.rodLevel) || 0;
+        let rStat = (typeof getRodStats === 'function') ? getRodStats(rLvl) : null;
+        if (rStat) {
+            if (rStat.mpSave) cost = Math.max(20, cost - rStat.mpSave);
+            if (rStat.dmgBonus) calcDmg = Math.floor(calcDmg * (1 + rStat.dmgBonus));
+        }
+    }
     if (skill.useIllusions && actor.illusions > 0) calcDmg = Math.floor(calcDmg * (1 + actor.illusions * 0.12));
     if (skill.heavenlyJump) calcDmg = skill.heavenlyJump[lvl - 1];
     if (skill.manaSteal) calcDmg = skill.manaSteal[lvl - 1];
@@ -1412,10 +1440,6 @@ function openItemUse() {
     if (state.raidInv.includes('salve')) addBtn('salve', `🌿 Хилинг Сальв (150 ЗД / 3 х.) [×${state.raidInv.filter(x => x === 'salve').length}]`, '#142');
     if (state.raidInv.includes('tango')) addBtn('tango', `🍃 Танго (60 ЗД / 4 х.) [×${state.raidInv.filter(x => x === 'tango').length}]`, '#142');
 
-    let hasNutcracker = equipped.includes('enchanted_nut') || state.raidInv.includes('enchanted_nut') || state.neutralInv.includes('enchanted_nut') ||
-                        equipped.includes('nutcracker') || state.raidInv.includes('nutcracker') || state.neutralInv.includes('nutcracker');
-    if (hasNutcracker) addBtn('enchanted_nut', '🌰 Заколдованный орех (Угостить врага)', '#542');
-
     if (!hasUsable) list.innerHTML = '<p style="color:#aaa; font-size:8px;">Нет активных предметов в слотах героя и расходников в схроне.</p>';
     modal.style.display = 'flex';
 }
@@ -1462,71 +1486,6 @@ function useItem(id) {
             }
             renderArena();
         }
-    } else if (id === 'enchanted_nut' || id === 'nutcracker') {
-        let pudgeEnemy = combat.targets.find(t => t.isEnemy && t.pudgeRecruitable && t.hp > 0);
-        if (!pudgeEnemy) {
-            log('🌰 На арене нет подходящей цели для применения Заколдованного ореха.');
-            return;
-        }
-        ['enchanted_nut', 'nutcracker'].forEach(nutId => {
-            if (state.neutralInv.includes(nutId)) {
-                state.neutralInv.splice(state.neutralInv.indexOf(nutId), 1);
-            } else if (state.raidInv.includes(nutId)) {
-                state.raidInv.splice(state.raidInv.indexOf(nutId), 1);
-            } else if (actor.heroData && actor.heroData.neutralItem === nutId) {
-                actor.heroData.neutralItem = null;
-            } else if (actor.heroData && actor.heroData.items && actor.heroData.items.includes(nutId)) {
-                let idx = actor.heroData.items.indexOf(nutId);
-                actor.heroData.items[idx] = null;
-            }
-        });
-
-        if (!state.heroes.some(h => h.dbId === 'pudge')) {
-            let pudgeId = 'hero_pudge_' + Date.now();
-            let pudgeHero = {
-                id: pudgeId,
-                dbId: 'pudge',
-                level: Math.max(3, actor.heroData ? actor.heroData.level : 3),
-                xp: 0,
-                sp: Math.max(3, actor.heroData ? actor.heroData.level : 3),
-                skillLevels: [1, 0, 0, 0],
-                hasShard: false,
-                hasScepter: false,
-                items: [],
-                neutralItem: null,
-                duelDmg: 0,
-                row: 'front'
-            };
-            state.heroes.push(pudgeHero);
-            if (state.squad.length < getMaxSquadSize()) {
-                state.squad.push(pudgeId);
-            }
-        }
-        save();
-
-        log('🌰 Вы бросаете Моржу-рыболову Заколдованный орех... Тот ловко подсекает его крючком, с аппетитом съедает и довольно крякает: "Вот это улов! Я с вами!" Оставшиеся монстры в панике теряют половину здоровья!');
-
-        combat.targets = combat.targets.filter(t => t.id !== pudgeEnemy.id);
-        combat.turnQueue = combat.turnQueue.filter(t => t.id !== pudgeEnemy.id);
-
-        let remainingEnemies = combat.targets.filter(t => t.isEnemy && t.hp > 0);
-        remainingEnemies.forEach(minion => {
-            let loss = Math.floor(minion.hp * 0.5);
-            minion.hp = Math.max(1, minion.hp - loss);
-            log(`😱 ${minion.name} в панике теряет ${loss} ЗД!`);
-        });
-
-        renderArena();
-
-        showStory('pudge_join', () => {
-            let alive = combat.targets.filter(t => t.isEnemy && t.hp > 0);
-            if (alive.length === 0) {
-                winBattle(true);
-            } else {
-                nextTurn();
-            }
-        }, false);
-        return;
     } else if (id === 'power_treads') {
         if (actor.treadsMode === 'str') {
             actor.treadsMode = 'int';
@@ -1695,7 +1654,13 @@ function showModal(name, target, baseDmg, type, skillObj, stunDur, cost = 0, use
             <span style="color:#aaa;">Итоговый срез:</span> ${Math.round(red * 100)}%<br><br>
             <b style="color:#fff; font-size:12px;">Итог: ${fd} урона${skillObj && skillObj.guaranteedCrit ? ' 💥' : ''}</b>`;
         if (isMeleeBackPenalty) desc += `<br><span style="color:#f88;">🛡️ Защищён строем: −25% урона от ближней атаки!</span>`;
-        if (isHook) desc += `<br><span style="color:#0ef;">🎣 Фишинг хук: вытянет врага в 1-й ряд, сломает −2 🛡️ и лишит прикрытия!</span>`;
+        if (isHook) {
+            let rLvl = (state.fishing && state.fishing.rodLevel) || 0;
+            let rStat = (typeof getRodStats === 'function') ? getRodStats(rLvl) : null;
+            let rExp = rStat ? Math.round((rStat.exposedBonus || 0.20) * 100) : 20;
+            let rBrk = 2 + ((rStat && rStat.extraShieldBreak) ? rStat.extraShieldBreak : 0);
+            desc += `<br><span style="color:#0ef;">🎣 Фишинг хук (${rStat ? rStat.name : 'Удочка'}): вытянет врага в 1-й ряд, лишит прикрытия (+${rExp}% физ.) и сломает −${rBrk} 🛡️!</span>`;
+        }
         if (!skillObj && actor.dbId === 'silencer') {
             let pure = Math.round((actor.int || 0) * 0.35);
             desc += `<br><span style="color:#c6f;">🔮 Глефы: +${pure} чистого урона сквозь броню!</span>`;
@@ -1826,6 +1791,20 @@ function applyHardStun(target, dur, sourceName) {
         return false;
     }
     target.stunTurns = Math.max(target.stunTurns, dur);
+    return true;
+}
+
+function applyRoot(target, turns, sourceName) {
+    if (!target || target.hp <= 0 || turns <= 0) return false;
+    if (target.buffs && target.buffs.some(b => b.type === 'bkb')) {
+        log(`🛡️ ${target.name} невосприимчив к оцепенению (БКБ)!`);
+        return false;
+    }
+    target.buffs = target.buffs || [];
+    let existing = target.buffs.find(b => b.type === 'root');
+    if (existing) existing.turns = Math.max(existing.turns, turns);
+    else target.buffs.push({ type: 'root', turns });
+    log(`❄️ ${sourceName}: ${target.name} скован льдом (❄️ Оцепенение на ${turns} х., запрет атак с руки)!`);
     return true;
 }
 
@@ -2438,6 +2417,11 @@ function executeHeroAction(act) {
             let red = (type === 'phys') ? getPhysicalReduction(arm) : getMagicReduction(target);
 
             let isHook = (actor.dbId === 'pudge' && skillObj && (skillObj.id === 's1' || skillObj.name === 'Мит Хук' || skillObj.name === 'Фишинг хук'));
+            let rLvl = (state.fishing && state.fishing.rodLevel) || 0;
+            let rStat = (isHook && typeof getRodStats === 'function') ? getRodStats(rLvl) : null;
+            if (isHook && rStat && rStat.dmgBonus) {
+                baseDmg = Math.floor(baseDmg * (1 + rStat.dmgBonus));
+            }
             let hasFrontAlive = combat.targets.some(t => t.isEnemy && t.hp > 0 && t.row === 'front');
             let isMeleeBackPenalty = (!actor.isEnemy && actor.isMelee && target.isEnemy && target.row === 'back' && hasFrontAlive && !isHook);
             let backMult = isMeleeBackPenalty ? 0.75 : 1;
@@ -2454,12 +2438,40 @@ function executeHeroAction(act) {
             }
 
             if (isHook && target.isEnemy) {
+                let targetWasFront = (target.row === 'front');
                 if (target.row === 'back') target.row = 'front';
                 target.buffs = target.buffs || [];
-                target.buffs.push({ type: 'uncovered', turns: 2 });
-                let hookBreaks = getHeroSkillBreakHits(actor, skillObj, usedRage) || 2;
+                let expBonus = rStat ? (rStat.exposedBonus || 0.20) : 0.20;
+                target.buffs = target.buffs.filter(b => b.type !== 'uncovered');
+                target.buffs.push({ type: 'uncovered', turns: 2, bonus: expBonus });
+
+                let hookBreaks = (getHeroSkillBreakHits(actor, skillObj, usedRage) || 2) + ((rStat && rStat.extraShieldBreak) ? rStat.extraShieldBreak : 0);
                 applyBreakCheck(target, hookBreaks, actor);
-                log(`🎣 Морж-рыболов подсекает ${target.name} «Фишинг хуком» и вытягивает в 1-й ряд (−${hookBreaks} 🛡️)!`);
+                log(`🎣 Бобёр-удильщик подсекает ${target.name} «Фишинг хуком» и вытягивает в 1-й ряд (−${hookBreaks} 🛡️)!`);
+
+                if (rStat) {
+                    if (rStat.interruptCast) {
+                        interruptUnitCast(target, '🎣 Фишинг хук');
+                    }
+                    if (rStat.rageGain) {
+                        actor.rage = Math.min(100, (actor.rage || 0) + rStat.rageGain);
+                        log(`⚡ «${rStat.name}»: +${rStat.rageGain} Ярости Бобру-удильщику!`);
+                    }
+                    if (rStat.frontRowRoot && targetWasFront) {
+                        applyRoot(target, 2, '🎣 Тяжёлая катушка');
+                    }
+                    if (rStat.drPct) {
+                        actor.buffs = actor.buffs.filter(b => b.type !== 'rod_dr');
+                        actor.buffs.push({ type: 'rod_dr', value: rStat.drPct, turns: 1 });
+                        log(`🛡️ «Упор на леску»: Бобёр-удильщик снижает входящий урон на −${Math.round(rStat.drPct * 100)}% на 1 ход!`);
+                    }
+                    if (rStat.bleedTurns) {
+                        let bDmg = Math.max(10, Math.floor(actor.atk * 0.45));
+                        target.buffs = target.buffs.filter(b => b.type !== 'bleed');
+                        target.buffs.push({ type: 'bleed', turns: rStat.bleedTurns, dmg: bDmg });
+                        log(`🩸 «Тройной крючок»: ${target.name} получает кровотечение (${bDmg} урона/ход, ${rStat.bleedTurns} х.)!`);
+                    }
+                }
             }
 
             target.hp -= d;
@@ -2468,6 +2480,24 @@ function executeHeroAction(act) {
             log(`${actor.name} → ${target.name}${rowNote}: ${d}${isCrit ? ' 💥 КРИТ!' : ''}`);
             checkEnemyLethal(target);
             checkTravelerTransform(target);
+
+            if (isHook && rStat && target.hp > 0) {
+                if (rStat.brokenMaxHpPct && target.buffs && target.buffs.some(b => b.type === 'broken')) {
+                    let extraPure = Math.floor(rStat.brokenMaxHpPct * actor.maxHp);
+                    target.hp -= extraPure;
+                    recordOrchidDmg(target, extraPure);
+                    log(`🎣 Пробитие! Дополнительно +${extraPure} чистого урона по пробитой цели!`);
+                    checkEnemyLethal(target);
+                }
+                if (rStat.executeNormal && target.hp > 0 && !target.isChicken && !target.isInvulnerable) {
+                    let execThresh = target.isBoss ? (rStat.executeBoss || 0.10) : (rStat.executeNormal || 0.15);
+                    if ((target.hp / target.maxHp) <= execThresh) {
+                        target.hp = 0;
+                        log(`☠️ «Катушка-лебёдка»: Бобёр-удильщик затягивает и добивает ${target.name} (ЗД < ${Math.round(execThresh * 100)}%)!`);
+                        checkEnemyLethal(target);
+                    }
+                }
+            }
 
             if (skillObj && skillObj.detonateBurn && target.buffs) {
                 let bBuff = target.buffs.find(b => b.type === 'burn_dot' || b.type === 'burn');
@@ -2650,7 +2680,7 @@ function executeHeroAction(act) {
             if (skillObj && skillObj.drainHealPct && d > 0) {
                 let ph = Math.floor(d * skillObj.drainHealPct);
                 actor.hp = Math.min(actor.maxHp, actor.hp + ph);
-                log(`🎣 «Тяжёлая сеть»: Морж-рыболов восстанавливает +${ph} ЗД!`);
+                log(`🎣 «Тяжёлая сеть»: Бобёр-удильщик восстанавливает +${ph} ЗД!`);
             }
 
             if (skillObj && skillObj.poisonTurns && target.hp > 0) {
@@ -3432,6 +3462,53 @@ function winBattle(isScriptedVictory = false) {
         extraHtml += `<br><br><span style="color:gold;">🏆 ПОЛУЧЕН ТРОФЕЙ: ${rel.icon} ${rel.name}</span><br><span style="color:#ccc; font-size:7px;">${rel.desc}</span>`;
     }
 
+    // Вербовка Бобра-удильщика на Этапе 8
+    let shouldRecruitBeaver = (st === 8 && !(state.heroes || []).some(h => h.dbId === 'pudge'));
+    if (shouldRecruitBeaver) {
+        let pId = 'hero_pudge_' + Date.now();
+        let newHero = {
+            id: pId,
+            dbId: 'pudge',
+            level: 3,
+            xp: 0,
+            sp: 3,
+            skillLevels: [1, 0, 0, 0],
+            skills: { s1: 1, s2: 0, s3: 0, s4: 0 },
+            items: [null, null, null, null],
+            neutralItem: null,
+            row: 'front'
+        };
+        state.heroes.push(newHero);
+        if (state.squad.length < getMaxSquadSize()) {
+            state.squad.push(pId);
+        }
+        state.fishing = state.fishing || { bait: 0, points: 0, rodLevel: 0, caughtSpecies: {}, foundCurios: {}, freshCatchBuff: false };
+        let maxB = (CONFIG.fishing ? CONFIG.fishing.maxBait : 12);
+        state.fishing.bait = Math.min(maxB, (state.fishing.bait || 0) + 3);
+        state.seenTabs = state.seenTabs || {};
+        state.seenTabs.river = false;
+        if (typeof setTabBadge === 'function') setTabBadge('river', true);
+        if (typeof showFeatureToast === 'function') {
+            showFeatureToast('Открыта вкладка 🎣 Речка — ловите рыбу для Бобра-удильщика, чтобы улучшать его снасть и усиливать «Фишинг хук».');
+        }
+        if (typeof updateNavLocks === 'function') updateNavLocks();
+        extraHtml += `<br><br><span style="color:#0f0;">🦫 Бобёр-удильщик присоединился к отряду (+3 🪱 Наживки)!</span>`;
+    }
+
+    // Наживка за победу в Рейде
+    let featRiver = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state).riverTab : false;
+    if (featRiver && state.fishing) {
+        let maxB = (CONFIG.fishing ? CONFIG.fishing.maxBait : 12);
+        let gain = (combat.contract === 'ambush' || combat.contract === 'trial') ? 2 : 1;
+        let oldB = state.fishing.bait || 0;
+        let newB = Math.min(maxB, oldB + gain);
+        let added = newB - oldB;
+        state.fishing.bait = newB;
+        if (added > 0) {
+            extraHtml += `<br><span style="color:#6be;">🪱 +${added} Наживки (всего: ${newB}/${maxB})</span>`;
+        }
+    }
+
     let recLvl = Math.max(1, Math.min(25, Math.ceil(st * 0.9)));
     state.squad.forEach(id => {
         let h = state.heroes.find(x => x.id === id);
@@ -3478,6 +3555,8 @@ function winBattle(isScriptedVictory = false) {
 
     if (st === 1 && firstClear) {
         showStory('after_stage1', showVic, true);
+    } else if (st === 8 && shouldRecruitBeaver) {
+        showStory('stage8_beaver_win', showVic, true);
     } else if (st === 25 && firstClear) {
         showStory('ending_twist', showVic, true);
     } else {
