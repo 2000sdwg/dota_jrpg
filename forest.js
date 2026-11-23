@@ -19,6 +19,8 @@ function getForestGoldMult() {
 }
 
 function awardForestHerbProgress(isGoblin) {
+    let features = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : { forestHerbsAndTea: true };
+    if (!features.forestHerbsAndTea) return;
     if (isGoblin) {
         state.herbs = (state.herbs || 0) + CONFIG.forest.goblinHerbs;
         showRuneToast(`💰 Золотой Гоблин уронил +${CONFIG.forest.goblinHerbs} 🌿!`);
@@ -72,6 +74,8 @@ function getArmyDps() {
 }
 
 function getComboMultiplier() {
+    let features = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : { forestCombo: true };
+    if (!features.forestCombo) return 1;
     let now = Date.now();
     clickTimestamps = clickTimestamps.filter(t => now - t <= 2000);
     let n = clickTimestamps.length;
@@ -89,6 +93,8 @@ function getForestZoneInfo() {
 }
 
 function stackCamp() {
+    let features = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : { forestEvents: true };
+    if (!features.forestEvents) return;
     if (!state.forestUnlocked || stackCooldown > 0 || nextCreepStacked) return;
     nextCreepStacked = true;
     stackCooldown = 30;
@@ -105,6 +111,8 @@ function showRuneToast(text) {
 }
 
 function spawnRune() {
+    let features = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : { forestEvents: true };
+    if (!features.forestEvents) return;
     if (!state.forestUnlocked || !isForestActive() || pendingRune) return;
     const runes = [
         { type:'dd', icon:'⚡', color:'#0cf', desc:'⚡ Руна Двойного урона: ×2 урон клика на 15 сек!' },
@@ -142,18 +150,23 @@ function claimRune() {
 
     let prevTier = getHighestUnlockedShopTier();
     state.runesClaimed = (state.runesClaimed || 0) + 1;
-    state.herbs = (state.herbs || 0) + CONFIG.forest.runeHerbs;
+    let features = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : { forestHerbsAndTea: true };
+    if (features.forestHerbsAndTea) {
+        state.herbs = (state.herbs || 0) + CONFIG.forest.runeHerbs;
+    }
+    let herbTag = features.forestHerbsAndTea ? ' и +1 🌿 Трава' : '';
+    let herbPlus = features.forestHerbsAndTea ? ' • +1🌿' : '';
 
     if (r.type === 'bounty') {
         let totalPower = getForestDamage() + getArmyDps();
         let bonus = Math.max(50, Math.floor(25 * totalPower * getForestGoldMult()));
         state.gold += bonus;
-        showRuneToast(`💰 Руна Богатства: +${bonus} G и +1 🌿 Трава!`);
-        spawnDamageNumber(window.innerWidth / 2, window.innerHeight / 3, `+${bonus} G • +1🌿`, true);
+        showRuneToast(`💰 Руна Богатства: +${bonus} G${herbTag}!`);
+        spawnDamageNumber(window.innerWidth / 2, window.innerHeight / 3, `+${bonus} G${herbPlus}`, true);
     } else {
         activeRuneBuff = { type: r.type, sec: 15 };
-        showRuneToast(`${r.desc} (+1 🌿 Трава)`);
-        spawnDamageNumber(window.innerWidth / 2, window.innerHeight / 3, r.type === 'dd' ? '⚡ ×2 КЛИК • +1🌿' : '💨 ×2 АРМИЯ • +1🌿', true);
+        showRuneToast(`${r.desc}${herbTag ? ' (' + herbTag.trim() + ')' : ''}`);
+        spawnDamageNumber(window.innerWidth / 2, window.innerHeight / 3, r.type === 'dd' ? `⚡ ×2 КЛИК${herbPlus}` : `💨 ×2 АРМИЯ${herbPlus}`, true);
     }
     checkShopTierUnlockToast(prevTier);
     save();
@@ -165,7 +178,8 @@ function spawnForestCreep() {
     let armyDps = getArmyDps();
     let totalPower = clickDmg + armyDps;
 
-    if (state.forestUnlocked && !nextCreepStacked && Math.random() < 0.05 && isForestActive()) {
+    let features = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : { forestEvents: true };
+    if (features.forestEvents && state.forestUnlocked && !nextCreepStacked && Math.random() < 0.05 && isForestActive()) {
         let hp = Math.max(30, Math.floor(totalPower * 12));
         let g = Math.max(25, Math.floor(totalPower * 8 * getForestGoldMult()));
         currentCreep = { maxHp:hp, hp:hp, gold:g, name:'Золотой Гоблин', icon:'💰', isAncient:true, isStacked:false, stackTimeLeft:0 };
@@ -218,6 +232,28 @@ function spawnForestCreep() {
 }
 
 function updateForestUI() {
+    let features = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : {
+        forestCombo: true, forestEvents: true, forestHerbsAndTea: true, forestArmyPanel: true
+    };
+
+    let pBanner = document.getElementById('forest-prologue-banner');
+    if (pBanner) {
+        if (state.prologueCleared >= 4) {
+            pBanner.style.display = 'none';
+        } else {
+            pBanner.style.display = 'block';
+            if (!state.raidUnlocked) {
+                pBanner.innerHTML = '🧭 <i>Свен очнулся в незнакомой чаще. Добудьте 30 G с лесных крипов, чтобы осмотреться.</i>';
+            } else if (state.prologueCleared === 0) {
+                pBanner.innerHTML = '🍗 <i>Желудок сводит от голода — загляните в Рейд!</i>';
+            } else if (state.prologueCleared === 1) {
+                pBanner.innerHTML = '🛒 <i>Загляните в Лавку и наденьте снаряжение в Отряде.</i>';
+            } else {
+                pBanner.innerHTML = '⚔️ <i>Пора пробиться через заставу к тракту!</i>';
+            }
+        }
+    }
+
     let zoneEl = document.getElementById('forest-zone-label');
     if (zoneEl) zoneEl.innerText = getForestZoneInfo().label;
 
@@ -234,19 +270,29 @@ function updateForestUI() {
 
     let domLvl = state.forestItemLevels.dominator || 0;
     let armyEl = document.getElementById('forest-army-display');
-    if (domLvl > 0) {
-        armyEl.style.display = 'block';
-        armyEl.innerText = `👹 Армия леса: ${state.forestArmy}/${domLvl * 50} (${getArmyDps()} УРН/с)`;
-    } else {
-        armyEl.style.display = 'none';
+    if (armyEl) {
+        if (features.forestArmyPanel && domLvl > 0) {
+            armyEl.style.display = 'block';
+            armyEl.innerText = `👹 Армия леса: ${state.forestArmy}/${domLvl * 50} (${getArmyDps()} УРН/с)`;
+        } else {
+            armyEl.style.display = 'none';
+        }
     }
 
-    let combo = getComboMultiplier();
-    document.getElementById('forest-combo-display').innerText = `Боевой азарт: ×${combo}`;
+    let comboEl = document.getElementById('forest-combo-display');
+    if (comboEl) {
+        if (features.forestCombo) {
+            comboEl.style.display = 'block';
+            let combo = getComboMultiplier();
+            comboEl.innerText = `Боевой азарт: ×${combo}`;
+        } else {
+            comboEl.style.display = 'none';
+        }
+    }
 
     let timerEl = document.getElementById('forest-stack-timer');
     if (timerEl) {
-        if (currentCreep.isStacked && currentCreep.stackTimeLeft > 0) {
+        if (features.forestEvents && currentCreep.isStacked && currentCreep.stackTimeLeft > 0) {
             timerEl.style.display = 'block';
             timerEl.innerText = `⏱ Успей убить стак: ${currentCreep.stackTimeLeft.toFixed(1)}с`;
         } else {
@@ -255,29 +301,71 @@ function updateForestUI() {
     }
 
     let buffEl = document.getElementById('forest-rune-buff-display');
-    if (activeRuneBuff.type && activeRuneBuff.sec > 0) {
-        buffEl.style.display = 'block';
-        let lbl = activeRuneBuff.type === 'dd' ? '⚡ Двойной урон' : '💨 Ускорение армии';
-        buffEl.innerText = `${lbl}: ${Math.ceil(activeRuneBuff.sec)}с`;
-    } else {
-        buffEl.style.display = 'none';
+    if (buffEl) {
+        if (features.forestEvents && activeRuneBuff.type && activeRuneBuff.sec > 0) {
+            buffEl.style.display = 'block';
+            let lbl = activeRuneBuff.type === 'dd' ? '⚡ Двойной урон' : '💨 Ускорение армии';
+            buffEl.innerText = `${lbl}: ${Math.ceil(activeRuneBuff.sec)}с`;
+        } else {
+            buffEl.style.display = 'none';
+        }
     }
 
     let teaBtn = document.getElementById('btn-forest-tea');
-    if (teaBtn) teaBtn.innerText = `☕ Сбор чая (🌿 ${state.herbs || 0})`;
+    if (teaBtn) {
+        teaBtn.style.display = features.forestHerbsAndTea ? '' : 'none';
+        teaBtn.innerText = `☕ Сбор чая (🌿 ${state.herbs || 0})`;
+    }
 
     let teaDisp = document.getElementById('forest-tea-buff-display');
     if (teaDisp) {
-        let parts = [];
-        if (state.activeTea) {
-            let tb = TEA_BUFFS.find(x => x.id === state.activeTea);
-            if (tb) parts.push(`☕ Заварен: ${tb.icon} ${tb.name}`);
+        if (features.forestHerbsAndTea) {
+            let parts = [];
+            if (state.activeTea) {
+                let tb = TEA_BUFFS.find(x => x.id === state.activeTea);
+                if (tb) parts.push(`☕ Заварен: ${tb.icon} ${tb.name}`);
+            }
+            parts.push(`🌿 До травы: ${state.herbCreepProgress || 0}/${CONFIG.forest.creepsPerHerb}`);
+            if ((state.kettleLevel || 0) > 0) parts.push(`🫖 Котелок Ур.${state.kettleLevel}`);
+            teaDisp.style.display = 'block';
+            teaDisp.innerText = parts.join(' • ');
+        } else {
+            teaDisp.style.display = 'none';
         }
-        parts.push(`🌿 До травы: ${state.herbCreepProgress || 0}/${CONFIG.forest.creepsPerHerb}`);
-        if ((state.kettleLevel || 0) > 0) parts.push(`🫖 Котелок Ур.${state.kettleLevel}`);
-        teaDisp.style.display = 'block';
-        teaDisp.innerText = parts.join(' • ');
     }
+
+    // Подсказка прогресса к следующему тиру Рейдовой лавки
+    let progEl = document.getElementById('forest-shop-progress');
+    if (progEl) {
+        if (features.forestEvents) {
+            let pInfo = formatShopUnlockProgress(state);
+            progEl.innerText = pInfo.text;
+            progEl.style.color = pInfo.isAll ? '#6e6' : '#9cf';
+            progEl.style.display = 'block';
+        } else {
+            progEl.style.display = 'none';
+        }
+    }
+
+    let stackBtn = document.getElementById('btn-stack-camp');
+    if (stackBtn) {
+        if (features.forestEvents) {
+            stackBtn.style.display = '';
+            if (nextCreepStacked) {
+                stackBtn.disabled = true;
+                stackBtn.innerText = '📚 Стак на след. крипе!';
+            } else if (stackCooldown > 0) {
+                stackBtn.disabled = true;
+                stackBtn.innerText = `📚 Стак (${Math.ceil(stackCooldown)}с)`;
+            } else {
+                stackBtn.disabled = false;
+                stackBtn.innerText = '📚 Стакнуть лагерь';
+            }
+        } else {
+            stackBtn.style.display = 'none';
+        }
+    }
+}
 
 function formatShopUnlockProgress(s) {
     let nextTier = (typeof SHOP_TIERS !== 'undefined') ? SHOP_TIERS.find(t => !t.check(s)) : null;
@@ -352,27 +440,6 @@ function formatShopUnlockProgress(s) {
     };
 }
 window.formatShopUnlockProgress = formatShopUnlockProgress;
-
-    // Подсказка прогресса к следующему тиру Рейдовой лавки
-    let progEl = document.getElementById('forest-shop-progress');
-    if (progEl) {
-        let pInfo = formatShopUnlockProgress(state);
-        progEl.innerText = pInfo.text;
-        progEl.style.color = pInfo.isAll ? '#6e6' : '#9cf';
-    }
-
-    let stackBtn = document.getElementById('btn-stack-camp');
-    if (nextCreepStacked) {
-        stackBtn.disabled = true;
-        stackBtn.innerText = '📚 Стак на след. крипе!';
-    } else if (stackCooldown > 0) {
-        stackBtn.disabled = true;
-        stackBtn.innerText = `📚 Стак (${Math.ceil(stackCooldown)}с)`;
-    } else {
-        stackBtn.disabled = false;
-        stackBtn.innerText = '📚 Стакнуть лагерь';
-    }
-}
 
 function tryDropNeutral(chance) {
     if (Math.random() >= chance) return;
@@ -468,9 +535,12 @@ function clickCreep(e) {
             state.gold += currentCreep.gold;
             if (currentCreep.isStacked) {
                 state.stacksKilled = (state.stacksKilled || 0) + 1;
-                state.herbs = (state.herbs || 0) + CONFIG.forest.stackHerbs;
-                showRuneToast(`🏆 Стак убит: +${currentCreep.gold} G и +1 🌿 Трава!`);
-                spawnDamageNumber(e.clientX, e.clientY - 26, `🏆 +${currentCreep.gold} G • +1🌿`, true);
+                let featTea = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state).forestHerbsAndTea : true;
+                if (featTea) {
+                    state.herbs = (state.herbs || 0) + CONFIG.forest.stackHerbs;
+                }
+                showRuneToast(`🏆 Стак убит: +${currentCreep.gold} G${featTea ? ' и +1 🌿 Трава' : ''}!`);
+                spawnDamageNumber(e.clientX, e.clientY - 26, `🏆 +${currentCreep.gold} G${featTea ? ' • +1🌿' : ''}`, true);
             }
         }
         let nChance = currentCreep.name === 'Золотой Гоблин' ? CONFIG.neutrals.forestGoblinChance : (currentCreep.isStacked ? CONFIG.neutrals.forestStackChance : CONFIG.neutrals.forestCreepChance);
@@ -479,6 +549,16 @@ function clickCreep(e) {
         state.creepsKilled++;
         awardForestHerbProgress(currentCreep.name === 'Золотой Гоблин');
         checkShopTierUnlockToast(prevTier);
+
+        if (!state.raidUnlocked && (state.gold >= 30 || state.creepsKilled >= 5)) {
+            state.raidUnlocked = true;
+            if (typeof setTabBadge === 'function') setTabBadge('raid', true);
+            if (typeof showFeatureToast === 'function') {
+                showFeatureToast('⚔️ Открыта вкладка «Рейд»! Свен готов к первой вылазке.');
+            }
+            if (typeof updateNavLocks === 'function') updateNavLocks();
+        }
+
         save();
         spawnForestCreep();
     } else {
@@ -496,7 +576,8 @@ setInterval(() => {
         if (activeRuneBuff.sec <= 0) activeRuneBuff.type = null;
     }
 
-    if (isForestActive()) {
+    let features = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : { forestEvents: true };
+    if (isForestActive() && features.forestEvents) {
         runeSpawnTimer -= 0.1;
         if (runeSpawnTimer <= 0) {
             runeSpawnTimer = 35 + Math.random() * 25;
@@ -526,11 +607,27 @@ setInterval(() => {
         if (goblinTimer) clearTimeout(goblinTimer);
         let prevTier = getHighestUnlockedShopTier();
         state.gold += currentCreep.gold;
-        if (currentCreep.isStacked) { state.stacksKilled = (state.stacksKilled || 0) + 1; state.herbs = (state.herbs || 0) + CONFIG.forest.stackHerbs; }
+        if (currentCreep.isStacked) {
+            state.stacksKilled = (state.stacksKilled || 0) + 1;
+            let featTea = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state).forestHerbsAndTea : true;
+            if (featTea) {
+                state.herbs = (state.herbs || 0) + CONFIG.forest.stackHerbs;
+            }
+        }
         checkNutcrackerDrop();
         state.creepsKilled++;
         awardForestHerbProgress(currentCreep.name === 'Золотой Гоблин');
         checkShopTierUnlockToast(prevTier);
+
+        if (!state.raidUnlocked && (state.gold >= 30 || state.creepsKilled >= 5)) {
+            state.raidUnlocked = true;
+            if (typeof setTabBadge === 'function') setTabBadge('raid', true);
+            if (typeof showFeatureToast === 'function') {
+                showFeatureToast('⚔️ Открыта вкладка «Рейд»! Свен готов к первой вылазке.');
+            }
+            if (typeof updateNavLocks === 'function') updateNavLocks();
+        }
+
         localStorage.setItem(SAVE_KEY, JSON.stringify(state));
         let displayGold = state.gold > 1000000 ? (state.gold / 1000000).toFixed(1) + 'M' : state.gold;
         document.getElementById('gold-display').innerText = '💰 ' + displayGold;
@@ -606,18 +703,6 @@ function renderForestShop() {
     if (!list) return;
     list.innerHTML = '';
 
-    DB.forestMilestones.forEach(m => {
-        if (state.milestones.includes(m.id)) return;
-        let ownedCnt = state.forestInv.filter(id => id === m.reqItem).length;
-        if (ownedCnt >= m.reqCount) {
-            list.innerHTML += `<div class="card milestone-card" style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="flex:1;"><span style="color:gold;">🏆 ${m.name}</span><br>
-                <span style="font-size:8px; color:#ddd;">${m.desc}</span></div>
-                <button onclick="buyMilestone('${m.id}')" style="background:#a70; border-color:#fc0;">${m.cost} G</button>
-            </div>`;
-        }
-    });
-
     const renderCard = (item) => {
         let count = state.forestInv.filter(id => id === item.id).length;
         let html = `<div class="card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
@@ -644,6 +729,25 @@ function renderForestShop() {
         }
         return html + `</div>`;
     };
+
+    let features = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : { forestUpgrades: true };
+    if (!features.forestUpgrades) {
+        let branchItem = DB.forestItems.find(i => i.id === 'branch');
+        if (branchItem) list.innerHTML = renderCard(branchItem);
+        return;
+    }
+
+    DB.forestMilestones.forEach(m => {
+        if (state.milestones.includes(m.id)) return;
+        let ownedCnt = state.forestInv.filter(id => id === m.reqItem).length;
+        if (ownedCnt >= m.reqCount) {
+            list.innerHTML += `<div class="card milestone-card" style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="flex:1;"><span style="color:gold;">🏆 ${m.name}</span><br>
+                <span style="font-size:8px; color:#ddd;">${m.desc}</span></div>
+                <button onclick="buyMilestone('${m.id}')" style="background:#a70; border-color:#fc0;">${m.cost} G</button>
+            </div>`;
+        }
+    });
 
     DB.forestItems.filter(i => !i.group).forEach(item => { list.innerHTML += renderCard(item); });
 

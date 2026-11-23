@@ -110,13 +110,37 @@ function getKettleActCap() {
 
 /* Сюжетные диалоги */
 const STORY_EVENTS = {
+    prologue_p1_intro: {
+        icon:'🐿️', title:'Пробуждение в чаще',
+        text:'Тебя, рыцаря Свена, с позором вышвырнули за ворота Замка Древних Завоевателей. Без отряда, без золота, лишь с тяжёлым клинком и жгучей яростью.<br><br>Ты очнулся в незнакомой чаще. Раны ноют, а желудок сводит от голода. В кустах мелькает упитанная <b>лесная белка</b> — отличная добыча на ужин!'
+    },
+    prologue_p2_intro: {
+        icon:'🐗', title:'Запах дыма',
+        text:'Белка зажарена на костре, и силы постепенно возвращаются к рыцарю. Но на запах жареного мяса и дыма из чащи с треском ломающихся ветвей выходит свирепый <b>лесной вепрь</b>!'
+    },
+    prologue_p3_intro: {
+        icon:'🔥', title:'Костёр разбойников',
+        text:'Оставив вепря позади, Свен выходит на заросшую просеку. Впереди слышны голоса и звон стали — шайка лесных разбойников расположилась у костра, перекрыв путь к тракту!'
+    },
+    prologue_p4_intro: {
+        icon:'🏰', title:'Страж заставы',
+        text:'Чаща расступается, и впереди виднеется старая каменная застава перед выходом на тракт. Путь преграждает закованный в железо <b>Страж заставы</b> с дозорным бегуном!'
+    },
+    prologue_p4_win: {
+        icon:'🌿', title:'Выход на тракт',
+        text:'Страж повержен! Врата заставы распахиваются, открывая дорогу к тракту и Запутанным тропам Акта 1. Впереди — долгий путь к Замку Завоевателей!'
+    },
+    stage1_intro: {
+        icon:'🐺', title:'Акт 1: Волчья стая',
+        text:'Выбравшись на тракт, отряд слышит леденящий душу вой. Из подлеска выскакивает матёрая <b>волчья стая</b>, рыщущая в поисках лёгкой добычи!'
+    },
     intro: {
         icon:'⚔️', title:'Пролог: Изгнанный рыцарь',
-        text:'Тебя, рыцаря Свена, с позором вышвырнули за ворота Замка Древних Завоевателей. Без отряда, без золота, лишь с тяжёлым клинком и жгучей яростью.<br><br>Ты изранен после схватки у ворот, а голод не ждёт. В кустах мелькает <b>бешеный лесной бельчонок</b> — даже он сейчас опасен для истощённого рыцаря!<br><br><span style="color:#0cf;">💡 Совет:</span> Нажми <b>«В БОЙ!»</b>, используй <b>УДАР</b> и <b>Молот бури</b>, чтобы одолеть цель.'
+        text:'Тебя, рыцаря Свена, с позором вышвырнули за ворота Замка Древних Завоевателей. Без отряда, без золота, лишь с тяжёлым клинком и жгучей яростью.<br><br>Ты очнулся в незнакомой чаще. Раны ноют, а голод не ждёт. Добудь золота на лесных крипах и приготовься к бою!'
     },
     after_stage1: {
-        icon:'🌲', title:'Лес открыт!',
-        text:'Бельчонок повержен... но раненый зверёк успевает удрать в чащу, оставив тебя наедине с дорогой к Замку. Впереди — разбойники, а одному тебе не выстоять.<br><br><span style="color:#0f0;">🌲 Открыт ЛЕС:</span> кликай по крипам, копи комбо, лови 1-секундные руны и <b>стакай лагерь</b> на время.<br><span style="color:#fa0;">💰 Связь Лес ⇄ Рейд:</span> фарм крипов, Стаков и Рун в Лесу даёт золото, открывает новые тиры <b>Рейдовой лавки</b> и приносит <b>🌿 Травы</b> для <b>☕ Сбора чая</b> (Иван-чай, Ромашка, Мята) и прокачки <b>🫖 Походного котелка</b>! А победы над боссами Актов открывают новые земли Леса, героев и слоты отряда!'
+        icon:'🐺', title:'Волки разбиты!',
+        text:'Волчья стая рассеяна по лесу! Дорога вдоль тракта свободна, но впереди ждут засады разбойников. Набирайтесь сил в Лесу и готовьтесь к следующим схваткам!'
     },
     silence_tutorial: {
         icon:'🔇', title:'Чары побега и Безмолвие!',
@@ -732,6 +756,36 @@ const ACT_ENEMY_POOLS = {
 const ENEMY_HEROES = ACT_ENEMY_POOLS[1].heroes;
 
 const SPECIAL_ENEMIES = {
+    // === Акт 0: Пролог ===
+    prologue_squirrel: {
+        name: 'Дикая белка', icon: '🐿️', hp: 120, mp: 0, atk: 11, armor: 0, isMelee: true, shieldMax: 0, row: 'front', archetype: 'minion',
+        skills: []
+    },
+    prologue_boar: {
+        name: 'Бронированный вепрь', icon: '🐗', hp: 210, mp: 30, atk: 17, armor: 1, isMelee: true, shieldMax: 2, row: 'front', archetype: 'tank',
+        skills: [{ name: 'Свирепый таран', type: 'phys', mult: 1.8, aoe: false, stun: 0, mpCost: 0, desc: 'Вепрь разгоняется для сокрушительного тарана!' }]
+    },
+    prologue_bandit: {
+        name: 'Разбойник', icon: '🗡️', hp: 150, mp: 20, atk: 14, armor: 1, isMelee: true, shieldMax: 2, row: 'front', archetype: 'tank',
+        skills: [{ name: 'Удар дубинкой', type: 'phys', mult: 1.2, aoe: false, stun: 0, mpCost: 20, desc: 'Глухой удар дубинкой.' }]
+    },
+    prologue_archer: {
+        name: 'Лесной стрелок', icon: '🏹', hp: 110, mp: 20, atk: 15, armor: 0, isMelee: false, shieldMax: 1, row: 'back', archetype: 'dd',
+        skills: [{ name: 'Выстрел из лука', type: 'phys', mult: 1.2, aoe: false, stun: 0, mpCost: 20, desc: 'Прицельный выстрел.' }]
+    },
+    prologue_guard_boss: {
+        name: 'Капитан стражи', icon: '🛡️', hp: 300, mp: 40, atk: 19, armor: 2, isMelee: true, isBoss: true, shieldMax: 3, row: 'front', archetype: 'tank',
+        skills: [{ name: 'Сокрушительный выпад', type: 'phys', mult: 1.6, aoe: false, stun: 0, mpCost: 20, desc: 'Опасный выпад копьём стража!' }]
+    },
+    prologue_runner: {
+        name: 'Юркий беглец', icon: '🏃', hp: 120, mp: 20, atk: 13, armor: 0, isMelee: true, shieldMax: 1, row: 'back', archetype: 'minion',
+        skills: [{ name: 'Быстрый тычок', type: 'phys', mult: 1.1, aoe: false, stun: 0, mpCost: 20, desc: 'Колющий выпад кинжалом.' }]
+    },
+    // === Акт 1: Этап 1 ===
+    forest_wolf: {
+        name: 'Лесной волк', icon: '🐺', hp: 220, mp: 0, atk: 18, armor: 1, isMelee: true, shieldMax: 2, row: 'front', archetype: 'minion',
+        skills: [{ name: 'Волчий укус', type: 'phys', mult: 1.2, aoe: false, stun: 0, mpCost: 0, desc: 'Яростный укус хищника.' }]
+    },
     ringmaster: {
         name:'Шпрехшталмейстер', icon:'🎩', hp:1760, mp:300, atk:65, armor:4, isMelee:false, isBoss:true, shieldMax:4, row:'back', archetype:'support', isRingmaster:true,
         skills:[
@@ -904,8 +958,32 @@ const SPECIAL_ENEMIES = {
     }
 };
 
-/* ===== СОСТОЯНИЕ И СОХРАНЕНИЯ v3.1 ===== */
+/* ===== СОСТОЯНИЕ И СОХРАНЕНИЯ v4.6 ===== */
 const SAVE_KEY = CONFIG.saveKey;
+
+const PROLOGUE_STAGES = [
+    {
+        id: 'p1', stageNum: 1, title: 'Добыча на ужин', icon: '🐿️',
+        desc: 'Свен очнулся в незнакомой чаще. В кустах мелькает упитанная белка — отличная добыча на ужин.',
+        enemyName: 'Лесная белка', rewardGold: 90, rewardXp: 35
+    },
+    {
+        id: 'p2', stageNum: 2, title: 'Запах дыма', icon: '🐗',
+        desc: 'На запах дыма от костра из кустов выходит свирепый лесной вепрь.',
+        enemyName: 'Лесной вепрь', rewardGold: 160, rewardXp: 55
+    },
+    {
+        id: 'p3', stageNum: 3, title: 'Костёр разбойников', icon: '🔥',
+        desc: 'Впереди слышны голоса лесных разбойников, перекрывших тропу.',
+        enemyName: 'Разбойник и стрелок', rewardGold: 260, rewardXp: 80
+    },
+    {
+        id: 'p4', stageNum: 4, title: 'Страж заставы', icon: '🏰',
+        desc: 'Застава на выходе из чащи к тракту. Страж преграждает путь.',
+        enemyName: 'Страж заставы и бегун', rewardGold: 350, rewardXp: 110
+    }
+];
+window.PROLOGUE_STAGES = PROLOGUE_STAGES;
 
 function createInitialState() {
     let svenId = 'hero_sven_start';
@@ -920,7 +998,11 @@ function createInitialState() {
         raidLevel: 1,
         maxRaidCleared: 0,
         selectedStage: 1,
-        forestUnlocked: false,
+        forestUnlocked: true,
+        prologueCleared: 0,
+        raidUnlocked: false,
+        teaUnlocked: false,
+        seenTabs: { forest: true },
         forestInv: [],
         raidInv: [],
         neutralInv: [],
@@ -940,20 +1022,21 @@ function createInitialState() {
         chickenKilled: false,
         shamanKilled: false,
         shamanFled: false,
-        orchidRecipeDropped: false
+        orchidRecipeDropped: false,
+        act2CreepsKilled: 0,
+        nutcrackerDropped: false
     };
 }
 
-let state = JSON.parse(localStorage.getItem(SAVE_KEY)) ||
-            JSON.parse(localStorage.getItem('dotaSave_v4_4')) ||
-            JSON.parse(localStorage.getItem('dotaSave_v4_3')) ||
-            JSON.parse(localStorage.getItem('dotaSave_v4_2')) ||
-            JSON.parse(localStorage.getItem('dotaSave_v4_1')) ||
-            JSON.parse(localStorage.getItem('dotaSave_v3_7')) ||
-            JSON.parse(localStorage.getItem('dotaSave_v3_6')) ||
-            JSON.parse(localStorage.getItem('dotaSave_v3_5')) ||
-            JSON.parse(localStorage.getItem('dotaSave_v3_4')) ||
-            createInitialState();
+let rawSaved = null;
+try {
+    let item = localStorage.getItem(SAVE_KEY);
+    if (item) rawSaved = JSON.parse(item);
+} catch (e) {
+    rawSaved = null;
+}
+
+let state = (rawSaved && typeof rawSaved === 'object' && rawSaved.heroes) ? rawSaved : createInitialState();
 state.heroes = state.heroes || [];
 state.squad = state.squad || [];
 state.neutralInv = state.neutralInv || [];
@@ -966,22 +1049,25 @@ state.relics = state.relics || [];
 state.seenStories = state.seenStories || [];
 state.stacksKilled = state.stacksKilled || 0;
 state.runesClaimed = state.runesClaimed || 0;
-state.herbs = state.herbs !== undefined ? state.herbs : (state.forestEssence || 0);
+state.herbs = state.herbs !== undefined ? state.herbs : 0;
 state.herbCreepProgress = state.herbCreepProgress || 0;
 state.activeTea = state.activeTea || null;
 state.teasBrewed = state.teasBrewed || 0;
 state.kettleLevel = state.kettleLevel || 0;
 state.maxRaidCleared = state.maxRaidCleared || 0;
+state.prologueCleared = state.prologueCleared || 0;
+state.raidUnlocked = state.raidUnlocked || false;
+state.teaUnlocked = state.teaUnlocked || false;
+state.seenTabs = state.seenTabs || { forest: true };
+state.forestUnlocked = state.forestUnlocked !== undefined ? state.forestUnlocked : true;
 state.selectedStage = state.selectedStage || Math.min(25, state.maxRaidCleared + 1);
 state.shamanFled = state.shamanFled || false;
 state.shamanKilled = state.shamanKilled || false;
 state.chickenKilled = state.chickenKilled || false;
 state.nutcrackerDropped = state.nutcrackerDropped || false;
 state.act2CreepsKilled = state.act2CreepsKilled || 0;
-let hasOrchidOrRecipe = (state.raidInv || []).includes('orchid_recipe') ||
-                        (state.raidInv || []).includes('orchid_malevolence') ||
-                        (state.heroes || []).some(h => (h.items || []).includes('orchid_malevolence') || (h.items || []).includes('orchid_recipe'));
-state.orchidRecipeDropped = state.orchidRecipeDropped !== undefined ? state.orchidRecipeDropped : (hasOrchidOrRecipe ? true : false);
+state.orchidRecipeDropped = state.orchidRecipeDropped || false;
+
 state.heroes.forEach(h => {
     h.skillLevels = h.skillLevels || [0, 0, 0, 0];
     h.items = h.items || [null, null, null, null, null, null];
@@ -990,18 +1076,50 @@ state.heroes.forEach(h => {
         h.row = (dbH && dbH.isMelee) ? 'front' : 'back';
     }
     if (h.neutralItem === undefined) h.neutralItem = null;
-    // Миграция: выносим нейтральные предметы из 6 обычных слотов в отдельный нейтральный слот
-    if (h.items && h.items.length) {
-        h.items = h.items.map(iid => {
-            if (iid && DB.neutralItems.some(n => n.id === iid)) {
-                if (!h.neutralItem) h.neutralItem = iid;
-                else state.neutralInv.push(iid);
-                return null;
-            }
-            return iid;
-        });
-    }
 });
+
+function getUnlockedFeatures(s) {
+    let st = s || (typeof state !== 'undefined' ? state : null);
+    if (!st) {
+        return {
+            forestTab: true, raidTab: false, shopTab: false, partyTab: false, tavernTab: false,
+            forestCombo: false, forestUpgrades: false, forestEvents: false, forestHerbsAndTea: false,
+            combatShields: false, combatBlock: false, combatTurnBar: false,
+            combatUlt: false, combatRage: false, combatTargeting: false, combatRows: false,
+            partyBackRow: false, neutralSlot: false,
+            mainCampaign: false, raidContracts: false, forestArmyPanel: false
+        };
+    }
+    let heroCount = (st.heroes && Array.isArray(st.heroes)) ? st.heroes.length : 1;
+    let hasDominator = (st.forestItemLevels && (st.forestItemLevels.dominator || 0) >= 1);
+    let hasArmy = (st.forestArmy || 0) > 0;
+    let hasNeutrals = (st.neutralInv && st.neutralInv.length > 0) || (st.heroes && st.heroes.some(h => h.neutralItem));
+
+    return {
+        forestTab: true,
+        raidTab: !!(st.raidUnlocked || st.prologueCleared > 0 || st.maxRaidCleared >= 1),
+        shopTab: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
+        tavernTab: !!(st.prologueCleared >= 4 || st.maxRaidCleared >= 1),
+        partyTab: !!(st.prologueCleared >= 4 || st.maxRaidCleared >= 1),
+        forestCombo: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
+        forestUpgrades: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
+        forestEvents: !!(st.prologueCleared >= 3 || st.maxRaidCleared >= 1),
+        forestHerbsAndTea: !!(st.teaUnlocked || heroCount >= 2),
+        combatTurnBar: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
+        combatShields: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
+        combatBlock: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
+        combatRows: !!(st.prologueCleared >= 2 || st.maxRaidCleared >= 1),
+        combatTargeting: !!(st.prologueCleared >= 2 || st.maxRaidCleared >= 1),
+        combatUlt: !!(st.prologueCleared >= 2 || st.maxRaidCleared >= 1),
+        combatRage: !!(st.prologueCleared >= 2 || st.maxRaidCleared >= 1),
+        partyBackRow: !!(st.prologueCleared >= 2 || st.maxRaidCleared >= 1),
+        neutralSlot: !!(st.prologueCleared >= 4 || st.maxRaidCleared >= 1 || hasNeutrals),
+        mainCampaign: !!(st.prologueCleared >= 4 || st.maxRaidCleared >= 1),
+        raidContracts: !!(st.maxRaidCleared >= 2),
+        forestArmyPanel: !!(hasDominator || hasArmy)
+    };
+}
+window.getUnlockedFeatures = getUnlockedFeatures;
 
 function getMaxSquadSize() {
     let sz = 3;
@@ -1011,6 +1129,9 @@ function getMaxSquadSize() {
 }
 
 function getActForStage(stage) {
+    if (typeof stage === 'string' && stage.startsWith('p')) {
+        return { id: 0, name: 'Акт 0. Пробуждение в чаще', start: 'p1', end: 'p4', icon: '🌲', forestZone: '🌲 Незнакомая чаща', desc: 'Свен очнулся в незнакомой чаще после изгнания из Замка.', bossName: 'Страж заставы', relicId: null };
+    }
     return CAMPAIGN_ACTS.find(a => stage >= a.start && stage <= a.end) || CAMPAIGN_ACTS[CAMPAIGN_ACTS.length - 1];
 }
 
@@ -1033,14 +1154,6 @@ function save() {
 function resetGame() {
     if (confirm('Начать кампанию полностью с нуля (с 0 золота и Свеном)?')) {
         localStorage.removeItem(SAVE_KEY);
-        localStorage.removeItem('dotaSave_v4_4');
-        localStorage.removeItem('dotaSave_v4_3');
-        localStorage.removeItem('dotaSave_v4_2');
-        localStorage.removeItem('dotaSave_v4_1');
-        localStorage.removeItem('dotaSave_v3_7');
-        localStorage.removeItem('dotaSave_v3_6');
-        localStorage.removeItem('dotaSave_v3_5');
-        localStorage.removeItem('dotaSave_v3_4');
         location.reload();
     }
 }
@@ -1152,6 +1265,7 @@ function getHeroEquippedItems(actor) {
 }
 
 function pickRandomNeutralDrop(tier = null) {
+    if (typeof state !== 'undefined' && state && state.prologueCleared < 4) return null;
     let ownedSet = new Set(state.neutralInv || []);
     (state.heroes || []).forEach(h => { if (h.neutralItem) ownedSet.add(h.neutralItem); });
 

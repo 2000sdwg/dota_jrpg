@@ -19,6 +19,41 @@ function showStory(key, onCloseCb = null, onlyOnce = true) {
     document.getElementById('story-modal').style.display = 'flex';
 }
 
+function showCustomStory(ev, onCloseCb = null) {
+    if (!ev) { if (onCloseCb) onCloseCb(); return; }
+    storyOnClose = onCloseCb;
+    let spk = document.getElementById('story-speaker');
+    let ttl = document.getElementById('story-title');
+    let txt = document.getElementById('story-text');
+    let mod = document.getElementById('story-modal');
+    if (spk) spk.innerText = ev.icon || '📜';
+    if (ttl) ttl.innerText = ev.title || 'Сюжет';
+    if (txt) txt.innerHTML = ev.text || '';
+    if (mod) mod.style.display = 'flex';
+}
+window.showCustomStory = showCustomStory;
+
+function showFeatureToast(msg) {
+    let t = document.getElementById('feature-toast');
+    if (!t) return;
+    t.innerHTML = msg;
+    t.classList.remove('hidden');
+    t.classList.add('visible');
+    clearTimeout(t._toastTimer);
+    t._toastTimer = setTimeout(() => {
+        t.classList.remove('visible');
+        t.classList.add('hidden');
+    }, 3200);
+}
+window.showFeatureToast = showFeatureToast;
+
+function setTabBadge(tabId, hasBadge) {
+    let b = document.getElementById('nav-' + tabId);
+    if (!b) return;
+    b.classList.toggle('has-dot', !!hasBadge);
+}
+window.setTabBadge = setTabBadge;
+
 function closeStoryModal() {
     document.getElementById('story-modal').style.display = 'none';
     let cb = storyOnClose;
@@ -49,28 +84,45 @@ function closeRelicsModal() { document.getElementById('relics-modal').style.disp
 
 /* ===== НАВИГАЦИЯ И ОБЩИЙ UI ===== */
 function updateNavLocks() {
-    let nf = document.getElementById('nav-forest');
-    let ns = document.getElementById('nav-shop');
-    if (nf) {
-        nf.classList.toggle('locked-tab', !state.forestUnlocked);
-        nf.innerText = state.forestUnlocked ? '🌲 Лес' : '🔒 Лес';
-    }
-    if (ns) {
-        ns.classList.toggle('locked-tab', !state.forestUnlocked);
-        ns.innerText = state.forestUnlocked ? '💰 Лавка' : '🔒 Лавка';
-    }
+    let f = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures() : {
+        forestTab: true, raidTab: true, shopTab: true, tavernTab: true, partyTab: true
+    };
+    let tabs = [
+        { id: 'forest', unlocked: f.forestTab, btn: document.getElementById('nav-forest') },
+        { id: 'shop',   unlocked: f.shopTab,   btn: document.getElementById('nav-shop') },
+        { id: 'heroes', unlocked: f.tavernTab, btn: document.getElementById('nav-heroes') },
+        { id: 'squad',  unlocked: f.partyTab,  btn: document.getElementById('nav-squad') },
+        { id: 'raid',   unlocked: f.raidTab,   btn: document.getElementById('nav-raid') }
+    ];
+
+    state.seenTabs = state.seenTabs || { forest: true };
+
+    tabs.forEach(t => {
+        if (!t.btn) return;
+        if (!t.unlocked) {
+            t.btn.style.display = 'none';
+            setTabBadge(t.id, false);
+        } else {
+            t.btn.style.display = 'inline-block';
+            let unseen = !state.seenTabs[t.id];
+            setTabBadge(t.id, unseen);
+        }
+    });
+
     let relBtn = document.getElementById('btn-relics');
-    if (relBtn) relBtn.style.display = state.relics.length > 0 ? 'inline-block' : 'none';
+    if (relBtn) relBtn.style.display = (state.relics && state.relics.length > 0) ? 'inline-block' : 'none';
 }
 
 function switchTab(tabId, btn) {
-    if (!state.forestUnlocked && (tabId === 'forest' || tabId === 'shop')) {
-        alert('🔒 Сначала одолейте Лесного бельчонка на Этапе 1 (вкладка «Рейд»), чтобы открыть Лес и Лавку!');
-        return;
-    }
+    state.seenTabs = state.seenTabs || {};
+    state.seenTabs[tabId] = true;
+    setTabBadge(tabId, false);
+    save();
+
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('tab-' + tabId).classList.add('active');
+    let tabEl = document.getElementById('tab-' + tabId);
+    if (tabEl) tabEl.classList.add('active');
     if (btn) {
         btn.classList.add('active');
     } else {
@@ -112,8 +164,16 @@ function toggleInventory() {
 /* ===== ОПИСАНИЕ ЭТАПОВ И ЭКРАН КАМПАНИИ ===== */
 function getStageMeta(stage) {
     const special = {
-        1:  { title:'Лесная опушка', icon:'🐿️', tag:'СЮЖЕТ • НАЧАЛО ПУТИ', isStory:true,
-              desc:'Свен ранен после изгнания (34% ЗД). Одолейте бешеного бельчонка, чтобы раздобыть пропитание и открыть Лес!', enemies:'🐿️ Лесной бельчонок' },
+        p1: { title:'Одинокий путник', icon:'🐿️', tag:'ПРОЛОГ • ЭТАП 1/4', isStory:true,
+              desc:'Свен очнулся после изгнания в глухой чаще. Впереди шелестит куст — навстречу выскакивает дикий зверёк.', enemies:'🐿️ Дикая белка (55 ЗД)' },
+        p2: { title:'Яростный вепрь', icon:'🐗', tag:'ПРОЛОГ • ЭТАП 2/4', isStory:true,
+              desc:'Огромный кабан с крепкой шкурой закрывается щитами и готовится к сокрушительному тарану!', enemies:'🐗 Бронированный вепрь (120 ЗД, 2 🛡️)' },
+        p3: { title:'Засада на тракте', icon:'🥷', tag:'ПРОЛОГ • ЭТАП 3/4', isStory:true,
+              desc:'Двое разбойников подкараулили вас: копейщик в первом ряду и меткий лучник во втором ряду.', enemies:'🥷 Разбойник (1-й ряд) + 🏹 Стрелок (2-й ряд)' },
+        p4: { title:'Брошенный аванпост', icon:'🛡️', tag:'ПРОЛОГ • ЭТАП 4/4', isBoss:true, isStory:true,
+              desc:'Капитан стражи и юркий беглец держат оборону у ворот в Большой Лес. Пробейте их строй!', enemies:'🛡️ Капитан стражи (180 ЗД, 2 🛡️) + 🏃 Юркий беглец' },
+        1:  { title:'Волчья стая', icon:'🐺', tag:'СЮЖЕТ • СТАЯ ХИЩНИКОВ', isStory:true,
+              desc:'Свен вышел на лесную опушку и наткнулся на волчью стаю. Одолейте двух лесных волков, чтобы обезопасить тракт!', enemies:'🐺 2 лесных волка (440 ЗД суммарно)' },
         5:  { title:'БОСС АКТА 1: Банда разбойников', icon:'🥷', tag:'БОСС АКТА 1', isBoss:true, isStory:true,
               desc:'Шайка разбойников во главе с Баунти Хантером. Награда: 🚩 Знамя Изгнанника (+4-й слот, Мидас, Средний лес).', enemies:'🥷 Баунти Хантер + 2 разбойника' },
         6:  { title:'Колючая спина', icon:'🦔', tag:'СЮЖЕТ • СТЕНА ЩИТОВ', isStory:true,
@@ -160,7 +220,16 @@ function changeSelectedStage(delta) {
     let maxAvail = Math.min(25, state.maxRaidCleared + 1);
     state.selectedStage = Math.max(1, Math.min(maxAvail, (state.selectedStage || 1) + delta));
     save();
+    renderCampaign();
 }
+
+function changeSelectedPrologueStage(delta) {
+    let maxAvail = Math.min(4, state.prologueCleared + 1);
+    state.selectedPrologueStage = Math.max(1, Math.min(maxAvail, (state.selectedPrologueStage || 1) + delta));
+    save();
+    renderCampaign();
+}
+window.changeSelectedPrologueStage = changeSelectedPrologueStage;
 
 function renderCampaign() {
     let campView = document.getElementById('raid-campaign-view');
@@ -174,6 +243,75 @@ function renderCampaign() {
     }
     campView.style.display = 'block';
     battleView.style.display = 'none';
+
+    // Акт 0: Пролог (p1 .. p4)
+    if (state.prologueCleared < 4) {
+        let maxAvail = Math.min(4, state.prologueCleared + 1);
+        if (!state.selectedPrologueStage || state.selectedPrologueStage > maxAvail) {
+            state.selectedPrologueStage = maxAvail;
+        }
+        let pStage = state.selectedPrologueStage;
+        let pStageKey = 'p' + pStage;
+        let meta = getStageMeta(pStageKey);
+
+        let dotsHtml = '';
+        for (let s = 1; s <= 4; s++) {
+            let cls = 'act-dot';
+            if (s === 4) cls += ' boss';
+            if (s <= state.prologueCleared) cls += ' done';
+            else if (s === pStage) cls += ' current';
+            dotsHtml += `<div class="${cls}" title="Этап ${s}"></div>`;
+        }
+
+        let clearedBadge = pStage <= state.prologueCleared ? '<span style="color:#0f0; font-size:7px;">✓ ПРОЙДЕН</span>' : '<span style="color:#fa0; font-size:7px;">НОВЫЙ</span>';
+
+        let banner = document.getElementById('campaign-act-banner');
+        if (banner) {
+            banner.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <span style="color:gold; font-size:9px;">⚔️ Акт 0. Пробуждение в чаще</span>
+                    <span style="color:#aaa; font-size:7px;">Этап ${pStage}/4</span>
+                </div>
+                <div style="font-size:7px; color:#ccc; line-height:1.5; margin-bottom:4px;">Одинокий Свен приходит в себя после предательства и пробивает путь через заставу разбойников.</div>
+                <div class="act-progress-row">${dotsHtml}</div>
+                <div style="font-size:7px; color:#fa0;">Цель: пробиться к воротам Большого Леса</div>
+            `;
+        }
+
+        let stageCard = document.getElementById('campaign-stage-card');
+        if (stageCard) {
+            stageCard.innerHTML = `
+                <div class="stage-nav-row">
+                    <button onclick="changeSelectedPrologueStage(-1)" ${pStage <= 1 ? 'disabled' : ''} style="padding:5px 10px; font-size:9px; background:#224; border-color:#448;">◀</button>
+                    <div style="text-align:center; flex:1;">
+                        <div style="color:#ff8; font-size:9px;">Этап ${pStage} / 4 ${clearedBadge}</div>
+                        <div style="color:#8af; font-size:7px; margin-top:3px;">${meta.tag}</div>
+                    </div>
+                    <button onclick="changeSelectedPrologueStage(1)" ${pStage >= maxAvail ? 'disabled' : ''} style="padding:5px 10px; font-size:9px; background:#224; border-color:#448;">▶</button>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; margin-top:6px;">
+                    <div style="font-size:32px;">${meta.icon}</div>
+                    <div style="flex:1; font-size:8px; line-height:1.55;">
+                        <div style="color:#fff; margin-bottom:3px;">${meta.title}</div>
+                        <div style="color:#aaa; font-size:7px;">${meta.desc}</div>
+                        <div style="color:#f88; font-size:7px; margin-top:4px;">Враги: ${meta.enemies}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        let box = document.getElementById('campaign-contracts-box');
+        if (box) {
+            box.innerHTML = `<div class="contract-card story" onclick="startRaid('${pStageKey}', 'normal')">
+                <div style="flex:1;">
+                    <div style="color:gold; font-size:9px; margin-bottom:4px;">⚔️ В БОЙ!</div>
+                    <div style="font-size:7px; color:#ccc; line-height:1.45;">Одиночный поединок Свена.</div>
+                </div>
+                <button style="background:#840; border-color:#fc0; font-size:9px;">В БОЙ</button>
+            </div>`;
+        }
+        return;
+    }
 
     let maxAvail = Math.min(25, state.maxRaidCleared + 1);
     if (!state.selectedStage || state.selectedStage > maxAvail) state.selectedStage = maxAvail;
@@ -696,7 +834,7 @@ function formatHeroStatsBlock(stats, mainAttr) {
 }
 
 function getUnlockedHeroAct() {
-    if (state.maxRaidCleared < 1) return 0;
+    if (state.prologueCleared < 4 && state.maxRaidCleared < 1) return 0;
     if (state.maxRaidCleared < 5) return 1;
     if (state.maxRaidCleared < 10) return 2;
     if (state.maxRaidCleared < 15) return 3;
@@ -749,7 +887,7 @@ function renderHeroes() {
 
         if (!owned && dbH.unlockAct > maxAct) {
             if (dbH.unlockAct === maxAct + 1) {
-                let reqBoss = dbH.unlockAct === 1 ? 'Пройдите Этап 1 (Бельчонок)' : `Победите босса Акта ${dbH.unlockAct - 1} (Этап ${(dbH.unlockAct - 1) * 5})`;
+                let reqBoss = dbH.unlockAct === 1 ? 'Завершите Пролог (Акт 0)' : `Победите босса Акта ${dbH.unlockAct - 1} (Этап ${(dbH.unlockAct - 1) * 5})`;
                 list.innerHTML += `<div class="card locked-card">
                     <div style="color:#bbb;">🔒 ${dbH.icon} ${dbH.name} <span class="role-tag">${dbH.role}</span></div>
                     <div style="font-size:7px; color:#fa0; margin-top:4px;">Откроется: ${reqBoss}</div>
@@ -908,6 +1046,7 @@ function renderSquad() {
         return;
     }
 
+    let f = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures() : { partyBackRow: true, neutralSlot: true };
     const squadHeroes = state.squad.map(id => state.heroes.find(x => x.id === id)).filter(Boolean);
     const frontList = squadHeroes.filter(h => (h.row || 'front') === 'front');
     const backList = squadHeroes.filter(h => h.row === 'back');
@@ -915,17 +1054,18 @@ function renderSquad() {
     const renderCard = (h) => {
         const dbH = DB.heroes.find(x => x.id === h.dbId);
         let typeTag = dbH.isMelee ? '<span style="color:#fa0; font-size:7px;">Ближ.</span>' : '<span style="color:#0af; font-size:7px;">Дальн.</span>';
-        let warn = (dbH.isMelee && h.row === 'back') ? '<div style="font-size:7px; color:#f88; margin-top:3px;">⚠ −25% УРН с руки</div>' : '';
+        let warn = (dbH.isMelee && h.row === 'back' && f.partyBackRow) ? '<div style="font-size:7px; color:#f88; margin-top:3px;">⚠ −25% УРН с руки</div>' : '';
         let itemIcons = (h.items || []).filter(Boolean).map(iid => { let it = findAnyItem(iid); return it ? it.icon : ''; }).join('');
-        let neutObj = h.neutralItem ? findAnyItem(h.neutralItem) : null;
+        let neutObj = (h.neutralItem && f.neutralSlot) ? findAnyItem(h.neutralItem) : null;
         if (neutObj) itemIcons += (itemIcons ? ' ' : '') + `<span style="border:1px solid #0ef; border-radius:3px; padding:0 2px; background:#123;">${neutObj.icon}</span>`;
         let moveLabel = h.row === 'front' ? '⬇ Во 2-й' : '⬆ В 1-й';
+        let moveBtn = f.partyBackRow ? `<button class="row-move-btn" onclick="event.stopPropagation(); toggleHeroRow('${h.id}')">${moveLabel}</button>` : '';
         return `<div class="card" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; margin-bottom:6px;" onclick="openHeroSetup('${h.id}')">
             <div>${dbH.icon} ${dbH.name} <span style="color:gold; font-size:8px;">Ур.${h.level}</span> ${typeTag}
             ${warn}
             ${itemIcons ? `<div style="margin-top:4px; font-size:12px;">${itemIcons}</div>` : ''}</div>
             <div style="display:flex; align-items:center;">
-                <button class="row-move-btn" onclick="event.stopPropagation(); toggleHeroRow('${h.id}')">${moveLabel}</button>
+                ${moveBtn}
                 <button style="background:#500; font-size:7px; padding:5px 6px;" onclick="event.stopPropagation(); removeFromSquad('${h.id}')">✕</button>
             </div>
         </div>`;
@@ -936,10 +1076,12 @@ function renderSquad() {
         ${frontList.length ? frontList.map(renderCard).join('') : '<p style="color:#666; font-size:8px; text-align:center; padding:6px;">Пусто — враги сразу будут бить 2-й ряд</p>'}
     </div>`;
 
-    list.innerHTML += `<div class="squad-row-box">
-        <div class="squad-row-title" style="color:#0af;">🏹 2-й ряд — Тыл <span style="color:#888; font-size:7px;">(−15% физ. урона от ближников)</span></div>
-        ${backList.length ? backList.map(renderCard).join('') : '<p style="color:#666; font-size:8px; text-align:center; padding:6px;">Пусто</p>'}
-    </div>`;
+    if (f.partyBackRow) {
+        list.innerHTML += `<div class="squad-row-box">
+            <div class="squad-row-title" style="color:#0af;">🏹 2-й ряд — Тыл <span style="color:#888; font-size:7px;">(−15% физ. урона от ближников)</span></div>
+            ${backList.length ? backList.map(renderCard).join('') : '<p style="color:#666; font-size:8px; text-align:center; padding:6px;">Пусто</p>'}
+        </div>`;
+    }
 
     if (maxSquad < 5) {
         let nextSlotTxt = maxSquad === 3 ? '4-й слот откроется за босса Акта 1 (Этап 5)' : '5-й слот откроется за босса Акта 2 (Этап 10)';
@@ -964,7 +1106,37 @@ function buyHero(dbId) {
         };
         state.heroes.push(newHero);
         if (state.squad.length < getMaxSquadSize()) state.squad.push(newHero.id);
+
+        // v4.6: Проверка на покупку 2-го героя (первого нанятого компаньона) -> открытие Трав и Чая
+        if (!state.teaUnlocked && state.heroes.length >= 2) {
+            state.teaUnlocked = true;
+            state.herbs = (state.herbs || 0) + 3;
+            state.seenTabs = state.seenTabs || {};
+            state.seenTabs.forest = false;
+            setTabBadge('forest', true);
+            showFeatureToast('🌿 Открыты Травы и Котелок! +3 🌿 получено');
+
+            const heroTeaLore = {
+                cm: '«Я знаю толк в северных травах! Добавь ледяную мяту в походный котелок — и мана польётся рекой. Держи мой запас снегоцвета (+3 🌿)!»',
+                lion: '«В пустошах преисподней мало что растёт, но эти ядовито-пряные сборы мгновенно проясняют рассудок. Держи три пучка (+3 🌿), завари в котелке!»',
+                lina: '«Огонь согреет любой настой! Крепкий иван-чай разжигает пламя ярости в крови. Держи сушёные сборы (+3 🌿), котелок уже кипит!»',
+                lc: '«Перед атакой воины Бронзового легиона всегда пьют крепкий отвар ромашки и чабреца. Держи походный запас (+3 🌿), налей в котелок!»',
+                dazzle: '«Хе-хе, духи тени шепчут тайные сборы! В котелке можно сварить отвар невиданной силы! Держи сушёные травы (+3 🌿)!»',
+                kunkka: '«Старый морской рецепт: бросить пару листов мяты прямо в кружку с ромом! Держи пучок трав (+3 🌿), согреет в любом бою!»',
+                wk: '«Даже костям нужна крепость! Отвары из могильных трав возвращают былую мощь. Забирай эти сборы (+3 🌿)!»',
+                silencer: '«Тишина чащи рождает лучшие целебные травы. Они успокаивают нервы и даруют ясный разум. Держи три пучка (+3 🌿).»'
+            };
+            let loreText = heroTeaLore[dbH.id] || '«В долгом походе горячий настой из лесных трав незаменим. В Лесу травы дают силы и восстанавливают здоровье. Держи стартовый сбор (+3 🌿)!»';
+
+            showCustomStory({
+                icon: dbH.icon,
+                title: '☕ Походный чай и Травы',
+                text: `<b style="color:gold;">${dbH.name}:</b> ${loreText}<br><br><span style="color:#6f8;">В Лесу открыт сбор трав и походный котелок. Заваривайте чай перед рейдами!</span>`
+            });
+        }
+
         save();
+        updateUI();
     }
 }
 
@@ -1015,6 +1187,11 @@ function openHeroSetup(heroId) {
     }
     document.getElementById('hs-items').innerHTML = invHtml;
 
+    let f = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures() : { neutralSlot: true };
+    let neutSec = document.getElementById('hs-neutral-section');
+    if (neutSec) {
+        neutSec.style.display = f.neutralSlot ? 'block' : 'none';
+    }
     let neutIt = hero.neutralItem ? findAnyItem(hero.neutralItem) : null;
     let neutEl = document.getElementById('hs-neutral-slot');
     if (neutEl) {

@@ -63,6 +63,14 @@
         </div>
 
         <div class="dbg-sec" style="border-top:none; margin-top:0; padding-top:0;">
+            <div class="dbg-title">🎬 АКТ 0 (ПРОЛОГ)</div>
+            <div class="dbg-row">
+                <button class="dbg-btn warn" onclick="dbgResetAct0()">🔄 Сброс в Акт 0</button>
+                <button class="dbg-btn ok" onclick="dbgSkipAct0()">⏩ Пропустить Акт 0</button>
+            </div>
+        </div>
+
+        <div class="dbg-sec">
             <div class="dbg-title">💰 ЗОЛОТО</div>
             <div class="dbg-row">
                 <button class="dbg-btn ok" onclick="dbgAddGold(500)">+500</button>
@@ -307,5 +315,61 @@
         });
         save();
         alert('🔄 Шаман, Морж-рыболов и Заколдованный орех сброшены!');
+    };
+
+    window.dbgResetAct0 = function() {
+        if (typeof combat !== 'undefined' && combat.active) combat.active = false;
+        state.prologueCleared = 0;
+        state.raidUnlocked = false;
+        state.teaUnlocked = false;
+        state.forestUnlocked = true;
+        state.gold = 0;
+        state.herbs = 0;
+        state.seenTabs = { forest: true };
+        state.selectedPrologueStage = 1;
+        state.selectedStage = 1;
+        state.maxRaidCleared = 0;
+        state.raidLevel = 1;
+        state.relics = [];
+        state.raidInv = [];
+        state.neutralInv = [];
+        state.activeTea = null;
+        state.forestItemLevels = { branch: 0, qb: 0, gloves: 0, midas: 0, helm_will: 0, diadem: 0, dominator: 0, relic: 0, talisman: 0, radiance: 0 };
+        state.forestMilestones = [];
+        state.kettleLevel = 0;
+        state.creepsKilled = 0;
+        state.stacksKilled = 0;
+        state.runesClaimed = 0;
+        state.heroes = [{
+            id: 'h_sven', dbId: 'sven',
+            level: 1, xp: 0, sp: 0, skillLevels: [1, 0, 0, 0],
+            hasShard: false, hasScepter: false, items: [], neutralItem: null, duelDmg: 0, row: 'front'
+        }];
+        state.squad = ['h_sven'];
+        state.seenStories = (state.seenStories || []).filter(s => !s.startsWith('prologue_'));
+        save();
+        switchTab('forest');
+        alert('🔄 Игра сброшена к началу Акта 0 (Пролог)!');
+    };
+
+    window.dbgSkipAct0 = function() {
+        if (typeof combat !== 'undefined' && combat.active) combat.active = false;
+        state.prologueCleared = 4;
+        state.raidUnlocked = true;
+        state.teaUnlocked = true;
+        state.forestUnlocked = true;
+        state.gold = Math.max(state.gold || 0, 150);
+        state.herbs = Math.max(state.herbs || 0, 3);
+        state.seenTabs = { forest: true, raid: true, shop: true, heroes: true, squad: true };
+        state.selectedStage = 1;
+        let sven = state.heroes.find(h => h.dbId === 'sven');
+        if (sven) {
+            sven.level = Math.max(sven.level, 3);
+            sven.sp = Math.max(sven.sp, 2);
+            sven.skillLevels = [2, 1, 0, 0];
+        }
+        save();
+        switchTab('raid');
+        alert('⏩ Акт 0 (Пролог) успешно пропущен! Открыт Акт 1 (Этап 1).');
     };
 })();

@@ -15,6 +15,8 @@ function toggleSpeed() {
 }
 
 function selectEnemyTarget(targetId) {
+    let features = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : { combatTargeting: true };
+    if (!features.combatTargeting) return;
     let e = combat.targets.find(t => t.id === targetId && t.isEnemy && t.hp > 0);
     if (e) {
         combat.selectedTargetId = targetId;
@@ -291,7 +293,7 @@ function makeSpecialEnemy(key, idTag, contract) {
     let tpl = SPECIAL_ENEMIES[key];
     let hp = tpl.hp;
     let atk = Math.floor(tpl.atk * (CONFIG.combat.enemyBaseAtkMult || 1.28));
-    let sh = tpl.shieldMax || 2;
+    let sh = (typeof tpl.shieldMax === 'number') ? tpl.shieldMax : 2;
     if (contract === 'ambush') { hp = Math.floor(hp * CONFIG.contracts.ambush.enemyHpMult); atk = Math.floor(atk * CONFIG.contracts.ambush.enemyAtkMult); }
     if (contract === 'trial')  { sh += CONFIG.contracts.trial.enemyShieldBonus; atk = Math.floor(atk * CONFIG.contracts.trial.enemyAtkMult); }
     let row = tpl.row || (tpl.isMelee || tpl.archetype === 'tank' ? 'front' : 'back');
@@ -317,7 +319,11 @@ function makeSpecialEnemy(key, idTag, contract) {
 }
 
 function buildStageEnemies(stage, contract) {
-    if (stage === 1)  return [makeSpecialEnemy('squirrel', 'e1', 'normal')];
+    if (stage === 'p1') return [makeSpecialEnemy('prologue_squirrel', 'e1', 'normal')];
+    if (stage === 'p2') return [makeSpecialEnemy('prologue_boar', 'e1', 'normal')];
+    if (stage === 'p3') return [makeSpecialEnemy('prologue_bandit', 'e1', 'normal'), makeSpecialEnemy('prologue_archer', 'e2', 'normal')];
+    if (stage === 'p4') return [makeSpecialEnemy('prologue_guard_boss', 'e1', 'normal'), makeSpecialEnemy('prologue_runner', 'e2', 'normal')];
+    if (stage === 1)  return [makeSpecialEnemy('forest_wolf', 'e1', contract), makeSpecialEnemy('forest_wolf', 'e2', contract)];
     if (stage === 5)  return [makeSpecialEnemy('bandit_thug', 'e1', contract), makeSpecialEnemy('bounty_hunter', 'e2', contract), makeSpecialEnemy('bandit_archer', 'e3', contract)];
     if (stage === 6)  return [
         makeSpecialEnemy('bristleback', 'e1', contract),
@@ -433,8 +439,8 @@ function rollEnemyIntent(enemy) {
 }
 
 function startRaid(stage, contract = 'normal') {
-    if (state.squad.length === 0) { alert('Отряд пуст! Добавьте героя во вкладке «Герои».'); return; }
-    stage = stage || state.selectedStage || Math.min(25, state.maxRaidCleared + 1);
+    if (state.squad.length === 0) { alert('Отряд пуст! Добавьте героя во вкладке «Таверна».'); return; }
+    stage = stage || (state.prologueCleared < 4 ? ('p' + Math.min(4, (state.prologueCleared || 0) + 1)) : (state.selectedStage || Math.min(25, state.maxRaidCleared + 1)));
     let gate = (typeof ACT_FOREST_GATES !== 'undefined') ? ACT_FOREST_GATES[stage] : null;
     if (gate && stage > state.maxRaidCleared && !window.DEBUG_BYPASS_GATES && !gate.check(state)) {
         alert(`🔒 ${gate.title}\n${gate.reqText}\n(${gate.progress(state)})`);
@@ -449,7 +455,20 @@ function startRaid(stage, contract = 'normal') {
         }
     }
 
-    const introMap = { 6:'stage6_intro', 8:'stage8_pudge_intro', 11:'stage11_intro', 14:'stage14_circus', 16:'stage16_intro', 21:'stage21_intro', 25:'stage25_intro' };
+    const introMap = {
+        p1: 'prologue_p1_intro',
+        p2: 'prologue_p2_intro',
+        p3: 'prologue_p3_intro',
+        p4: 'prologue_p4_intro',
+        1: 'stage1_intro',
+        6: 'stage6_intro',
+        8: 'stage8_pudge_intro',
+        11: 'stage11_intro',
+        14: 'stage14_circus',
+        16: 'stage16_intro',
+        21: 'stage21_intro',
+        25: 'stage25_intro'
+    };
     let storyKey = introMap[stage];
     if (storyKey && !state.seenStories.includes(storyKey)) {
         showStory(storyKey, () => launchCombat(stage, contract), true);
@@ -476,9 +495,15 @@ function launchCombat(stage, contract) {
     document.getElementById('battle-log').innerHTML = '';
     document.getElementById('skills-submenu').style.display = 'none';
 
-    let act = getActForStage(stage);
-    let cTag = contract === 'ambush' ? ' • 🔥 Засада' : (contract === 'trial' ? ' • 💀 Испытание' : '');
-    document.getElementById('raid-level-display').innerText = `Акт ${act.id} • Этап ${stage}${cTag}`;
+    let isPrologue = (typeof stage === 'string' && stage.startsWith('p'));
+    if (isPrologue) {
+        let pNum = stage.replace('p', '');
+        document.getElementById('raid-level-display').innerText = `Акт 0 • Пролог: Этап ${pNum}`;
+    } else {
+        let act = getActForStage(stage);
+        let cTag = contract === 'ambush' ? ' • 🔥 Засада' : (contract === 'trial' ? ' • 💀 Испытание' : '');
+        document.getElementById('raid-level-display').innerText = `Акт ${act.id} • Этап ${stage}${cTag}`;
+    }
 
     // Враги
     let enemies = buildStageEnemies(stage, contract);
@@ -514,6 +539,11 @@ function launchCombat(stage, contract) {
             illusions: 0, lumiCount: 0, wkReincarnated: false, preparing: null
         });
     });
+
+    if (stage === 'p3') {
+        let svenCombatHero = combat.targets.find(t => !t.isEnemy && t.dbId === 'sven');
+        if (svenCombatHero) svenCombatHero.rage = 50;
+    }
 
     // Ауры брони (Кираса / Баклер — не стакаются)
     let heroesList = combat.targets.filter(t => !t.isEnemy);
@@ -615,6 +645,8 @@ function renderUnitCard(t) {
 
     let extraCls = isDefending ? 'defending-state' : (isPrep ? 'prep-state' : (hasGrave ? 'grave-state' : (isBroken ? 'broken-state' : (hasXMark || hasOrchid || hasHex ? 'xmark-state' : (hasRum || hasBarrier ? 'rum-state' : '')))));
 
+    let features = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : { combatShields: true, combatRage: true, combatTargeting: true };
+
     if (t.isEnemy) {
         let enemySilenced = hasOrchid || hasSilence;
         let intentHtml = '';
@@ -624,12 +656,13 @@ function renderUnitCard(t) {
         } else {
             intentHtml = `<div class="intent-badge">${enemySilenced ? '🔇 ' : '⚔️ '}${t.atk}</div>`;
         }
-        let shieldHtml = `<div class="shield-row">${isBroken ? '<span style="color:#f80;font-size:6px;">ПРОБИТ</span>' : '🛡️'.repeat(Math.max(0, t.shield || 0))}</div>`;
-        let isSelected = (t.id === combat.selectedTargetId);
+        let shieldHtml = features.combatShields ? `<div class="shield-row">${isBroken ? '<span style="color:#f80;font-size:6px;">ПРОБИТ</span>' : '🛡️'.repeat(Math.max(0, t.shield || 0))}</div>` : '';
+        let isSelected = features.combatTargeting && (t.id === combat.selectedTargetId);
         let targetCross = isSelected ? '<div class="target-crosshair">🎯</div>' : '';
         let targetCls = isSelected ? ' selected-target' : '';
         let wrapCls = isSelected ? ' selected-wrap' : '';
-        return `<div class="enemy-unit-wrap${wrapCls}" onclick="selectEnemyTarget('${t.id}')" title="Нажмите для выбора цели 🎯">
+        let clickAttr = features.combatTargeting ? `onclick="selectEnemyTarget('${t.id}')" title="Нажмите для выбора цели 🎯"` : '';
+        return `<div class="enemy-unit-wrap${wrapCls}" ${clickAttr}>
             ${intentHtml}
             <div style="position:relative;"><div class="sprite enemy ${extraCls}${targetCls}" id="sprite-${t.id}">${t.icon}${stun}${buffIcon}${targetCross}</div></div>
             <div style="font-size:7px; margin-top:3px; color:#ccc;">${t.name.split(' ')[0]}</div>
@@ -640,7 +673,7 @@ function renderUnitCard(t) {
     } else {
         let isTargetLocked = combat.targets.some(e => e.isEnemy && e.hp > 0 && e.lockedTargetId === t.id);
         let targetLockedBadge = isTargetLocked ? `<div class="target-locked-badge">🎯 ПРИЦЕЛ</div>` : '';
-        let rageHtml = `<div class="rage-bar-bg" style="width:44px; margin:1px auto;"><div class="rage-bar-fill" style="width:${Math.min(100, t.rage || 0)}%"></div></div>`;
+        let rageHtml = features.combatRage ? `<div class="rage-bar-bg" style="width:44px; margin:1px auto;"><div class="rage-bar-fill" style="width:${Math.min(100, t.rage || 0)}%"></div></div>` : '';
         let illuTag = (t.dbId === 'pl' && t.illusions > 0) ? `<div style="font-size:6px; color:#0ef;">🔱×${t.illusions}</div>` : '';
         let prepBadge = isPrep ? `<div class="prep-badge">⏳ ${t.preparing.skillObj.name}</div>` : '';
         let defBadge = isDefending ? `<div class="defending-badge">🛡️ БЛОК</div>` : '';
@@ -661,7 +694,8 @@ function renderUnitCard(t) {
 function renderTurnOrderBar() {
     let bar = document.getElementById('turn-order-bar');
     if (!bar) return;
-    if (!combat.active || !combat.turnQueue || combat.turnQueue.length === 0) {
+    let features = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : { combatTurnBar: true };
+    if (!features.combatTurnBar || !combat.active || !combat.turnQueue || combat.turnQueue.length === 0) {
         bar.innerHTML = '';
         bar.style.display = 'none';
         return;
@@ -702,6 +736,18 @@ function renderArena() {
     const riverEl = document.getElementById('arena-river');
     if (riverEl) {
         riverEl.style.display = (combat.stage === 8) ? 'block' : 'none';
+    }
+
+    let features = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : { combatRows: true };
+    if (!features.combatRows) {
+        let aliveHeroes = combat.targets.filter(t => !t.isEnemy && t.hp > 0);
+        if (aliveHeroes.length === 0) aliveHeroes = combat.targets.filter(t => !t.isEnemy);
+        hDiv.innerHTML = `<div class="formation-band"><div class="row">${aliveHeroes.map(renderUnitCard).join('')}</div></div>`;
+
+        let aliveEnemies = combat.targets.filter(t => t.isEnemy && t.hp > 0);
+        if (aliveEnemies.length === 0) aliveEnemies = combat.targets.filter(t => t.isEnemy);
+        eDiv.innerHTML = `<div class="formation-band enemy-band"><div class="row">${aliveEnemies.map(renderUnitCard).join('')}</div></div>`;
+        return;
     }
 
     let backHeroes = combat.targets.filter(t => !t.isEnemy && t.row === 'back');
@@ -1109,18 +1155,35 @@ function nextTurn() {
         }
     }
 
+    let features = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : { combatBlock: true, shopTab: true };
     let btnSkills = document.getElementById('btn-skills');
     let btnDefend = document.getElementById('btn-defend');
+    let btnItems = document.getElementById('btn-items');
+
+    if (btnDefend) {
+        btnDefend.style.display = features.combatBlock ? '' : 'none';
+    }
+    if (btnItems) {
+        btnItems.style.display = (features.shopTab && combat.stage !== 'p1') ? '' : 'none';
+    }
+
     if (actor.isEnemy) {
         document.getElementById('btn-attack').disabled = true;
         if (btnDefend) btnDefend.disabled = true;
         btnSkills.disabled = true;
         btnSkills.classList.remove('btn-rage-ready');
         btnSkills.innerText = 'СКИЛЛЫ';
-        document.getElementById('btn-items').disabled = true;
+        if (btnItems) btnItems.disabled = true;
         document.getElementById('skills-submenu').style.display = 'none';
         setTimeout(() => enemyAI(actor), fastMode ? 450 : 900);
     } else {
+        if (!actor.isEnemy && combat.stage === 'p2' && !combat.boarHintShown) {
+            let boar = combat.targets.find(t => t.isEnemy && t.hp > 0 && (t.tplKey === 'prologue_boar' || t.name === 'Лесной вепрь'));
+            if (boar && boar.nextIntent && boar.nextIntent.type === 'skill') {
+                combat.boarHintShown = true;
+                log('<span style="color:#0cf;">⚔️ Свен: «Зверь разгоняется для тарана... Нужно встретить удар мечом! (🛡️ БЛОК)»</span>');
+            }
+        }
         if (btnDefend) btnDefend.disabled = false;
         let heroRooted = actor.buffs && actor.buffs.some(b => b.type === 'root');
         let btnAttack = document.getElementById('btn-attack');
@@ -1217,8 +1280,11 @@ function raidAction(type) {
         menu.innerHTML = '';
         let has = false;
         let isRage = actor.rage >= 100;
+        let feat = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures(state) : { combatUlt: true };
         actor.skills.forEach((sk, idx) => {
             if (sk.type === 'passive') return;
+            if (!feat.combatUlt && (idx === 3 || sk.id === 's4')) return;
+            if (combat.stage === 'p1' && idx > 0) return;
             let lvl = actor.heroData.skillLevels[idx];
             if (lvl > 0) {
                 has = true;
@@ -2644,6 +2710,17 @@ function chooseEnemyAction(enemy, allies, playerHeroes) {
         };
     }
 
+    if (enemy.tplKey === 'prologue_boar' || enemy.name === 'Лесной вепрь') {
+        let isSilenced = enemy.buffs && enemy.buffs.some(b => b.type === 'silence' || b.type === 'orchid');
+        if (isSilenced) return { type: 'attack' };
+        if (enemy.turnCount === 2 || enemy.turnCount === 1) {
+            return {
+                type: 'skill',
+                skill: { name: 'Свирепый таран', type: 'phys', mult: 1.8, aoe: false, stun: 0, mpCost: 0, desc: 'Вепрь разгоняется для сокрушительного тарана!' }
+            };
+        }
+    }
+
     let isSilenced = enemy.buffs && enemy.buffs.some(b => b.type === 'silence' || b.type === 'orchid');
     if (isSilenced) return { type: 'attack' };
 
@@ -3187,6 +3264,73 @@ function winBattle(isScriptedVictory = false) {
     combat.active = false;
     let st = combat.stage;
 
+    let isPrologue = (typeof st === 'string' && st.startsWith('p'));
+    if (isPrologue) {
+        let pNum = parseInt(st.replace('p', ''), 10) || 1;
+        let baseGold = 90;
+        let baseXp = 35;
+        if (pNum === 1) { baseGold = 90;  baseXp = 35; }
+        if (pNum === 2) { baseGold = 160; baseXp = 55; }
+        if (pNum === 3) { baseGold = 260; baseXp = 80; }
+        if (pNum === 4) { baseGold = 350; baseXp = 110; }
+
+        state.gold += baseGold;
+        state.squad.forEach(id => {
+            let h = state.heroes.find(x => x.id === id);
+            if (!h) return;
+            h.xp += baseXp;
+            while (h.level < 25 && h.xp >= xpNeeded(h.level)) {
+                h.xp -= xpNeeded(h.level);
+                h.level++;
+                h.sp++;
+            }
+        });
+
+        state.prologueCleared = Math.max(state.prologueCleared || 0, pNum);
+
+        if (pNum === 1) {
+            state.seenTabs = state.seenTabs || {};
+            state.seenTabs.shop = false;
+            state.seenTabs.squad = false;
+            if (typeof showFeatureToast === 'function') {
+                showFeatureToast('🛒 Открыты Лавка и Отряд! Наденьте снаряжение перед следующим боем.');
+            }
+        } else if (pNum === 2) {
+            if (typeof showFeatureToast === 'function') {
+                showFeatureToast('⚡ Открыты Руны, Стаки в Лесу, Ярость и способности в бою!');
+            }
+        } else if (pNum === 3) {
+            state.seenTabs = state.seenTabs || {};
+            state.seenTabs.heroes = false;
+            if (typeof showFeatureToast === 'function') {
+                showFeatureToast('🍺 Открыта Таверна! Наймите первого напарника.');
+            }
+        } else if (pNum === 4) {
+            state.selectedStage = 1;
+            state.seenTabs = state.seenTabs || {};
+            state.seenTabs.raid = false;
+            if (typeof showFeatureToast === 'function') {
+                showFeatureToast('🌿 Акт 1 открыт! Впереди тракт и Запутанные тропы.');
+            }
+        }
+
+        save();
+
+        const showVic = () => {
+            document.getElementById('victory-title').innerText = 'ПОБЕДА!';
+            document.getElementById('victory-title').style.color = 'gold';
+            document.getElementById('victory-desc').innerHTML = `💰 +${baseGold} золота<br>⭐ +${baseXp} опыта каждому`;
+            document.getElementById('victory-modal').style.display = 'flex';
+        };
+
+        if (pNum === 4) {
+            showStory('prologue_p4_win', showVic, true);
+        } else {
+            showVic();
+        }
+        return;
+    }
+
     // Чертёж Орчида с босса Этапа 5 (проверяется ДО обновления maxRaidCleared)
     let shouldDropOrchid = (st === 5 && !state.orchidRecipeDropped);
     if (shouldDropOrchid) {
@@ -3196,7 +3340,7 @@ function winBattle(isScriptedVictory = false) {
         }
     }
 
-    let firstClear = st > state.maxRaidCleared;
+    let firstClear = (typeof st === 'number' && st > state.maxRaidCleared);
     if (firstClear) {
         state.maxRaidCleared = st;
         state.raidLevel = Math.min(25, st + 1);
@@ -3271,7 +3415,7 @@ function winBattle(isScriptedVictory = false) {
     });
 
     let neutralChance = combat.contract === 'ambush' ? CONFIG.neutrals.raidAmbushChance : CONFIG.neutrals.raidNormalChance;
-    if (st > 1 && Math.random() < neutralChance) {
+    if (typeof st === 'number' && st > 1 && state.prologueCleared >= 4 && Math.random() < neutralChance) {
         let act = getActForStage(st);
         let n = pickRandomNeutralDrop(act.id);
         if (n) {
@@ -3317,6 +3461,3 @@ function closeVictory() {
 /* ===== ИНИЦИАЛИЗАЦИЯ ИГРЫ ===== */
 updateUI();
 spawnForestCreep();
-if (!state.forestUnlocked && state.maxRaidCleared === 0 && !state.seenStories.includes('intro')) {
-    showStory('intro', null, true);
-}
