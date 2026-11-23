@@ -279,17 +279,86 @@ function updateForestUI() {
         teaDisp.innerText = parts.join(' • ');
     }
 
+function formatShopUnlockProgress(s) {
+    let nextTier = (typeof SHOP_TIERS !== 'undefined') ? SHOP_TIERS.find(t => !t.check(s)) : null;
+    if (!nextTier) {
+        return { isAll: true, text: '🏪 В лавке открыты все товары' };
+    }
+    let parts = [];
+    if (nextTier.tier === 1) {
+        let left = Math.max(0, 1 - (s.maxRaidCleared || 0));
+        parts.push(`Пройти Этап 1 (осталось: ${left})`);
+    } else if (nextTier.tier === 2) {
+        let curDmg = getForestDamage();
+        let leftDmg = Math.max(0, 25 - curDmg);
+        parts.push(`Урон клика: ${curDmg} / 25 (осталось ${leftDmg})`);
+
+        let curCreeps = s.creepsKilled || 0;
+        let leftCreeps = Math.max(0, 50 - curCreeps);
+        parts.push(`Крипы: ${curCreeps} / 50 (осталось ${leftCreeps})`);
+
+        let curStacks = s.stacksKilled || 0;
+        let leftStacks = Math.max(0, 2 - curStacks);
+        parts.push(`Стаки: ${curStacks} / 2 (осталось ${leftStacks})`);
+    } else if (nextTier.tier === 3) {
+        let hasMidas = (s.forestItemLevels && s.forestItemLevels.midas) ? 1 : 0;
+        parts.push(`🖐️ Мидас: ${hasMidas ? 'собран' : 'не собран'}`);
+
+        let curCreeps = s.creepsKilled || 0;
+        let leftCreeps = Math.max(0, 150 - curCreeps);
+        parts.push(`Крипы: ${curCreeps} / 150 (осталось ${leftCreeps})`);
+
+        let curStacks = s.stacksKilled || 0;
+        let leftStacks = Math.max(0, 4 - curStacks);
+        parts.push(`Стаки: ${curStacks} / 4 (осталось ${leftStacks})`);
+
+        let curRunes = s.runesClaimed || 0;
+        let leftRunes = Math.max(0, 2 - curRunes);
+        parts.push(`Руны: ${curRunes} / 2 (осталось ${leftRunes})`);
+    } else if (nextTier.tier === 4) {
+        let hasDom = (s.forestItemLevels && s.forestItemLevels.dominator) ? 1 : 0;
+        parts.push(`👹 Доминатор: ${hasDom ? 'собран' : 'не собран'}`);
+
+        let curArmy = s.forestArmy || 0;
+        let leftArmy = Math.max(0, 15 - curArmy);
+        parts.push(`Армия: ${curArmy} / 15 (осталось ${leftArmy})`);
+
+        let curCreeps = s.creepsKilled || 0;
+        let leftCreeps = Math.max(0, 350 - curCreeps);
+        parts.push(`Крипы: ${curCreeps} / 350 (осталось ${leftCreeps})`);
+
+        let curStacks = s.stacksKilled || 0;
+        let leftStacks = Math.max(0, 8 - curStacks);
+        parts.push(`Стаки: ${curStacks} / 8 (осталось ${leftStacks})`);
+    } else if (nextTier.tier === 5) {
+        let hasRad = (s.forestItemLevels && s.forestItemLevels.radiance) ? 1 : 0;
+        parts.push(`✨ Радианс: ${hasRad ? 'собран' : 'не собран'}`);
+
+        let curCreeps = s.creepsKilled || 0;
+        let leftCreeps = Math.max(0, 700 - curCreeps);
+        parts.push(`Крипы: ${curCreeps} / 700 (осталось ${leftCreeps})`);
+
+        let curStacks = s.stacksKilled || 0;
+        let leftStacks = Math.max(0, 12 - curStacks);
+        parts.push(`Стаки: ${curStacks} / 12 (осталось ${leftStacks})`);
+
+        let curRunes = s.runesClaimed || 0;
+        let leftRunes = Math.max(0, 6 - curRunes);
+        parts.push(`Руны: ${curRunes} / 6 (осталось ${leftRunes})`);
+    }
+    return {
+        isAll: false,
+        text: `🏪 До обновления лавки: ${parts.join(' • ')}`
+    };
+}
+window.formatShopUnlockProgress = formatShopUnlockProgress;
+
     // Подсказка прогресса к следующему тиру Рейдовой лавки
     let progEl = document.getElementById('forest-shop-progress');
     if (progEl) {
-        let nextTier = SHOP_TIERS.find(t => !t.check(state));
-        if (nextTier) {
-            progEl.innerText = `🔓 До Тир ${nextTier.tier} Лавки: ${nextTier.progress(state)}`;
-            progEl.style.color = '#9cf';
-        } else {
-            progEl.innerText = `✨ Все 5 тиров Рейдовой лавки открыты!`;
-            progEl.style.color = '#6e6';
-        }
+        let pInfo = formatShopUnlockProgress(state);
+        progEl.innerText = pInfo.text;
+        progEl.style.color = pInfo.isAll ? '#6e6' : '#9cf';
     }
 
     let stackBtn = document.getElementById('btn-stack-camp');

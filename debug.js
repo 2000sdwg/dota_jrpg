@@ -124,7 +124,7 @@
             </div>
             <div class="dbg-row">
                 <button class="dbg-btn ok" onclick="dbgGiveOrchidRecipe()">📜 Чертёж Орчида</button>
-                <button class="dbg-btn warn" onclick="dbgResetShamanPudge()">🔄 Сбросить Шамана/Пуджа</button>
+                <button class="dbg-btn warn" onclick="dbgResetShamanPudge()">🔄 Сбросить Шамана/Моржа</button>
             </div>
         </div>
     `;
@@ -306,6 +306,6 @@
             if (h.items) h.items = h.items.map(it => (it === 'nutcracker' || it === 'enchanted_nut') ? null : it);
         });
         save();
-        alert('🔄 Шаман, Пудж и Заколдованный орех сброшены!');
+        alert('🔄 Шаман, Морж-рыболов и Заколдованный орех сброшены!');
     };
 })();

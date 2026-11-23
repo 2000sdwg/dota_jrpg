@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Dota Idle RPG v4.4</title>
-<link rel="stylesheet" href="style.css?v=44">
+<title>Dota Idle RPG v4.5</title>
+<link rel="stylesheet" href="style.css?v=45">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -97,6 +97,7 @@
             <div style="font-size:7px; color:#888; text-align:center; margin-bottom:4px;">Нажмите на слот в шкале ходов, чтобы изучить героя/врага. Клик по врагу на арене — ручной таргет 🎯</div>
             <div id="turn-order-bar"></div>
             <div id="arena">
+                <div id="arena-river" class="arena-river" style="display:none;"></div>
                 <div id="arena-heroes" class="arena-side heroes-side"></div>
                 <div class="arena-divider"></div>
                 <div id="arena-enemies" class="arena-side enemies-side"></div>
@@ -265,13 +266,13 @@
     </div>
 </div>
 
-<script src="config.js?v=44"></script>
-<script src="db.js?v=44"></script>
-<script src="forest.js?v=44"></script>
-<script src="ui.js?v=44"></script>
-<script src="combat.js?v=44"></script>
+<script src="config.js?v=45"></script>
+<script src="db.js?v=45"></script>
+<script src="forest.js?v=45"></script>
+<script src="ui.js?v=45"></script>
+<script src="combat.js?v=45"></script>
 <!-- DEBUG: удали строку ниже и файл debug.js перед релизом -->
-<script src="debug.js?v=44"></script>
+<script src="debug.js?v=45"></script>
 <script>
 if (window.Telegram && window.Telegram.WebApp) {
     window.Telegram.WebApp.ready();

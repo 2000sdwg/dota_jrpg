@@ -1,7 +1,7 @@
-/* ===== ЕДИНЫЙ КОНФИГ БАЛАНСА DOTA IDLE RPG v4.4 ===== */
+/* ===== ЕДИНЫЙ КОНФИГ БАЛАНСА DOTA IDLE RPG v4.5 ===== */
 window.CONFIG = {
-    version: '4.4',
-    saveKey: 'dotaSave_v4_4',
+    version: '4.5',
+    saveKey: 'dotaSave_v4_5',
 
     // Щиты, Пробитие, Иммунитет, мана и боевой баланс
     combat: {

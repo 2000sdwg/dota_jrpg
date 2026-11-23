@@ -65,11 +65,19 @@ function showUnitInspector(unitId) {
         if (b.type === 'nether_ward') statusParts.push(`🟢 Тотем Пустоты (${b.dmg} маг. урона за каст врага, ${b.turns} х.)`);
     });
 
-    if (u.isEnemy && u.row === 'front' && (!u.isMelee || u.archetype === 'mage' || u.archetype === 'support')) {
+    if ((u.isEnemy && u.row === 'front' && (!u.isMelee || u.archetype === 'mage' || u.archetype === 'support')) || (u.buffs && u.buffs.some(b => b.type === 'uncovered'))) {
         statusParts.push('⚠️ Без прикрытия (+20% физ. урона)');
     }
     if (u.row === 'back') {
         statusParts.push('🛡️ Защита строя (−15% физ. урона от ближников)');
+    }
+    if (u.isEnemy && u.lockedTargetId) {
+        let lt = combat.targets.find(x => x.id === u.lockedTargetId);
+        let ltName = lt ? lt.name : 'героя';
+        statusParts.push(`🎯 Прицеливание в ${ltName} (ваншот в след. ход!)`);
+    }
+    if (!u.isEnemy && combat.targets.some(e => e.isEnemy && e.hp > 0 && e.lockedTargetId === u.id)) {
+        statusParts.push('🎯 НА МУШКЕ ХУДВИНК (ваншот в след. ход! Прожмите 🛡️ БЛОК или сбейте каст)');
     }
 
     let shieldInfo = '';
@@ -82,9 +90,18 @@ function showUnitInspector(unitId) {
     let intentInfo = '';
     if (u.isEnemy) {
         let enemySilenced = u.buffs && u.buffs.some(b => b.type === 'orchid' || b.type === 'silence');
-        let intentTxt = (u.nextIntent && u.nextIntent.type === 'skill' && !enemySilenced)
-            ? `<span style="color:#f66;">🔥 Скилл «${u.nextIntent.skill.name}»</span>`
-            : `${enemySilenced ? '🔇 Безмолвие (только удар)' : '⚔️ Обычная атака'} (~${u.atk} УРН)`;
+        let intentTxt = '';
+        if (enemySilenced) {
+            intentTxt = '🔇 Безмолвие (только удар) (~' + u.atk + ' УРН)';
+        } else if (u.nextIntent && u.nextIntent.type === 'skill') {
+            if (u.nextIntent.skill.type === 'hoodwink_release') {
+                intentTxt = '<span style="color:#f33; font-weight:bold;">🎯 Смертоносный выстрел по намеченной цели!</span>';
+            } else {
+                intentTxt = `<span style="color:#f66;">🔥 Скилл «${u.nextIntent.skill.name}»</span>`;
+            }
+        } else {
+            intentTxt = `⚔️ Обычная атака (~${u.atk} УРН)`;
+        }
         intentInfo = `<br>Намерение: ${intentTxt}`;
     }
 
@@ -302,7 +319,11 @@ function makeSpecialEnemy(key, idTag, contract) {
 function buildStageEnemies(stage, contract) {
     if (stage === 1)  return [makeSpecialEnemy('squirrel', 'e1', 'normal')];
     if (stage === 5)  return [makeSpecialEnemy('bandit_thug', 'e1', contract), makeSpecialEnemy('bounty_hunter', 'e2', contract), makeSpecialEnemy('bandit_archer', 'e3', contract)];
-    if (stage === 6)  return [makeSpecialEnemy('bristleback', 'e1', contract)];
+    if (stage === 6)  return [
+        makeSpecialEnemy('bristleback', 'e1', contract),
+        makeSpecialEnemy('forest_witchdoctor', 'e2', contract),
+        makeSpecialEnemy('poison_spider', 'e3', contract)
+    ];
     if (stage === 7)  return [makeSpecialEnemy('traveler', 'e1', contract)];
     if (stage === 8)  return [makeSpecialEnemy('bog_ghoul', 'e1', contract), makeSpecialEnemy('pudge_stage8', 'e2', contract), makeSpecialEnemy('poison_spider', 'e3', contract)];
     if (stage === 9)  {
@@ -596,9 +617,13 @@ function renderUnitCard(t) {
 
     if (t.isEnemy) {
         let enemySilenced = hasOrchid || hasSilence;
-        let intentHtml = (t.nextIntent && t.nextIntent.type === 'skill' && !enemySilenced)
-            ? `<div class="intent-badge spell">🔥 ${t.nextIntent.skill.name}</div>`
-            : `<div class="intent-badge">${enemySilenced ? '🔇 ' : '⚔️ '}${t.atk}</div>`;
+        let intentHtml = '';
+        if (t.nextIntent && t.nextIntent.type === 'skill' && !enemySilenced) {
+            let skName = (t.nextIntent.skill.type === 'hoodwink_release') ? '🎯 ВЫСТРЕЛ!' : `🔥 ${t.nextIntent.skill.name}`;
+            intentHtml = `<div class="intent-badge spell">${skName}</div>`;
+        } else {
+            intentHtml = `<div class="intent-badge">${enemySilenced ? '🔇 ' : '⚔️ '}${t.atk}</div>`;
+        }
         let shieldHtml = `<div class="shield-row">${isBroken ? '<span style="color:#f80;font-size:6px;">ПРОБИТ</span>' : '🛡️'.repeat(Math.max(0, t.shield || 0))}</div>`;
         let isSelected = (t.id === combat.selectedTargetId);
         let targetCross = isSelected ? '<div class="target-crosshair">🎯</div>' : '';
@@ -613,11 +638,14 @@ function renderUnitCard(t) {
             ${t.maxMp > 0 ? `<div class="mp-bar-bg" style="width:44px; margin:1px auto;"><div class="mp-bar-fill" style="width:${pctMp}%"></div></div>` : ''}
         </div>`;
     } else {
+        let isTargetLocked = combat.targets.some(e => e.isEnemy && e.hp > 0 && e.lockedTargetId === t.id);
+        let targetLockedBadge = isTargetLocked ? `<div class="target-locked-badge">🎯 ПРИЦЕЛ</div>` : '';
         let rageHtml = `<div class="rage-bar-bg" style="width:44px; margin:1px auto;"><div class="rage-bar-fill" style="width:${Math.min(100, t.rage || 0)}%"></div></div>`;
         let illuTag = (t.dbId === 'pl' && t.illusions > 0) ? `<div style="font-size:6px; color:#0ef;">🔱×${t.illusions}</div>` : '';
         let prepBadge = isPrep ? `<div class="prep-badge">⏳ ${t.preparing.skillObj.name}</div>` : '';
         let defBadge = isDefending ? `<div class="defending-badge">🛡️ БЛОК</div>` : '';
-        return `<div style="text-align:center;">
+        return `<div style="text-align:center; position:relative;">
+            ${targetLockedBadge}
             ${defBadge}
             ${prepBadge}
             <div><div class="sprite ${extraCls}" id="sprite-${t.id}">${t.icon}${stun}${buffIcon}</div></div>
@@ -670,6 +698,11 @@ function renderArena() {
     if (!eDiv || !hDiv) return;
     eDiv.innerHTML = '';
     hDiv.innerHTML = '';
+
+    const riverEl = document.getElementById('arena-river');
+    if (riverEl) {
+        riverEl.style.display = (combat.stage === 8) ? 'block' : 'none';
+    }
 
     let backHeroes = combat.targets.filter(t => !t.isEnemy && t.row === 'back');
     let frontHeroes = combat.targets.filter(t => !t.isEnemy && t.row === 'front');
@@ -781,6 +814,9 @@ function checkEnemyLethal(enemy) {
         }
         return;
     }
+    if (enemy.hp <= 0 && enemy.lockedTargetId) {
+        enemy.lockedTargetId = null;
+    }
     if (enemy.hp <= 0 && !enemy._silencerCounted) {
         enemy._silencerCounted = true;
         let livingSilencers = combat.targets.filter(t => !t.isEnemy && t.dbId === 'silencer' && t.hp > 0);
@@ -794,7 +830,7 @@ function checkEnemyLethal(enemy) {
             let hpGain = Math.floor(p.maxHp * 0.04);
             p.maxHp += hpGain;
             p.hp = Math.min(p.maxHp, p.hp + hpGain);
-            log(`🪝 Хтоническая поросль: Пудж поглощает плоть врага (+4% ЗД, +${hpGain} ЗД)!`);
+            log(`🎣 «Рыбацкий улов»: Морж-рыболов лакомится добычей (+4% макс. ЗД, +${hpGain} ЗД)!`);
         });
     }
 }
@@ -1391,7 +1427,7 @@ function useItem(id) {
         }
         save();
 
-        log('🌰 Вы бросаете Пуджу Заколдованный орех... Великан ловит его на лету и с хрустом разгрызает! Глаза мясника теплеют, он довольно урчит и переходит на вашу сторону! Оставшиеся монстры в ужасе теряют половину здоровья!');
+        log('🌰 Вы бросаете Моржу-рыболову Заколдованный орех... Тот ловко подсекает его крючком, с аппетитом съедает и довольно крякает: "Вот это улов! Я с вами!" Оставшиеся монстры в панике теряют половину здоровья!');
 
         combat.targets = combat.targets.filter(t => t.id !== pudgeEnemy.id);
         combat.turnQueue = combat.turnQueue.filter(t => t.id !== pudgeEnemy.id);
@@ -1571,7 +1607,7 @@ function showModal(name, target, baseDmg, type, skillObj, stunDur, cost = 0, use
         let bb = (skillObj && skillObj.brokenBonus && target.buffs && target.buffs.some(b => b.type === 'broken')) ? (1 + skillObj.brokenBonus) : 1;
         let isRootCombo = (type === 'phys' && target.buffs && target.buffs.some(b => b.type === 'root'));
 
-        let isHook = (actor.dbId === 'pudge' && skillObj && (skillObj.id === 's1' || skillObj.name === 'Мит Хук'));
+        let isHook = (actor.dbId === 'pudge' && skillObj && (skillObj.id === 's1' || skillObj.name === 'Мит Хук' || skillObj.name === 'Фишинг хук'));
         let hasFrontAlive = combat.targets.some(t => t.isEnemy && t.hp > 0 && t.row === 'front');
         let isMeleeBackPenalty = (!actor.isEnemy && actor.isMelee && target.isEnemy && target.row === 'back' && hasFrontAlive && !isHook);
         let backMult = isMeleeBackPenalty ? 0.75 : 1;
@@ -1582,7 +1618,7 @@ function showModal(name, target, baseDmg, type, skillObj, stunDur, cost = 0, use
             <span style="color:#aaa;">Итоговый срез:</span> ${Math.round(red * 100)}%<br><br>
             <b style="color:#fff; font-size:12px;">Итог: ${fd} урона${skillObj && skillObj.guaranteedCrit ? ' 💥' : ''}</b>`;
         if (isMeleeBackPenalty) desc += `<br><span style="color:#f88;">🛡️ Защищён строем: −25% урона от ближней атаки!</span>`;
-        if (isHook) desc += `<br><span style="color:#0ef;">🪝 Meat Hook: притянет врага в 1-й ряд и сломает −2 🛡️!</span>`;
+        if (isHook) desc += `<br><span style="color:#0ef;">🎣 Фишинг хук: вытянет врага в 1-й ряд, сломает −2 🛡️ и лишит прикрытия!</span>`;
         if (!skillObj && actor.dbId === 'silencer') {
             let pure = Math.round((actor.int || 0) * 0.35);
             desc += `<br><span style="color:#c6f;">🔮 Глефы: +${pure} чистого урона сквозь броню!</span>`;
@@ -1648,11 +1684,19 @@ function applyDuelDeathCheck(target) {
 function interruptUnitCast(target, sourceName) {
     if (!target || target.hp <= 0) return false;
     if (target.isEnemy) {
+        if (target.lockedTargetId) {
+            target.lockedTargetId = null;
+            target.nextIntent = { type: 'attack' };
+            log(`🐿️ Прицеливание Худвинка прервано! (${sourceName})`);
+            renderArena();
+            return true;
+        }
         if ((target.nextIntent && target.nextIntent.type === 'skill') || target.cataclysmCharging) {
             let oldSk = target.cataclysmCharging ? 'Катаклизм' : target.nextIntent.skill.name;
             target.nextIntent = { type: 'attack' };
             target.cataclysmCharging = false;
             log(`⚡ ${sourceName} сбивает каст «${oldSk}» у ${target.name}!`);
+            renderArena();
             return true;
         }
         return false;
@@ -2309,7 +2353,7 @@ function executeHeroAction(act) {
             let bb = (skillObj && skillObj.brokenBonus && wasBroken) ? (1 + skillObj.brokenBonus) : 1;
             let red = (type === 'phys') ? getPhysicalReduction(arm) : getMagicReduction(target);
 
-            let isHook = (actor.dbId === 'pudge' && skillObj && (skillObj.id === 's1' || skillObj.name === 'Мит Хук'));
+            let isHook = (actor.dbId === 'pudge' && skillObj && (skillObj.id === 's1' || skillObj.name === 'Мит Хук' || skillObj.name === 'Фишинг хук'));
             let hasFrontAlive = combat.targets.some(t => t.isEnemy && t.hp > 0 && t.row === 'front');
             let isMeleeBackPenalty = (!actor.isEnemy && actor.isMelee && target.isEnemy && target.row === 'back' && hasFrontAlive && !isHook);
             let backMult = isMeleeBackPenalty ? 0.75 : 1;
@@ -2325,10 +2369,12 @@ function executeHeroAction(act) {
                 log(`${target.name} блокирует магию (БКБ)!`);
             }
 
-            if (isHook && target.isEnemy && target.row === 'back') {
-                target.row = 'front';
+            if (isHook && target.isEnemy) {
+                if (target.row === 'back') target.row = 'front';
+                target.buffs = target.buffs || [];
+                target.buffs.push({ type: 'uncovered', turns: 2 });
                 applyBreakCheck(target, 2, actor);
-                log(`🪝 Meat Hook притягивает ${target.name} в первый ряд и ломает строй (−2 🛡️)!`);
+                log(`🎣 Морж-рыболов подсекает ${target.name} «Фишинг хуком» и вытягивает в 1-й ряд (−2 🛡️)!`);
             }
 
             target.hp -= d;
@@ -2504,7 +2550,7 @@ function executeHeroAction(act) {
             if (skillObj && skillObj.drainHealPct && d > 0) {
                 let ph = Math.floor(d * skillObj.drainHealPct);
                 actor.hp = Math.min(actor.maxHp, actor.hp + ph);
-                log(`🪝 Расчленение: Пудж восстанавливает +${ph} ЗД!`);
+                log(`🎣 «Тяжёлая сеть»: Морж-рыболов восстанавливает +${ph} ЗД!`);
             }
 
             if (skillObj && skillObj.poisonTurns && target.hp > 0) {
@@ -2512,7 +2558,7 @@ function executeHeroAction(act) {
                 let pDmg = (skillObj.poisonDmg && skillObj.poisonDmg[skillLvl - 1]) || 40;
                 target.buffs = (target.buffs || []).filter(b => b.type !== 'poison_dot');
                 target.buffs.push({ type: 'poison_dot', dmg: pDmg, turns: pDur });
-                log(`🧪 ${target.name} отравлен Расчленением (${pDmg} урона/ход, ${pDur} х.)!`);
+                log(`🧪 ${target.name} опутан «Тяжёлой сетью» (${pDmg} урона/ход, ${pDur} х.)!`);
             }
 
             if (skillObj && skillObj.wkHealDmgPct && d > 0) {
@@ -2577,6 +2623,12 @@ function executeHeroAction(act) {
 
 /* ===== ИИ ПРОТИВНИКОВ И ОСОБЫЕ БОССЫ ===== */
 function chooseEnemyAction(enemy, allies, playerHeroes) {
+    if (enemy.lockedTargetId) {
+        return {
+            type: 'skill',
+            skill: { name: 'Снайперский выстрел', type: 'hoodwink_release', mult: 0, aoe: false, stun: 0, mpCost: 0, desc: 'Смертоносный выстрел из арбалета по намеченной цели!' }
+        };
+    }
     if (enemy.cataclysmCharging) {
         return {
             type: 'skill',
@@ -2638,6 +2690,11 @@ function chooseEnemyTarget(enemy, action, playerHeroes) {
     let aliveHeroes = playerHeroes.filter(h => h.hp > 0);
     if (aliveHeroes.length === 0) return { target: null, reason: null };
     if (aliveHeroes.length === 1) return { target: aliveHeroes[0], reason: null };
+
+    if (enemy.lockedTargetId) {
+        let locked = aliveHeroes.find(h => h.id === enemy.lockedTargetId);
+        if (locked) return { target: locked, reason: 'цель на мушке 🎯' };
+    }
 
     // 1. Таунт / Дуэль Легионки
     let enemyDuel = (enemy.buffs || []).find(b => b.type === 'dueling' || b.type === 'duel');
@@ -2775,6 +2832,10 @@ function enemyAI(actor, forcedTarget) {
         log(`🔇 ${actor.name} под Безмолвием и не может применить ${sk.name}!`);
         sk = null;
         actor.cataclysmCharging = false;
+        if (actor.lockedTargetId) {
+            actor.lockedTargetId = null;
+            log('🐿️ Прицеливание Худвинка прервано!');
+        }
     }
 
     if (actor.isChicken) {
@@ -2884,6 +2945,40 @@ function enemyAI(actor, forcedTarget) {
             if (sk.type === 'cataclysm_release') {
                 actor.cataclysmCharging = false;
                 sk = { ...sk, type: 'magic' };
+            }
+            if (sk.type === 'hoodwink_prep') {
+                let validTargets = heroes.filter(h => h.hp > 0);
+                let undefended = validTargets.filter(h => !(h.buffs && h.buffs.some(b => b.type === 'defending')));
+                let pool = undefended.length > 0 ? undefended : validTargets;
+                let backRow = pool.filter(h => h.row === 'back');
+                let chosenTarget = (backRow.length > 0 ? backRow : pool)[0] || heroes[0];
+
+                actor.lockedTargetId = chosenTarget.id;
+                log(`🐿️ Худвинк натягивает арбалет, прицеливаясь в ${chosenTarget.name}! Выстрел в следующий ход смертелен!`);
+                renderArena();
+                finishEnemyTurn(actor); rollEnemyIntent(actor); combat.currentIdx++; nextTurn(); return;
+            }
+            if (sk.type === 'hoodwink_release') {
+                let targetHero = heroes.find(h => h.id === actor.lockedTargetId);
+                if (!targetHero || targetHero.hp <= 0) {
+                    targetHero = heroes.find(h => h.hp > 0) || heroes[0];
+                }
+                actor.lockedTargetId = null;
+                if (!targetHero) {
+                    finishEnemyTurn(actor); rollEnemyIntent(actor); combat.currentIdx++; nextTurn(); return;
+                }
+                let rawDmg = Math.round(Math.max(actor.atk * 3.8, targetHero.maxHp * 1.15));
+                let isDefending = targetHero.buffs && targetHero.buffs.some(b => b.type === 'defending');
+                let finalDmg = rawDmg;
+                if (isDefending) {
+                    finalDmg = Math.round(finalDmg * 0.5);
+                }
+                targetHero.hp -= finalDmg;
+                log(`🎯 Снайперский выстрел Худвинка пробивает ${targetHero.name} на ${finalDmg} чистого урона!${isDefending ? ' (🛡️ БЛОК смягчил удар на 50%!)' : ''}`);
+                checkHeroSurvival(targetHero);
+                applyBladeMailReflect(targetHero, actor, finalDmg);
+                renderArena();
+                finishEnemyTurn(actor); rollEnemyIntent(actor); combat.currentIdx++; nextTurn(); return;
             }
 
             if (sk.selfAtkBuff) {

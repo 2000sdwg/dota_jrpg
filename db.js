@@ -120,7 +120,7 @@ const STORY_EVENTS = {
     },
     silence_tutorial: {
         icon:'🔇', title:'Чары побега и Безмолвие!',
-        text:'Старик сбросил человеческий облик и обернулся <b>зачарованной курицей</b>! Она расправляет крылья и готовится удрать в кусты на своём ходу.<br><br><span style="color:#f55;">⚠️ Внимание:</span> Курица неуязвима к обычному урону! Единственный способ сорвать побег и уничтожить её — наложить <b>🔇 Безмолвие</b> (активный <b>Орчид</b>, <b>Сайленсер</b>, <b>Сглаз</b> Лиона, <b>Мясной крюк</b> Пуджа, <b>Морской поток / Крест</b> Кункки, <b>Удар молнии</b> Зевса) прямо сейчас!'
+        text:'Старик сбросил человеческий облик и обернулся <b>зачарованной курицей</b>! Она расправляет крылья и готовится удрать в кусты на своём ходу.<br><br><span style="color:#f55;">⚠️ Внимание:</span> Курица неуязвима к обычному урону! Единственный способ сорвать побег и уничтожить её — наложить <b>🔇 Безмолвие</b> (активный <b>Орчид</b>, <b>Сайленсер</b>, <b>Сглаз</b> Лиона, <b>Фишинг хук</b> Моржа-рыболова, <b>Морской поток / Крест</b> Кункки, <b>Удар молнии</b> Зевса) прямо сейчас!'
     },
     stage9_no_shaman: {
         icon:'🗡️', title:'Тёмная чаща: Засада без вожака',
@@ -144,16 +144,16 @@ const STORY_EVENTS = {
         }
     },
     stage6_intro: {
-        icon:'🦔', title:'Акт 2: Непробиваемая спина',
-        text:'Тропу в Тёмную чащу перекрывает огромный <b>Бристлбэк</b>. Его спина покрыта каменными иглами!<br><br><span style="color:#f80;">💡 Механика Пробития (🛡️):</span> Пока у Бристлбэка целы щиты, его <b>Колючая спина</b> со щитами режет 55% урона и бьёт иглами в ответ. Ломай щиты навыками <b>💥 Пробития</b>, магией и критами, чтобы оглушить его и наносить +20% урона!'
+        icon:'🦔', title:'Акт 2: Стена щитов Бристлбэка',
+        text:'Тропу в Тёмную чащу перекрывает свирепый <b>Бристлбэк</b> со своей лесной свитой! За его каменной спиной из <b>8 щитов 🛡️</b> укрылись болотный знахарь и паук.<br><br><span style="color:#f80;">💡 Механика Пробития (🛡️):</span> Пока у Бристлбэка целы щиты, его <b>Колючая спина</b> режет 72% урона и бьёт иглами в ответ. Ломайте щиты навыками <b>💥 Пробития</b>, магией и критами или пробивайте его 2-й ряд!'
     },
     stage8_pudge_intro: {
-        icon:'🪝', title:'Поляна Мясника',
-        text:'Среди тумана Тёмной чащи возвышается гигантская туша Мясника. Он хрипло дышит, точит ржавый крюк и бормочет себе под нос, словно ищет что-то потерянное... Он выглядит не столько злым, сколько невероятно одиноким.'
+        icon:'🦭', title:'Берег реки: Морж-рыболов',
+        text:'На тихой речной заводи среди камышей сидит могучий <b>Морж-рыболов</b> в панаме. Он сосредоточенно следит за поплавком, сжимая в ластах длинную удочку с острым крюком и тяжёлую сеть. Похоже, лесные твари распугали всю рыбу, и добродушный рыболов не на шутку раздосадован...'
     },
     pudge_join: {
-        icon:'🌰', title:'Угощение для Мясника',
-        text:'Пудж замирает, разгрызает заколдованный орех могучими зубами и довольно причмокивает! По его щеке катится скупая слеза:<br><br><i>«Орешек... Заколдованный! Вкуснятина! Я... я думал, все только боятся меня и хотят убить. А ты угостил, рыцарь! Ты добрый. Я пойду с тобой, будем вместе рубить плохих парней!»</i><br><br><span style="color:#0f0;">✨ Пудж навсегда присоединился к вашим героям!</span>'
+        icon:'🌰', title:'Угощение для Моржа-рыболова',
+        text:'Морж-рыболов замирает, ловит заколдованный орех на лету, с хрустом разгрызает бивнями и довольно жмурится! Его усы довольно топорщатся:<br><br><i>«Ого! Вот это клёв! Заколдованный орешек — лучшая наживка на свете! А я-то думал, вы очередные браконьеры, распугавшие мою рыбу. Ты добрый путник, рыцарь! С такой наживкой мы с тобой всю чащу прочешем — беру удочку, сеть и иду в твой отряд!»</i><br><br><span style="color:#0f0;">✨ Морж-рыболов навсегда присоединился к вашим героям!</span>'
     },
     stage11_intro: {
         icon:'🏹', title:'Акт 3: Старые долги',
@@ -305,13 +305,13 @@ const DB = {
             {id:'s3',name:'Сияние',type:'passive',dmg:[0,0,0,0],mp:[0,0,0,0],lumiCrit:1.6,lumiTeamHealPct:0.12,full:'Пассивка. Каждое 3-е действие гарантированно критует (×1.6) и лечит весь отряд на 12% макс. ЗД.'},
             {id:'s4',name:'Солнечный страж',type:'magic',dmg:[240,360,480],mp:[85,90,95],cd:5,prep:1,aoe:true,teamShieldDmgRed:0.25,teamHealVal:[150,240,330],breakHitsNormal:1,breakHitsBurn:2,full:'Ультимейт с Подготовкой (1 х.). Щит отряду (−25% входящего урона на 2 х.), лечит союзников (+150/240/330 ЗД) и ломает −1 🛡️ всем врагам (−2 🛡️ горящим 🔥)! Под Яростью — мгновенно!'}
           ]},
-        { id:'pudge', name:'Пудж', cost:0, icon:'🪝', role:'Танк / Контроль', unlockAct:99, storyUnlock:true, mainAttr:'str', isMelee:true,
+        { id:'pudge', name:'Морж-рыболов', cost:0, icon:'🦭', role:'Танк / Контроль', unlockAct:99, storyUnlock:true, mainAttr:'str', isMelee:true,
           baseStr:28, gainStr:4.0, baseInt:16, gainInt:1.5, baseMp:75, baseArmor:2, gainArmor:0.5,
           skills:[
-            {id:'s1',name:'Мясной крюк',type:'magic',dmg:[100,155,210,265],mp:[46,48,50,52],cd:3,hookPull:true,breakHits:2,full:'💥 Пробитие (−2 🛡️): вытягивает цель из 2-го ряда в 1-й (накладывает «Без прикрытия» +20% физ. урона), игнорирует штраф тыла и ломает 2 щита!'},
-            {id:'s2',name:'Гниль',type:'magic',dmg:[65,105,145,185],mp:[32,34,36,38],cd:2,aoe:true,weaken:0.20,selfHpCostPct:0.05,full:'Ядовитое облако: AoE Маг. урон ВСЕМ врагам (−1 🛡️) и −20% к их УРН на 2 хода. Тратит 5% макс. ЗД Пуджа (не убивает).'},
-            {id:'s3',name:'Хтоническая поросль',type:'passive',dmg:[0,0,0,0],mp:[0,0,0,0],fleshHeapHpPerKill:0.04,backRowAoeRes:0.15,full:'Пассивка. +4% макс. ЗД за каждого убитого врага в бою + снижает получаемый союзниками 2-го ряда AoE-урон на 15%.'},
-            {id:'s4',name:'Расчленение',type:'magic',dmg:[320,480,640],mp:[80,85,90],cd:4,rootTurns:2,poisonTurns:2,poisonDmg:[40,60,80],breakHits:2,drainHealPct:0.50,full:'Ультимейт (мгновенный). Вешает ❄️ Оцепенение (2 х.) + 🧪 Яд/Кровотечение (2 х.), ломает −2 🛡️ и лечит Пуджа на 50% нанесённого урона!'}
+            {id:'s1',name:'Фишинг хук',type:'magic',dmg:[100,155,210,265],mp:[46,48,50,52],cd:3,hookPull:true,breakHits:2,full:'💥 Пробитие (−2 🛡️): забрасывает удочку через поле боя, вытягивает цель из 2-го ряда в 1-й (накладывает «Без прикрытия» +20% физ. урона), игнорирует штраф тыла и ломает 2 щита!'},
+            {id:'s2',name:'Рыбная приманка',type:'magic',dmg:[65,105,145,185],mp:[32,34,36,38],cd:2,aoe:true,weaken:0.20,selfHpCostPct:0.05,full:'Запах наживки: AoE Маг. урон ВСЕМ врагам (−1 🛡️) и −20% к их УРН на 2 хода. Тратит 5% макс. ЗД Моржа-рыболова (не убивает).'},
+            {id:'s3',name:'Рыбацкий улов',type:'passive',dmg:[0,0,0,0],mp:[0,0,0,0],fleshHeapHpPerKill:0.04,backRowAoeRes:0.15,full:'Пассивка. +4% макс. ЗД за каждого убитого врага в бою + снижает получаемый союзниками 2-го ряда AoE-урон на 15%.'},
+            {id:'s4',name:'Тяжёлая сеть',type:'magic',dmg:[320,480,640],mp:[80,85,90],cd:4,rootTurns:2,poisonTurns:2,poisonDmg:[40,60,80],breakHits:2,drainHealPct:0.50,full:'Ультимейт (мгновенный). Опутывает цель прочной сетью (❄️ Оцепенение на 2 х. + 🧪 Кровотечение на 2 х.), ломает −2 🛡️ и лечит Моржа-рыболова на 50% нанесённого урона!'}
           ]},
     ],
     forestItems: [
@@ -564,10 +564,10 @@ const ACT_ENEMY_POOLS = {
                 { name:'Чардж оф Даркнесс', type:'phys', mult:1.4, aoe:false, stun:1, targetLowest:true, mpCost:65, desc:'Разгон в слабейшего со станом 1 х.' },
                 { name:'Грейтер Баш', type:'phys', mult:1.6, aoe:false, breakHits:2, stun:0, mpCost:70, desc:'💥 Удар копытом: ломает 2 щита!' }
               ]},
-            { name:'Белка-разведчик', icon:'🐿️', archetype:'dd', armor:2, isMelee:false,
+            { name:'Худвинк', icon:'🐿️', archetype:'dd', armor:3, isMelee:false, shieldMax:2, isHoodwink:true, treeEvade:true,
               skills:[
-                { name:'Акробатика', type:'magic', mult:1.1, aoe:true, stun:0, mpCost:55, desc:'Ловкий маневр: AoE Маг. урон.' },
-                { name:'Залп из ветвей', type:'phys', mult:1.4, aoe:false, targetBackRow:true, stun:0, mpCost:60, desc:'Прицельный выстрел во 2-й ряд.' }
+                { name:'Снайперский выстрел', type:'hoodwink_prep', mult:0, aoe:false, mpCost:70, desc:'Заряжает смертоносный выстрел (1 х. подготовки) с прицелом 🎯!' },
+                { name:'Бушвэк', type:'magic', mult:1.1, aoe:true, stun:1, mpCost:65, desc:'Привязывает сетью к деревьям: AoE Маг. урон и стан 1 х.' }
               ]}
         ]
     },
@@ -752,10 +752,17 @@ const SPECIAL_ENEMIES = {
         ]
     },
     pudge_stage8: {
-        name:'Пудж', icon:'🪝', hp:1400, mp:240, atk:72, armor:5, isMelee:true, isBoss:true, shieldMax:3, row:'front', pudgeRecruitable:true,
+        name:'Морж-рыболов', icon:'🦭', hp:1400, mp:240, atk:72, armor:5, isMelee:true, isBoss:true, shieldMax:3, row:'front', pudgeRecruitable:true,
         skills:[
-            { name:'Мит Хук', type:'magic', mult:1.85, aoe:false, stun:0, silence:1, targetBackRow:true, mpCost:80, desc:'Крюк бьёт героя 2-го ряда. 🔇 Безмолвие (1 х.): сбивает подготовку и запрещает скиллы!' },
-            { name:'Рот', type:'magic', mult:0.9, aoe:true, stun:0, mpCost:50, desc:'AoE Маг. урон по всему отряду.' }
+            { name:'Фишинг хук', type:'magic', mult:1.85, aoe:false, stun:0, silence:1, targetBackRow:true, mpCost:80, desc:'Забрасывает удочку во 2-й ряд. 🔇 Безмолвие (1 х.): сбивает подготовку и запрещает скиллы!' },
+            { name:'Рыбная приманка', type:'magic', mult:0.9, aoe:true, stun:0, mpCost:50, desc:'AoE Маг. урон по всему отряду.' }
+        ]
+    },
+    forest_witchdoctor: {
+        name:'Болотный знахарь', icon:'🧙‍♂️', hp:420, mp:180, atk:42, armor:2, isMelee:false, shieldMax:1, row:'back',
+        skills:[
+            { name:'Целебный отвар', type:'heal_ally', mult:0, healAmt:180, mpCost:50, desc:'Лечит раненого союзника на +180 ЗД.' },
+            { name:'Болотная порча', type:'magic', mult:1.05, aoe:false, armorDebuff:3, stun:0, mpCost:50, desc:'Порча снижает БРО цели на 3 (2 х.).' }
         ]
     },
     bog_ghoul: {
@@ -786,7 +793,7 @@ const SPECIAL_ENEMIES = {
         ]
     },
     bristleback: {
-        name:'Бристлбэк', icon:'🦔', hp:1550, mp:220, atk:68, armor:6, isMelee:true, shieldMax:3, row:'front', bristlePassive:true,
+        name:'Бристлбэк', icon:'🦔', hp:1320, mp:220, atk:68, armor:6, isMelee:true, shieldMax:8, row:'front', bristlePassive:true,
         skills:[
             { name:'Квилл Спрей', type:'phys', mult:0.95, aoe:true, stun:0, mpCost:50, desc:'Веер игл по ВСЕМ героям отряда (Физ. урон).' },
             { name:'Вискос Назал Гу', type:'magic', mult:0.7, aoe:false, stun:0, armorDebuff:4, mpCost:40, desc:'Слизь снижает БРО цели на 4 (2 х.).' }
@@ -814,10 +821,10 @@ const SPECIAL_ENEMIES = {
         ]
     },
     hoodwink: {
-        name:'Белка-Мститель', icon:'🏹', hp:2100, mp:260, atk:105, armor:4, isMelee:false, shieldMax:3, row:'back', treeEvade:true,
+        name:'Худвинк', icon:'🐿️', hp:1950, mp:260, atk:95, armor:4, isMelee:false, shieldMax:3, row:'back', treeEvade:true, isHoodwink:true,
         skills:[
-            { name:'Шарпшутер', type:'phys', mult:2.2, aoe:false, targetBackRow:true, stun:0, mpCost:70, desc:'Прицельный выстрел во 2-й ряд! Сбивайте каст станом, Хексом, Меткой X или Орчидом!' },
-            { name:'Бушвэк', type:'magic', mult:1.2, aoe:true, stun:1, mpCost:80, desc:'Привязывает сетью к деревьям: AoE Маг. урон и стан 1 х.' }
+            { name:'Снайперский выстрел', type:'hoodwink_prep', mult:0, aoe:false, mpCost:70, desc:'Заряжает ваншот-выстрел (1 х. подготовки). Цель получает 🎯 ПРИЦЕЛ! Прожмите 🛡️ БЛОК, повесьте Тонкую грань или сбейте каст!' },
+            { name:'Бушвэк', type:'magic', mult:1.1, aoe:true, stun:1, mpCost:65, desc:'Привязывает сетью к деревьям: AoE Маг. урон и стан 1 х.' }
         ]
     },
     roshan_boss: {
@@ -938,6 +945,7 @@ function createInitialState() {
 }
 
 let state = JSON.parse(localStorage.getItem(SAVE_KEY)) ||
+            JSON.parse(localStorage.getItem('dotaSave_v4_4')) ||
             JSON.parse(localStorage.getItem('dotaSave_v4_3')) ||
             JSON.parse(localStorage.getItem('dotaSave_v4_2')) ||
             JSON.parse(localStorage.getItem('dotaSave_v4_1')) ||
@@ -1025,6 +1033,7 @@ function save() {
 function resetGame() {
     if (confirm('Начать кампанию полностью с нуля (с 0 золота и Свеном)?')) {
         localStorage.removeItem(SAVE_KEY);
+        localStorage.removeItem('dotaSave_v4_4');
         localStorage.removeItem('dotaSave_v4_3');
         localStorage.removeItem('dotaSave_v4_2');
         localStorage.removeItem('dotaSave_v4_1');
