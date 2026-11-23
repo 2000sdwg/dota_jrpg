@@ -1,14 +1,14 @@
-/* ===== ЕДИНЫЙ КОНФИГ БАЛАНСА DOTA IDLE RPG v4.2 ===== */
+/* ===== ЕДИНЫЙ КОНФИГ БАЛАНСА DOTA IDLE RPG v4.3 ===== */
 window.CONFIG = {
-    version: '4.2',
-    saveKey: 'dotaSave_v4_2',
+    version: '4.3',
+    saveKey: 'dotaSave_v4_3',
 
     // Щиты, Пробитие, Иммунитет, мана и боевой баланс
     combat: {
-        shieldDmgMult: 0.65,         // Целые щиты режут −35% урона (было −20%)
-        bristleShieldDmgMult: 0.40,  // Бристлбэк со щитами режет −60% урона (было −55%)
-        brokenDmgMult: 1.20,         // Пробитый враг получает +20% урона
-        breakSkillBonus: 0.25,       // Бонус урона скиллов Пробития по уже пробитому (+25%)
+        shieldDmgMult: 0.42,         // Целые щиты режут −58% урона
+        bristleShieldDmgMult: 0.28,  // Бристлбэк со щитами режет −72% урона
+        brokenDmgMult: 1.60,         // Пробитый враг получает +60% урона (контраст 3.81×)
+        breakSkillBonus: 0.30,       // Бонус урона скиллов Пробития по уже пробитому (+30%)
         brokenTurns: 2,              // Ходы Пробития (спадает в конце активного хода врага)
         stunImmunityNormal: 2,       // ⛓️ Иммунитет к оглушению у обычных врагов и героев
         stunImmunityBoss: 3,         // ⛓️ Иммунитет к оглушению у боссов
@@ -18,11 +18,12 @@ window.CONFIG = {
             late: 4                  // Этапы 15–25
         },
         intSpellAmpPerPoint: 0.005,  // +0.5% к урону маг. скиллов за каждую 1 ИНТ
-        intMpMult: 8,                // Множитель пула маны от ИНТ (было 12)
-        intMpRegenMult: 0.09,        // Множитель регена маны от ИНТ (было 0.18)
+        intMpMult: 8,                // Множитель пула маны от ИНТ
+        intMpRegenMult: 0.09,        // Множитель регена маны от ИНТ
         attackMpGain: 18,            // Базовая атака «УДАР» восстанавливает +18 МН
         defendMpGain: 25,            // Действие «БЛОК» восстанавливает +25 МН
-        enemySkillDmgMult: 1.20,     // Множитель урона вражеских скиллов при касте раз в 3 хода
+        enemyBaseAtkMult: 1.28,      // Множитель базовой атаки всех врагов (включая боссов)
+        enemySkillDmgMult: 1.45,     // Множитель урона вражеских скиллов при касте раз в 3 хода (раз в 2 на Испытании)
 
         // Архетипы врагов и веса статов
         archetypes: {
@@ -76,6 +77,46 @@ window.CONFIG = {
         ],
         kettleGoldPctPerLvl: 0.05,   // +5% золота в Лесу за ур. Котелка
         kettleHpPctPerLvl: 0.02,     // +2% макс. ЗД героям за ур. Котелка
+
+        // Ранги усиления чаёв по уровням Котелка (на чётных уровнях 0-1, 2, 4, 6, 8, 10)
+        teaTiers: {
+            0: {
+                name: 'I. Походная',
+                ivan_tea:      { cost: 3, atkMult: 1.16, spellAmp: 0.10 },
+                chamomile_tea: { cost: 3, hpMult: 1.20, hpRegen: 12 },
+                mint_tea:      { cost: 4, startRage: 40, mpRegen: 10 }
+            },
+            2: {
+                name: 'II. Крепкая',
+                ivan_tea:      { cost: 3, atkMult: 1.20, spellAmp: 0.14 },
+                chamomile_tea: { cost: 3, hpMult: 1.25, hpRegen: 18 },
+                mint_tea:      { cost: 4, startRage: 50, mpRegen: 14 }
+            },
+            4: {
+                name: 'III. Отборная',
+                ivan_tea:      { cost: 3, atkMult: 1.24, spellAmp: 0.18 },
+                chamomile_tea: { cost: 3, hpMult: 1.30, hpRegen: 26 },
+                mint_tea:      { cost: 4, startRage: 60, mpRegen: 18 }
+            },
+            6: {
+                name: 'IV. Мастерская',
+                ivan_tea:      { cost: 3, atkMult: 1.28, spellAmp: 0.22 },
+                chamomile_tea: { cost: 3, hpMult: 1.35, hpRegen: 36 },
+                mint_tea:      { cost: 4, startRage: 70, mpRegen: 22 }
+            },
+            8: {
+                name: 'V. Чащобная',
+                ivan_tea:      { cost: 3, atkMult: 1.32, spellAmp: 0.26 },
+                chamomile_tea: { cost: 3, hpMult: 1.40, hpRegen: 48 },
+                mint_tea:      { cost: 4, startRage: 80, mpRegen: 26 }
+            },
+            10: {
+                name: 'VI. Легендарная',
+                ivan_tea:      { cost: 3, atkMult: 1.38, spellAmp: 0.32 },
+                chamomile_tea: { cost: 3, hpMult: 1.48, hpRegen: 65 },
+                mint_tea:      { cost: 4, startRage: 95, mpRegen: 32 }
+            }
+        },
         teas: {
             ivan_tea:      { cost: 3, atkMult: 1.16, spellAmp: 0.10 },
             chamomile_tea: { cost: 3, hpMult: 1.20, hpRegen: 12 },
@@ -94,7 +135,16 @@ window.CONFIG = {
 
     // Контракты Рейда
     contracts: {
-        ambush: { enemyHpMult: 1.25, enemyAtkMult: 1.15, xpMult: 1.6 },
-        trial:  { enemyShieldBonus: 1, enemyAtkMult: 1.15, goldMult: 1.8, xpMult: 1.4 }
+        ambush: { enemyHpMult: 1.30, enemyAtkMult: 1.25, xpMult: 1.6 },
+        trial:  { enemyHpMult: 1.25, enemyShieldBonus: 2, enemyAtkMult: 1.35, enemySkillInterval: 2, goldMult: 2.1, xpMult: 1.6 }
     }
 };
+
+function getTeaStats(kettleLevel) {
+    let kl = (kettleLevel !== undefined) ? kettleLevel : ((typeof state !== 'undefined' && state && state.kettleLevel) ? state.kettleLevel : 0);
+    let tiers = (CONFIG.forest && CONFIG.forest.teaTiers) ? CONFIG.forest.teaTiers : null;
+    if (!tiers) return { name: 'I. Походная', ivan_tea: { cost: 3, atkMult: 1.16, spellAmp: 0.10 }, chamomile_tea: { cost: 3, hpMult: 1.20, hpRegen: 12 }, mint_tea: { cost: 4, startRage: 40, mpRegen: 10 } };
+    let lvl = Math.min(10, Math.max(0, Math.floor(kl / 2) * 2));
+    return tiers[lvl] || tiers[0];
+}
+window.getTeaStats = getTeaStats;

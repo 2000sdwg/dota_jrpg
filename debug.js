@@ -111,15 +111,19 @@
                 <button class="dbg-btn ok" onclick="dbgLvlSquad(5)">+5 Ур. отряду</button>
             </div>
             <div class="dbg-row">
+                <button class="dbg-btn" onclick="dbgGiveSilencer()">🤫 Нанять Сайленсера</button>
                 <button class="dbg-btn" onclick="dbgUnlockAllRelics()">🏆 Все Трофеи (5 слотов)</button>
             </div>
         </div>
 
         <div class="dbg-sec">
-            <div class="dbg-title">🌰 СЮЖЕТ И КВЕСТЫ (ШАМАН / ПУДЖ)</div>
+            <div class="dbg-title">🌰 СЮЖЕТ И ЭНКАУНТЕРЫ</div>
             <div class="dbg-row">
-                <button class="dbg-btn ok" onclick="dbgGiveNutcracker()">🌰 Выдать Заколдованный орех</button>
-                <button class="dbg-btn ok" onclick="dbgGiveOrchidRecipe()">📜 Выдать Рецепт Орчида</button>
+                <button class="dbg-btn ok" onclick="dbgStartCircus()">🎪 Бродячий цирк (Этап 14)</button>
+                <button class="dbg-btn ok" onclick="dbgGiveNutcracker()">🌰 Заколдованный орех</button>
+            </div>
+            <div class="dbg-row">
+                <button class="dbg-btn ok" onclick="dbgGiveOrchidRecipe()">📜 Чертёж Орчида</button>
                 <button class="dbg-btn warn" onclick="dbgResetShamanPudge()">🔄 Сбросить Шамана/Пуджа</button>
             </div>
         </div>
@@ -245,7 +249,42 @@
         }
         if (typeof checkRaidCrafts === 'function') checkRaidCrafts();
         save();
-        alert('📜 Рецепт Орчида добавлен в инвентарь!');
+        alert('📜 Чертёж Орчида добавлен в инвентарь!');
+    };
+
+    window.dbgStartCircus = function() {
+        state.forestUnlocked = true;
+        if (state.maxRaidCleared < 13) state.maxRaidCleared = 13;
+        state.selectedStage = 14;
+        save();
+        switchTab('raid');
+        startRaid(14, 'normal');
+        document.getElementById('dbg-panel').style.display = 'none';
+    };
+
+    window.dbgGiveSilencer = function() {
+        let hasSil = state.heroes.find(h => h.dbId === 'silencer');
+        if (!hasSil) {
+            let dbH = DB.heroes.find(h => h.id === 'silencer');
+            let newH = {
+                id: 'h_silencer_' + Date.now(),
+                dbId: 'silencer',
+                level: 10,
+                xp: 0,
+                sp: 9,
+                skillLevels: [4, 1, 1, 2],
+                items: [null, null, null, null, null, null],
+                neutralItem: null
+            };
+            state.heroes.push(newH);
+            if (state.squad.length < 5 && !state.squad.includes(newH.id)) {
+                state.squad.push(newH.id);
+            }
+            save();
+            alert('🤫 Сайленсер 10 ур. добавлен в ваш отряд!');
+        } else {
+            alert('Сайленсер уже нанят!');
+        }
     };
 
     window.dbgResetShamanPudge = function() {

@@ -55,11 +55,17 @@ button:disabled { background: #333; border-color: #555; color: #777; cursor: not
 
 #arena { min-height: 46vh; background: #1a1a2e; border: 2px solid #555; position: relative; display: flex; flex-direction: row; justify-content: space-between; align-items: stretch; padding: 8px 4px; gap: 6px; overflow: hidden; }
 .arena-side { display: flex; align-items: center; justify-content: center; }
-.heroes-side { flex: 1.35; display: flex; flex-direction: row; gap: 5px; align-items: stretch; justify-content: flex-start; }
-.enemies-side { flex: 0.95; display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: space-around; }
+.heroes-side { flex: 1.2; display: flex; flex-direction: row; gap: 4px; align-items: stretch; justify-content: flex-start; }
+.enemies-side { flex: 1.2; display: flex; flex-direction: row; gap: 4px; align-items: stretch; justify-content: flex-end; }
 .arena-divider { width: 1px; background: linear-gradient(to bottom, transparent, #445, transparent); align-self: stretch; margin: 0 2px; }
-.row { display: flex; flex-direction: column; justify-content: space-around; align-items: center; width: 100%; gap: 8px; }
-.formation-band { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding: 4px 2px; }
+.row { display: flex; flex-direction: column; justify-content: space-around; align-items: center; width: 100%; gap: 6px; }
+.formation-band { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding: 2px 1px; }
+
+#inv-header-title { cursor: pointer; transition: color 0.15s ease; }
+#inv-header-title:hover { color: #4da6ff; }
+.enemy-row-badge { font-size: 6px; padding: 1px 3px; border-radius: 3px; font-weight: bold; margin-left: 2px; vertical-align: middle; }
+.enemy-row-badge.front { background: #521; color: #fca; border: 1px solid #943; }
+.enemy-row-badge.back { background: #134; color: #adf; border: 1px solid #368; }
 
 .squad-row-box { border: 1px dashed #555; border-radius: 5px; padding: 8px; margin-bottom: 10px; background: #1a1a1f; }
 .squad-row-title { font-size: 8px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #333; }

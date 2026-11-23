@@ -644,15 +644,17 @@ function upgradeForestItem(id) {
 }
 /* ===== СБОР ЧАЯ И ПОХОДНЫЙ КОТЕЛОК ===== */
 function openTeaModal() {
+    let kl = state.kettleLevel || 0;
+    let maxK = CONFIG.forest.kettleMaxLevel;
+    let actCap = getKettleActCap();
+    let kCost = getKettleUpgradeCost(kl);
+    let curTeaTier = typeof getTeaStats === 'function' ? getTeaStats(kl) : { name:'I. Походная' };
+
     let hEl = document.getElementById('tea-herbs-display');
-    if (hEl) hEl.innerText = `🌿 Собранные травы: ${state.herbs || 0} (заварено кружек: ${state.teasBrewed || 0})`;
+    if (hEl) hEl.innerText = `🌿 Собранные травы: ${state.herbs || 0} (заварено кружек: ${state.teasBrewed || 0}) • Заварка: ${curTeaTier.name}`;
 
     let kBox = document.getElementById('tea-kettle-box');
     if (kBox) {
-        let kl = state.kettleLevel || 0;
-        let maxK = CONFIG.forest.kettleMaxLevel;
-        let actCap = getKettleActCap();
-        let kCost = getKettleUpgradeCost(kl);
         let btn = '';
         if (kl >= maxK) {
             btn = `<span style="color:gold; font-size:8px;">MAX</span>`;
@@ -662,12 +664,39 @@ function openTeaModal() {
             let canAfford = (state.herbs || 0) >= kCost.herbs && (state.gold || 0) >= kCost.gold;
             btn = `<button ${canAfford ? '' : 'disabled'} onclick="upgradeKettle()" style="background:#530; border-color:#ca0; font-size:8px; padding:4px 6px;">${kCost.herbs} 🌿 + ${kCost.gold} G</button>`;
         }
-        kBox.innerHTML = `<div class="card milestone-card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <div style="flex:1; padding-right:6px;">
-                <div style="color:gold; font-size:8px; margin-bottom:3px;">🫖 Походный котелок (Ур. ${kl}/${maxK})</div>
-                <div style="font-size:7px; color:#ddd; line-height:1.45;">Навсегда: <b>+${Math.round(kl * CONFIG.forest.kettleGoldPctPerLvl * 100)}%</b> золота в Лесу и <b>+${Math.round(kl * CONFIG.forest.kettleHpPctPerLvl * 100)}%</b> макс. ЗД героям в Рейдах.</div>
+
+        let nextLvlBlock = '';
+        if (kl < maxK) {
+            let nextKl = kl + 1;
+            let curGoldPct = Math.round(kl * CONFIG.forest.kettleGoldPctPerLvl * 100);
+            let nextGoldPct = Math.round(nextKl * CONFIG.forest.kettleGoldPctPerLvl * 100);
+            let curHpPct = Math.round(kl * CONFIG.forest.kettleHpPctPerLvl * 100);
+            let nextHpPct = Math.round(nextKl * CONFIG.forest.kettleHpPctPerLvl * 100);
+            let teaBoostLine = '';
+            if (nextKl % 2 === 0) {
+                let nextTeaTier = typeof getTeaStats === 'function' ? getTeaStats(nextKl) : { name:'Усиление' };
+                teaBoostLine = `<div style="color:gold; font-size:7px; margin-top:3px;">☕ Усиление всех чаёв → ${nextTeaTier.name}!</div>`;
+            } else {
+                let nextBoostLvl = nextKl + 1;
+                teaBoostLine = `<div style="color:#888; font-size:7px; margin-top:3px;">Следующее усиление чаёв на Ур. ${nextBoostLvl}</div>`;
+            }
+            nextLvlBlock = `<div style="margin-top:6px; padding-top:5px; border-top:1px dashed #654; font-size:7px; color:#bbb; line-height:1.45;">
+                <b style="color:#0ef;">Следующий уровень (Ур. ${nextKl}):</b><br>
+                • Бонус золота Леса: <b>+${curGoldPct}% → +${nextGoldPct}%</b><br>
+                • Бонус ЗД героев: <b>+${curHpPct}% → +${nextHpPct}%</b>
+                ${teaBoostLine}
+            </div>`;
+        }
+
+        kBox.innerHTML = `<div class="card milestone-card" style="margin-bottom:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="flex:1; padding-right:6px;">
+                    <div style="color:gold; font-size:8px; margin-bottom:3px;">🫖 Походный котелок (Ур. ${kl}/${maxK}) <span style="color:#0ef; font-size:7px;">[${curTeaTier.name}]</span></div>
+                    <div style="font-size:7px; color:#ddd; line-height:1.45;">Навсегда: <b>+${Math.round(kl * CONFIG.forest.kettleGoldPctPerLvl * 100)}%</b> золота в Лесу и <b>+${Math.round(kl * CONFIG.forest.kettleHpPctPerLvl * 100)}%</b> макс. ЗД героям в Рейдах.</div>
+                </div>
+                <div>${btn}</div>
             </div>
-            <div>${btn}</div>
+            ${nextLvlBlock}
         </div>`;
     }
 
@@ -681,7 +710,7 @@ function openTeaModal() {
             : `<button ${canBrew ? '' : 'disabled'} onclick="brewTea('${t.id}')" style="background:#153; border-color:#3a6; font-size:8px;">${t.cost} 🌿</button>`;
         list.innerHTML += `<div class="card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-color:${isActive ? '#0f0' : '#444'};">
             <div style="flex:1; padding-right:6px;">
-                <div style="color:#6f8; font-size:8px; margin-bottom:3px;">${t.icon} ${t.name}</div>
+                <div style="color:#6f8; font-size:8px; margin-bottom:3px;">${t.icon} ${t.name} <span style="color:gold; font-size:7px;">[${curTeaTier.name}]</span></div>
                 <div style="font-size:7px; color:#ccc; line-height:1.45;">${fmtStats(t.desc)}</div>
             </div>
             <div>${btnHtml}</div>

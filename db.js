@@ -76,12 +76,24 @@ const ACT_FOREST_GATES = {
 
 /* Сбор чая: 3 травяных настоя на следующий Рейд (за 🌿 Травы) */
 const TEA_BUFFS = [
-    { id:'ivan_tea',      icon:'🌺', name:'Иван-чай',      cost:CONFIG.forest.teas.ivan_tea.cost,
-      desc:`Богатырский тонус: +${Math.round((CONFIG.forest.teas.ivan_tea.atkMult - 1) * 100)}% УРН и +${Math.round(CONFIG.forest.teas.ivan_tea.spellAmp * 100)}% к Маг. урон скиллов на след. Рейд.` },
-    { id:'chamomile_tea', icon:'🌼', name:'Ромашковый чай', cost:CONFIG.forest.teas.chamomile_tea.cost,
-      desc:`Целебный настой: +${Math.round((CONFIG.forest.teas.chamomile_tea.hpMult - 1) * 100)}% макс. ЗД и +${CONFIG.forest.teas.chamomile_tea.hpRegen} реген ЗД/ход на след. Рейд.` },
-    { id:'mint_tea',      icon:'🍃', name:'Мятный чай',    cost:CONFIG.forest.teas.mint_tea.cost,
-      desc:`Ледяная ясность: старт Рейда с ${CONFIG.forest.teas.mint_tea.startRage}% Ярости и +${CONFIG.forest.teas.mint_tea.mpRegen} МН/ход.` }
+    { id:'ivan_tea',      icon:'🌺', name:'Иван-чай',      cost: 3,
+      get desc() {
+          let st = typeof getTeaStats === 'function' ? getTeaStats() : { name: 'I. Походная', ivan_tea: CONFIG.forest.teas.ivan_tea };
+          let tc = (st && st.ivan_tea) || CONFIG.forest.teas.ivan_tea;
+          return `Богатырский тонус [${st.name}]: +${Math.round((tc.atkMult - 1) * 100)}% УРН и +${Math.round(tc.spellAmp * 100)}% к Маг. урону скиллов на след. Рейд.`;
+      } },
+    { id:'chamomile_tea', icon:'🌼', name:'Ромашковый чай', cost: 3,
+      get desc() {
+          let st = typeof getTeaStats === 'function' ? getTeaStats() : { name: 'I. Походная', chamomile_tea: CONFIG.forest.teas.chamomile_tea };
+          let tc = (st && st.chamomile_tea) || CONFIG.forest.teas.chamomile_tea;
+          return `Целебный настой [${st.name}]: +${Math.round((tc.hpMult - 1) * 100)}% макс. ЗД и +${tc.hpRegen} реген ЗД/ход на след. Рейд.`;
+      } },
+    { id:'mint_tea',      icon:'🍃', name:'Мятный чай',    cost: 4,
+      get desc() {
+          let st = typeof getTeaStats === 'function' ? getTeaStats() : { name: 'I. Походная', mint_tea: CONFIG.forest.teas.mint_tea };
+          let tc = (st && st.mint_tea) || CONFIG.forest.teas.mint_tea;
+          return `Ледяная ясность [${st.name}]: старт Рейда с ${tc.startRage}% Ярости и +${tc.mpRegen} МН/ход.`;
+      } }
 ];
 
 function getKettleUpgradeCost(lvl) {
@@ -96,11 +108,11 @@ function getKettleActCap() {
     return CONFIG.forest.kettleActCaps[5];
 }
 
-/* Сюжетные диалоги и обучающие вставки */
+/* Сюжетные диалоги */
 const STORY_EVENTS = {
     intro: {
         icon:'⚔️', title:'Пролог: Изгнанный рыцарь',
-        text:'Тебя, рыцаря Свена, с позором вышвырнули за ворота Замка Древних Завоевателей. Без отряда, без золота, лишь с тяжёлым клинком и жгучей яростью.<br><br>Ты изранен после схватки у ворот, а голод не ждёт. В кустах мелькает <b>бешеный лесной бельчонок</b> — даже он сейчас опасен для истощённого рыцаря!<br><br><span style="color:#0cf;">💡 Обучение:</span> Нажми <b>«В БОЙ!»</b>, используй <b>УДАР</b> и <b>Шторм Хаммер</b>, чтобы одолеть цель.'
+        text:'Тебя, рыцаря Свена, с позором вышвырнули за ворота Замка Древних Завоевателей. Без отряда, без золота, лишь с тяжёлым клинком и жгучей яростью.<br><br>Ты изранен после схватки у ворот, а голод не ждёт. В кустах мелькает <b>бешеный лесной бельчонок</b> — даже он сейчас опасен для истощённого рыцаря!<br><br><span style="color:#0cf;">💡 Совет:</span> Нажми <b>«В БОЙ!»</b>, используй <b>УДАР</b> и <b>Шторм Хаммер</b>, чтобы одолеть цель.'
     },
     after_stage1: {
         icon:'🌲', title:'Лес открыт!',
@@ -108,7 +120,7 @@ const STORY_EVENTS = {
     },
     silence_tutorial: {
         icon:'🔇', title:'Чары побега и Безмолвие!',
-        text:'Старик сбросил человеческий облик и обернулся <b>зачарованной курицей</b>! Она расправляет крылья и готовится удрать в кусты на своём ходу.<br><br><span style="color:#f55;">⚠️ Обучение:</span> Курица неуязвима к обычному урону! Единственный способ сорвать побег и уничтожить её — наложить <b>🔇 Безмолвие</b> (активный <b>Орчид</b>, <b>Хекс</b> Лиона, <b>Мит Хук</b> Пуджа, <b>Торрент / Метка</b> Кункки, <b>Лайтнинг Болт</b> Зевса) прямо сейчас!'
+        text:'Старик сбросил человеческий облик и обернулся <b>зачарованной курицей</b>! Она расправляет крылья и готовится удрать в кусты на своём ходу.<br><br><span style="color:#f55;">⚠️ Внимание:</span> Курица неуязвима к обычному урону! Единственный способ сорвать побег и уничтожить её — наложить <b>🔇 Безмолвие</b> (активный <b>Орчид</b>, <b>Сайленсер</b>, <b>Хекс</b> Лиона, <b>Мит Хук</b> Пуджа, <b>Торрент / Метка</b> Кункки, <b>Лайтнинг Болт</b> Зевса) прямо сейчас!'
     },
     stage9_no_shaman: {
         icon:'🗡️', title:'Тёмная чаща: Засада без вожака',
@@ -117,6 +129,10 @@ const STORY_EVENTS = {
     stage9_shaman_reveal: {
         icon:'⚡', title:'Тёмная чаща: Месть Шамана-отшельника',
         text:'Из тумана с треском вырываются змеиные молнии! Тот самый беглец предстаёт в своём истинном обличье — грозный <b>Шаман-отшельник</b> в окружении лесных бандитов!<br><br><i>«Ха-ха-ха! Думали, я просто старик или глупая курица?! Вы поплатитесь за то, что загнали меня в угол — познайте ярость змеиных чар!»</i>'
+    },
+    stage14_circus: {
+        icon:'🎪', title:'Бродячий цирк: Смертельное шоу',
+        text:'Сквозь сырой туман подземелья вспыхивают ядовито-яркие факелы. Раздаётся звон бубенцов и хлёсткий щелчок кнута!<br><br>Из темноты выходит высокий худой распорядитель в цилиндре и с хищной улыбкой:<br><br><i>«Добро пожаловать на арену теней, достопочтенные изгнанники! Сегодня в программе — ваш величайший триумф... или позорная гибель от собственных отражений! Музыку, маэстро!»</i>'
     },
     stage3_shaman_intro: {
         icon:'⚡', title:'Возвращение Отшельника',
@@ -239,6 +255,14 @@ const DB = {
             {id:'s3',name:'Мортал Страйк',type:'phys',dmg:[20,40,60,80],mp:[55,60,70,75],cd:2,atkBonus:1.0,guaranteedCrit:[1.6,1.9,2.2,2.5],full:'Гарантированный критический Физ. удар (×1.6/1.9/2.2/2.5), снимающий щит пробития!'},
             {id:'s4',name:'Реинкарнация',type:'passive',dmg:[0,0,0],mp:[0,0,0],reincarnatePct:[0.6,0.8,1.0],full:'Пассивный ультимейт. 1 раз за бой при смерти воскрешается с 60/80/100% ЗД и ослабляет УРН всех врагов на −25% (2 х.).'}
           ]},
+        { id:'silencer', name:'Сайленсер', cost:4200, icon:'🤫', role:'Контроль / Маг-ДД', unlockAct:2, mainAttr:'int', isMelee:false, range:'ranged',
+          baseStr:15, gainStr:1.8, baseInt:24, gainInt:3.3, baseMp:100, baseArmor:1, gainArmor:0.35,
+          skills:[
+            {id:'s1',name:'Последнее слово',type:'magic',dmg:[110,165,220,275],mp:[48,55,65,75],cd:3,silence:2,breakHits:1,full:'🔇 Безмолвие (2 х.): мгновенный удар, наносит Маг. урон (1.2×ATK + 2.2×INT) и ломает 1 щит. Если враг готовил скилл 🔥 — срывает каст и ломает −2 🛡️! Под Яростью: ×1.5 урона, 3 х. безмолвия, −2 🛡️.'},
+            {id:'s2',name:'Глефы и Кража разума',type:'passive',dmg:[0,0,0,0],mp:[0,0,0,0],full:'Пассивка. Обычные атаки наносят чистый урон (+35% от ИНТ) сквозь броню; если цель в Безмолвии — ломает −1 🛡️. При гибели любого врага Сайленсер получает +5 ИНТ до конца боя.'},
+            {id:'s3',name:'Аркейн Кёрс',type:'magic',dmg:[65,100,135,170],mp:[70,80,90,100],cd:3,duration:2,burnDmg:[30,45,60,75],full:'Проклятие: Маг. урон и периодический урон (30/45/60/75/х на 2 х.). Замедляет подготовку врага.'},
+            {id:'s4',name:'Глобальное безмолвие',type:'magic',dmg:[220,330,440],mp:[85,115,145],cd:5,prep:1,aoe:true,silence:2,full:'Ультимейт с Подготовкой (1 х.). Накладывает 🔇 Безмолвие на ВСЕХ врагов на 2 х. (3 х. под Яростью), срывает вражеские касты 🔥, наносит Маг. урон (0.85×ATK + 1.5×INT) всем врагам и ломает −1 🛡️ каждому, чей каст сорван. Под Яростью — мгновенно!'}
+          ]},
         /* Акт 3 (открываются после победы над Боссом Акта 2 — Рейд 10) */
         { id:'pa', name:'Фантомка', cost:10000, icon:'🗡️', role:'Крит-ДД', unlockAct:3, mainAttr:'str', isMelee:true,
           baseStr:23, gainStr:3.4, baseInt:15, gainInt:1.4, baseMp:50, baseArmor:3, gainArmor:0.7,
@@ -296,13 +320,13 @@ const DB = {
 
         /* Открывается после Акта 1 (Рейд 5) */
         {id:'gloves',icon:'🧤',name:'Гловс оф Хейст',cost:450,dmg:4,clickCrit:0.05,group:'midas',partOf:'midas',reqRaid:5,short:'+4 к клику, +5% крит клика.',full:'Компонент Хенд оф Мидас. Даёт +4 к клику и +5% шанса крита.'},
-        {id:'midas_recipe',icon:'📜',name:'Рецепт: Мидас',cost:1750,dmg:0,isRecipe:true,buildsInto:'midas',group:'midas',reqRaid:5,short:'Свиток сборки Мидаса.',full:'Завершает сборку Хенд оф Мидас.'},
+        {id:'midas_recipe',icon:'📜',name:'Чертёж: Мидас',cost:1750,dmg:0,isRecipe:true,buildsInto:'midas',group:'midas',reqRaid:5,short:'Чертёж сборки Мидаса.',full:'Завершает сборку Хенд оф Мидас.'},
         {id:'midas',icon:'🖐️',name:'Хенд оф Мидас',cost:0,isUpgradable:true,baseCost:2200,group:'midas',reqRaid:5,components:['gloves','midas_recipe'],short:'Казнит крипа за доп. золото.',full:'При клике мгновенно казнит обычного крипа и умножает его золото.<br><b style="color:gold;">Прокачка:</b> Ур.1: золото ×2.5, КД 60с. Каждый уровень: +0.5 к множителю и −5с КД (мин. 20с).'},
 
         /* Открывается после Акта 2 (Рейд 10) */
         {id:'helm_will',icon:'⛑️',name:'Хельм оф Айрон Вилл',cost:975,dmg:14,group:'dominator',partOf:'dominator',reqRaid:10,short:'+14 к клику.',full:'Компонент Хельм оф Доминатор.'},
         {id:'diadem',icon:'👑',name:'Диадема',cost:1000,dmg:12,clickCrit:0.03,group:'dominator',partOf:'dominator',reqRaid:10,short:'+12 к клику, +3% крит.',full:'Компонент Хельм оф Доминатор.'},
-        {id:'dom_recipe',icon:'📜',name:'Рецепт: Доминатор',cost:650,dmg:0,isRecipe:true,buildsInto:'dominator',group:'dominator',reqRaid:10,short:'Свиток сборки Доминатора.',full:'Завершает сборку Хельм оф Доминатор.'},
+        {id:'dom_recipe',icon:'📜',name:'Чертёж: Доминатор',cost:650,dmg:0,isRecipe:true,buildsInto:'dominator',group:'dominator',reqRaid:10,short:'Чертёж сборки Доминатора.',full:'Завершает сборку Хельм оф Доминатор.'},
         {id:'dominator',icon:'👹',name:'Хельм оф Доминатор',cost:0,isUpgradable:true,baseCost:2600,group:'dominator',reqRaid:10,components:['helm_will','diadem','dom_recipe'],short:'Вербует крипов при ручном клике.',full:'При <b>ручном</b> добивании обычного крипа есть шанс завербовать его в Армию леса (лимит: 50 × Ур.). Армия пассивно бьёт крипов.<br><b style="color:gold;">Прокачка:</b> Ур.1: шанс 5%, 3 УРН/с за крипа. Каждый уровень: +1% шанса, +3 УРН/с и +50 к лимиту.'},
 
         /* Открывается после Акта 3 (Рейд 15) */
@@ -330,24 +354,26 @@ const DB = {
         /* ТИР 2 — Караван торговцев */
         {id:'morbid',tier:2,icon:'🎭',name:'Морбид Маск',cost:900,physLifesteal:0.15,partOf:'satanic',short:'+15% вампиризм Физ. урон.',full:'Восстанавливает ЗД в размере 15% только от Физ. урон. Компонент Сатаника.'},
         {id:'broadsword',tier:2,icon:'🗡️',name:'Броудсворд',cost:1000,dmg:20,partOf:'crystalys',short:'+20 УРН.',full:'Даёт +20 УРН. Компонент Кристалиса и Блейдмейла.'},
-        {id:'staff_of_wizardry',tier:2,icon:'🪄',name:'Стафф оф Визардри',cost:1000,stats:{int:10},partOf:'kaya',short:'+10 ИНТ.',full:'Даёт +10 ИНТ. Компонент Кайи, Вейл оф Дискорд и Орчида.'},
+        {id:'staff_of_wizardry',tier:2,icon:'🪄',name:'Стафф оф Визардри',cost:1000,stats:{int:10},partOf:'kaya',short:'+10 ИНТ.',full:'Даёт +10 ИНТ. Компонент Кайи, Вейл оф Дискорд и Орчида. <i>«Говорят, из двух таких посохов можно сковать цветок, заставляющий любого мага онеметь и забыть свои заклинания, но чертежи давно утеряны…»</i>'},
         {id:'point_booster',tier:2,icon:'🟣',name:'Поинт Бустер',cost:1200,bonusHp:175,bonusMp:175,short:'+175 ЗД, +175 МН.',full:'Универсальный артефакт: +175 ЗД и +175 МН.'},
         {id:'power_treads',tier:2,icon:'🥾',name:'Пауэр Тредс',cost:1400,stats:{str:10},isActive:true,cd:1,short:'+10 СИЛ. В бою перекл. СИЛ ⇄ ИНТ.',full:'Даёт +10 СИЛ. В бою переключается между +10 СИЛ (+220 ЗД) и +10 ИНТ (+120 МН).'},
         {id:'arcane_boots',tier:2,icon:'👢',name:'Аркейн Бутс',cost:1400,stats:{int:6},isActive:true,cd:4,short:'+6 ИНТ. Актив: +45 МН всему отряду.',full:'Даёт +6 ИНТ. Активно восстанавливает 45 МН всем союзникам.'},
         {id:'mithril',tier:2,icon:'🔨',name:'Мифрил Хаммер',cost:1600,dmg:24,partOf:'desolator',short:'+24 УРН.',full:'Даёт +24 УРН. Компонент Дезолятора и БКБ.'},
-        {id:'crystalys_recipe',tier:2,icon:'📜',name:'Рецепт: Кристалис',cost:500,isRecipe:true,buildsInto:'crystalys',short:'Блейдс + Броудсворд → Кристалис.',full:'Объединяет Блейдс оф Аттак и Броудсворд в Кристалис.'},
+        {id:'crystalys_recipe',tier:2,icon:'📜',name:'Чертёж: Кристалис',cost:500,isRecipe:true,buildsInto:'crystalys',short:'Блейдс + Броудсворд → Кристалис.',full:'Объединяет Блейдс оф Аттак и Броудсворд в Кристалис.'},
         {id:'crystalys',tier:2,icon:'💥',name:'Кристалис',cost:0,craftable:true,dmg:32,critChance:0.20,critMult:1.75,partOf:'daedalus',components:['blades_of_attack','broadsword','crystalys_recipe'],short:'+32 УРН, 20% крит (×1.75).',full:'Даёт +32 УРН и 20% шанс крита (×1.75) при Физ. урон. Криты снимают щиты.'},
-        {id:'kaya_recipe',tier:2,icon:'📜',name:'Рецепт: Кайя',cost:1050,isRecipe:true,buildsInto:'kaya',short:'Стафф → Кайя (+15% маг. скиллы).',full:'Улучшает Стафф оф Визардри в Кайю.'},
+        {id:'kaya_recipe',tier:2,icon:'📜',name:'Чертёж: Кайя',cost:1050,isRecipe:true,buildsInto:'kaya',short:'Стафф → Кайя (+15% маг. скиллы).',full:'Улучшает Стафф оф Визардри в Кайю.'},
         {id:'kaya',tier:2,icon:'🔮',name:'Кайя',cost:0,craftable:true,stats:{int:16},spellAmp:0.15,components:['staff_of_wizardry','kaya_recipe'],short:'+16 ИНТ, +15% к Маг. урон скиллов.',full:'Даёт +16 ИНТ и +15% к Маг. урон способностей.'},
+        {id:'bm_recipe',tier:2,icon:'📜',name:'Чертёж: Блейдмейл',cost:550,isRecipe:true,buildsInto:'blade_mail',short:'Броудсворд + Чейнмейл → Блейдмейл.',full:'Объединяет Броудсворд и Чейнмейл в Блейдмейл.'},
+        {id:'blade_mail',tier:2,icon:'🦔',name:'Блейдмейл',cost:0,craftable:true,stats:{armor:7},dmg:22,isActive:true,duration:2,cd:5,components:['broadsword','chainmail','bm_recipe'],short:'+7 БРО, +22 УРН. Актив: возврат 70% урона.',full:'Даёт +7 БРО и +22 УРН. Активно возвращает 70% полученного урона врагу (2 х.).'},
+        {id:'mek_recipe',tier:2,icon:'📜',name:'Чертёж: Меказм',cost:900,isRecipe:true,buildsInto:'mekansm',short:'Хеддресс + Баклер → Меказм.',full:'Объединяет Хеддресс и Баклер в Меказм.'},
+        {id:'mekansm',tier:2,icon:'✨',name:'Меказм',cost:0,craftable:true,stats:{armor:4},hpRegen:10,isActive:true,cd:5,components:['headdress','buckler','mek_recipe'],short:'+4 БРО, +10 реген ЗД. Актив: +200 ЗД отряду.',full:'Даёт +4 БРО, +10 реген ЗД/ход. Активно лечит +200 ЗД всему отряду.'},
+        {id:'orchid_recipe',tier:2,icon:'📜',name:'Чертёж: Орчид',cost:0,bossDropOnly:true,isRecipe:true,buildsInto:'orchid_malevolence',short:'Трофей с Баунти Хантера. Стафф + Блейдс → Орчид.',full:'Редкий чертёж, выбиваемый с Баунти Хантера (Босс Акта 1). Объединяет Стафф оф Визардри и Блейдс оф Аттак в Орчид Малеволенс.'},
+        {id:'orchid_malevolence',tier:2,icon:'🌺',name:'Орчид Малеволенс',cost:0,craftable:true,stats:{int:20},dmg:25,isActive:true,duration:2,cd:5,components:['staff_of_wizardry','blades_of_attack','orchid_recipe'],short:'+20 ИНТ, +25 УРН. Актив: безмолвие + взрыв 25%.',full:'Безмолвие на 1 врага (2 х., сбивает каст); в конце взрыв на 25% полученного урона (Маг. урон).'},
 
         /* ТИР 3 — Лавка наёмников */
-        {id:'bm_recipe',tier:3,icon:'📜',name:'Рецепт: Блейдмейл',cost:550,isRecipe:true,buildsInto:'blade_mail',short:'Броудсворд + Чейнмейл → Блейдмейл.',full:'Объединяет Броудсворд и Чейнмейл в Блейдмейл.'},
-        {id:'blade_mail',tier:3,icon:'🦔',name:'Блейдмейл',cost:0,craftable:true,stats:{armor:7},dmg:22,isActive:true,duration:2,cd:5,components:['broadsword','chainmail','bm_recipe'],short:'+7 БРО, +22 УРН. Актив: возврат 70% урона.',full:'Даёт +7 БРО и +22 УРН. Активно возвращает 70% полученного урона врагу (2 х.).'},
-        {id:'veil_recipe',tier:3,icon:'📜',name:'Рецепт: Вейл оф Дискорд',cost:700,isRecipe:true,buildsInto:'veil_of_discord',short:'Стафф + Чейнмейл → Вейл.',full:'Объединяет Стафф оф Визардри и Чейнмейл в Вейл оф Дискорд.'},
+        {id:'veil_recipe',tier:3,icon:'📜',name:'Чертёж: Вейл оф Дискорд',cost:700,isRecipe:true,buildsInto:'veil_of_discord',short:'Стафф + Чейнмейл → Вейл.',full:'Объединяет Стафф оф Визардри и Чейнмейл в Вейл оф Дискорд.'},
         {id:'veil_of_discord',tier:3,icon:'🟣',name:'Вейл оф Дискорд',cost:0,craftable:true,stats:{int:10,armor:5},isActive:true,duration:2,cd:4,components:['staff_of_wizardry','chainmail','veil_recipe'],short:'+10 ИНТ, +5 БРО. Актив: +20% Маг. урон врагам.',full:'Даёт +10 ИНТ, +5 БРО. Активно: все враги получают +20% Маг. урон на 2 хода.'},
-        {id:'mek_recipe',tier:3,icon:'📜',name:'Рецепт: Меказм',cost:900,isRecipe:true,buildsInto:'mekansm',short:'Хеддресс + Баклер → Меказм.',full:'Объединяет Хеддресс и Баклер в Меказм.'},
-        {id:'mekansm',tier:3,icon:'✨',name:'Меказм',cost:0,craftable:true,stats:{armor:4},hpRegen:10,isActive:true,cd:5,components:['headdress','buckler','mek_recipe'],short:'+4 БРО, +10 реген ЗД. Актив: +200 ЗД отряду.',full:'Даёт +4 БРО, +10 реген ЗД/ход. Активно лечит +200 ЗД всему отряду.'},
-        {id:'deso_recipe',tier:3,icon:'📜',name:'Рецепт: Дезолятор',cost:1600,isRecipe:true,buildsInto:'desolator',short:'Блайт + Мифрил → Дезолятор.',full:'Объединяет Орб оф Блайт и Мифрил Хаммер в Дезолятор.'},
+        {id:'deso_recipe',tier:3,icon:'📜',name:'Чертёж: Дезолятор',cost:1600,isRecipe:true,buildsInto:'desolator',short:'Блайт + Мифрил → Дезолятор.',full:'Объединяет Орб оф Блайт и Мифрил Хаммер в Дезолятор.'},
         {id:'desolator',tier:3,icon:'☠️',name:'Дезолятор',cost:0,dmg:50,craftable:true,components:['blight','mithril','deso_recipe'],short:'+50 УРН, −6 БРО на 2 хода.',full:'Даёт +50 УРН. Физ. урон снижает БРО цели на 6 на 2 хода.'},
         {id:'glimmer',tier:3,icon:'🧥',name:'Глиммер Кейп',cost:1950,magicRes:0.15,isActive:true,duration:2,cd:5,short:'+15% МАГ.РЕЗ. Актив: 100% уклонение.',full:'Пассивно +15% МАГ.РЕЗ. Активно: 100% уклонение от физ. атак на 2 хода.'},
         {id:'armlet',tier:3,icon:'💪',name:'Армлет',cost:2500,stats:{str:15,armor:5},isActive:true,cd:1,short:'+15 СИЛ, +5 БРО. Перекл: +25 СИЛ, −50 ЗД/ход.',full:'При включении даёт +25 СИЛ (+550 ЗД, +25 УРН силовикам), сжигает 50 ЗД/ход.'},
@@ -358,19 +384,17 @@ const DB = {
         {id:'platemail',tier:4,icon:'🛡️',name:'Плейтмейл',cost:1400,stats:{armor:10},partOf:'assault_cuirass',short:'+10 БРО.',full:'Даёт +10 БРО. Компонент Ассаулт Кирасы.'},
         {id:'demon_edge',tier:4,icon:'🔪',name:'Демон Эдж',cost:2200,dmg:40,partOf:'daedalus',short:'+40 УРН.',full:'Даёт +40 УРН. Компонент Дайдалуса.'},
         {id:'reaver',tier:4,icon:'🪓',name:'Ривер',cost:2800,stats:{str:25},partOf:'satanic',short:'+25 СИЛ.',full:'Даёт +25 СИЛ. Компонент Сатаника и БКБ.'},
-        {id:'daedalus_recipe',tier:4,icon:'📜',name:'Рецепт: Дайдалус',cost:1000,isRecipe:true,buildsInto:'daedalus',short:'Кристалис + Демон Эдж → Дайдалус.',full:'Объединяет Кристалис и Демон Эдж в Дайдалус.'},
+        {id:'daedalus_recipe',tier:4,icon:'📜',name:'Чертёж: Дайдалус',cost:1000,isRecipe:true,buildsInto:'daedalus',short:'Кристалис + Демон Эдж → Дайдалус.',full:'Объединяет Кристалис и Демон Эдж в Дайдалус.'},
         {id:'daedalus',tier:4,icon:'🔥',name:'Дайдалус',cost:0,craftable:true,dmg:88,critChance:0.30,critMult:2.25,components:['crystalys','demon_edge','daedalus_recipe'],short:'+88 УРН, 30% крит (×2.25).',full:'Даёт +88 УРН и 30% шанс крита (×2.25). Криты снимают щиты.'},
-        {id:'orchid_recipe',tier:4,icon:'📜',name:'Рецепт: Орчид',cost:0,bossDropOnly:true,isRecipe:true,buildsInto:'orchid_malevolence',short:'Трофей с Баунти Хантера. Стафф + Блейдс → Орчид.',full:'Редкий свиток, выбиваемый с Баунти Хантера (Босс Акта 1). Объединяет Стафф оф Визардри и Блейдс оф Аттак в Орчид Малеволенс.'},
-        {id:'orchid_malevolence',tier:4,icon:'🌺',name:'Орчид Малеволенс',cost:0,craftable:true,stats:{int:20},dmg:25,isActive:true,duration:2,cd:5,components:['staff_of_wizardry','blades_of_attack','orchid_recipe'],short:'+20 ИНТ, +25 УРН. Актив: безмолвие + взрыв 25%.',full:'Безмолвие на 1 врага (2 х., сбивает каст); в конце взрыв на 25% полученного урона (Маг. урон).'},
-        {id:'satanic_recipe',tier:4,icon:'📜',name:'Рецепт: Сатаник',cost:1350,isRecipe:true,buildsInto:'satanic',short:'Морбид + Ривер → Сатаник.',full:'Объединяет Морбид Маск и Ривер в Сатаник.'},
+        {id:'satanic_recipe',tier:4,icon:'📜',name:'Чертёж: Сатаник',cost:1350,isRecipe:true,buildsInto:'satanic',short:'Морбид + Ривер → Сатаник.',full:'Объединяет Морбид Маск и Ривер в Сатаник.'},
         {id:'satanic',tier:4,icon:'😈',name:'Сатаник',cost:0,stats:{str:25},dmg:25,physLifesteal:0.25,craftable:true,isActive:true,duration:3,cd:6,components:['morbid','reaver','satanic_recipe'],short:'+25 СИЛ, +25 УРН, 25% физ. вампиризм.',full:'Активно: 175% вампиризма от Физ. урон (макс. 50% макс. ЗД за удар).'},
-        {id:'bkb_recipe',tier:4,icon:'📜',name:'Рецепт: БКБ',cost:1500,isRecipe:true,buildsInto:'bkb',short:'Ривер + Мифрил → БКБ.',full:'Объединяет Ривер и Мифрил Хаммер в Блэк Кинг Бар.'},
+        {id:'bkb_recipe',tier:4,icon:'📜',name:'Чертёж: БКБ',cost:1500,isRecipe:true,buildsInto:'bkb',short:'Ривер + Мифрил → БКБ.',full:'Объединяет Ривер и Мифрил Хаммер в Блэк Кинг Бар.'},
         {id:'bkb',tier:4,icon:'🛡️',name:'Блэк Кинг Бар',cost:0,craftable:true,isActive:true,duration:3,cd:7,components:['reaver','mithril','bkb_recipe'],stats:{str:10},dmg:24,short:'+10 СИЛ, +24 УРН. Иммунитет к магии.',full:'Активно: полный иммунитет к Маг. урон и оглушениям на 3 хода.'},
-        {id:'pipe_recipe',tier:4,icon:'📜',name:'Рецепт: Пайп оф Инсайт',cost:2200,isRecipe:true,buildsInto:'pipe_of_insight',short:'Хеддресс → Пайп (маг. щит 150).',full:'Улучшает Хеддресс в Пайп оф Инсайт.'},
+        {id:'pipe_recipe',tier:4,icon:'📜',name:'Чертёж: Пайп оф Инсайт',cost:2200,isRecipe:true,buildsInto:'pipe_of_insight',short:'Хеддресс → Пайп (маг. щит 150).',full:'Улучшает Хеддресс в Пайп оф Инсайт.'},
         {id:'pipe_of_insight',tier:4,icon:'🪈',name:'Пайп оф Инсайт',cost:0,craftable:true,hpRegen:12,magicRes:0.20,isActive:true,duration:2,cd:6,components:['headdress','pipe_recipe'],short:'+12 реген ЗД, +20% МАГ.РЕЗ. Актив: щит 150.',full:'Активно накладывает маг. щит (150 Маг. урон) на весь отряд на 2 хода.'},
 
         /* ТИР 5 — Сокровищница Древних */
-        {id:'ac_recipe',tier:5,icon:'📜',name:'Рецепт: Ассаулт Кираса',cost:1800,isRecipe:true,buildsInto:'assault_cuirass',short:'Плейтмейл + Баклер → Кираса.',full:'Объединяет Плейтмейл и Баклер в Ассаулт Кирасу.'},
+        {id:'ac_recipe',tier:5,icon:'📜',name:'Чертёж: Ассаулт Кираса',cost:1800,isRecipe:true,buildsInto:'assault_cuirass',short:'Плейтмейл + Баклер → Кираса.',full:'Объединяет Плейтмейл и Баклер в Ассаулт Кирасу.'},
         {id:'assault_cuirass',tier:5,icon:'👑',name:'Ассаулт Кираса',cost:0,craftable:true,stats:{armor:10},teamArmorAura:5,enemyArmorAura:5,components:['platemail','buckler','ac_recipe'],short:'+10 БРО. Аура: +5 БРО отряду, −5 БРО врагам.',full:'Аура (не стакается): +5 БРО отряду и −5 БРО всем врагам.'},
         {id:'bloodstone',tier:5,icon:'🩸',name:'Бладстоун',cost:4500,stats:{int:30},spellLifesteal:0.30,short:'+30 ИНТ, 30% вампиризм Маг. урон.',full:'Даёт +30 ИНТ и 30% вампиризма от нанесённого Маг. урон.'},
         {id:'linken',tier:5,icon:'🔗',name:'Линка',cost:4800,stats:{str:15,int:15},cd:5,short:'+15 СИЛ, +15 ИНТ. Блок 1 способности.',full:'Пассивно блокирует вражескую направленную способность раз в 5 ходов.'},
@@ -708,12 +732,19 @@ const ACT_ENEMY_POOLS = {
 const ENEMY_HEROES = ACT_ENEMY_POOLS[1].heroes;
 
 const SPECIAL_ENEMIES = {
+    ringmaster: {
+        name:'Шпрехшталмейстер', icon:'🎩', hp:1760, mp:300, atk:65, armor:4, isMelee:false, isBoss:true, shieldMax:4, row:'back', archetype:'support', isRingmaster:true,
+        skills:[
+            { name:'Аплодисменты!', type:'applause', mult:0, healPct:0.20, atkBuff:1.25, addShield:true, mpCost:60, desc:'Бурные аплодисменты: лечит раненую тень на 20% ЗД, даёт +25% УРН (2 х.) и восстанавливает +1 🛡️!' },
+            { name:'Кнут укротителя', type:'magic', mult:1.35, aoe:false, frontOnly:true, vuln:0.20, stun:0, mpCost:65, desc:'Хлёсткий удар кнутом по 1-му ряду: Маг. урон и Уязвимость (+20% входящего урона на 2 х.).' }
+        ]
+    },
     traveler: {
-        name:'Таинственный путник', icon:'🧓', hp:520, mp:100, atk:38, armor:2, isMelee:false, shieldMax:2, isMysteriousTraveler:true,
+        name:'Таинственный путник', icon:'🧓', hp:520, mp:100, atk:38, armor:2, isMelee:false, shieldMax:2, row:'front', isMysteriousTraveler:true,
         skills:[{ name:'Удар посохом', type:'phys', mult:1.0, aoe:false, stun:0, mpCost:30, desc:'Дряхлый старик отмахивается сучковатым посохом.' }]
     },
     hermit_shaman_boss: {
-        name:'Шаман-отшельник', icon:'⚡', hp:1100, mp:260, atk:55, armor:4, isMelee:false, isBoss:true, shieldMax:3,
+        name:'Шаман-отшельник', icon:'⚡', hp:1100, mp:260, atk:55, armor:4, isMelee:false, isBoss:true, shieldMax:3, row:'back',
         skills:[
             { name:'Змеиные оковы', type:'magic', mult:1.25, aoe:false, stun:0, root:2, mpCost:60, desc:'Опутывает змеями: Маг. урон и ❄️ Оцепенение (2 х.).' },
             { name:'Эфирный шок', type:'magic', mult:1.1, aoe:true, stun:0, mpCost:75, desc:'AoE Маг. урон по всему отряду.' },
@@ -721,109 +752,109 @@ const SPECIAL_ENEMIES = {
         ]
     },
     pudge_stage8: {
-        name:'Пудж', icon:'🪝', hp:1400, mp:240, atk:72, armor:5, isMelee:true, isBoss:true, shieldMax:3, pudgeRecruitable:true,
+        name:'Пудж', icon:'🪝', hp:1400, mp:240, atk:72, armor:5, isMelee:true, isBoss:true, shieldMax:3, row:'front', pudgeRecruitable:true,
         skills:[
             { name:'Мит Хук', type:'magic', mult:1.85, aoe:false, stun:0, silence:1, targetBackRow:true, mpCost:80, desc:'Крюк бьёт героя 2-го ряда. 🔇 Безмолвие (1 х.): сбивает подготовку и запрещает скиллы!' },
             { name:'Рот', type:'magic', mult:0.9, aoe:true, stun:0, mpCost:50, desc:'AoE Маг. урон по всему отряду.' }
         ]
     },
     bog_ghoul: {
-        name:'Болотный упырь', icon:'🧟', hp:420, mp:100, atk:50, armor:2, isMelee:true, shieldMax:2,
+        name:'Болотный упырь', icon:'🧟', hp:420, mp:100, atk:50, armor:2, isMelee:true, shieldMax:2, row:'front',
         skills:[{ name:'Гнилостный укус', type:'phys', mult:1.2, aoe:false, stun:0, mpCost:40, desc:'Грязный укус мертвеца.' }]
     },
     poison_spider: {
-        name:'Ядовитый паук', icon:'🕷️', hp:360, mp:100, atk:46, armor:1, isMelee:false, shieldMax:1,
+        name:'Ядовитый паук', icon:'🕷️', hp:360, mp:100, atk:46, armor:1, isMelee:false, shieldMax:1, row:'back',
         skills:[{ name:'Ядовитый плевок', type:'magic', mult:0.95, aoe:false, poisonDot:30, stun:0, mpCost:40, desc:'Плевок ядом (DoT на 2 х.).' }]
     },
     squirrel: {
-        name:'Лесной бельчонок', icon:'🐿️', hp:280, mp:120, atk:48, armor:0, isMelee:true, shieldMax:2,
+        name:'Лесной бельчонок', icon:'🐿️', hp:280, mp:120, atk:48, armor:0, isMelee:true, shieldMax:2, row:'front',
         skills:[{ name:'Укус за сапог', type:'phys', mult:1.2, aoe:false, stun:0, mpCost:60, desc:'Обычный бельчонок отчаянно кусается!' }]
     },
     bandit_thug: {
-        name:'Разбойник-громила', icon:'🗡️', hp:420, mp:140, atk:42, armor:3, isMelee:true, shieldMax:2,
+        name:'Разбойник-громила', icon:'🗡️', hp:420, mp:140, atk:42, armor:3, isMelee:true, shieldMax:2, row:'front',
         skills:[{ name:'Удар дубиной', type:'phys', mult:1.4, aoe:false, stun:1, mpCost:60, desc:'Тяжёлый Физ. удар и стан 1 х.' }]
     },
     bandit_archer: {
-        name:'Разбойник-стрелок', icon:'🏹', hp:340, mp:140, atk:45, armor:1, isMelee:false, shieldMax:1,
+        name:'Разбойник-стрелок', icon:'🏹', hp:340, mp:140, atk:45, armor:1, isMelee:false, shieldMax:1, row:'back',
         skills:[{ name:'Залп в тыл', type:'phys', mult:1.3, aoe:false, targetBackRow:true, stun:0, mpCost:60, desc:'Стреляет во 2-й ряд.' }]
     },
     bounty_hunter: {
-        name:'Баунти Хантер', icon:'🥷', hp:680, mp:220, atk:58, armor:4, isMelee:true, isBoss:true, shieldMax:3,
+        name:'Баунти Хантер', icon:'🥷', hp:680, mp:220, atk:58, armor:4, isMelee:true, isBoss:true, shieldMax:3, row:'front',
         skills:[
             { name:'Шурикен Тосс', type:'magic', mult:1.5, aoe:true, stun:0, silence:1, mpCost:70, desc:'Сюрикен отскакивает по отряду (Маг. урон). 🔇 Безмолвие (1 х.): сбивает подготовку и запрещает скиллы!' },
             { name:'Джинада', type:'phys', mult:1.8, aoe:false, stun:0, armorDebuff:3, mpCost:60, desc:'Коварный крит-удар и −3 БРО (2 х.).' }
         ]
     },
     bristleback: {
-        name:'Бристлбэк', icon:'🦔', hp:1550, mp:220, atk:68, armor:6, isMelee:true, shieldMax:3, bristlePassive:true,
+        name:'Бристлбэк', icon:'🦔', hp:1550, mp:220, atk:68, armor:6, isMelee:true, shieldMax:3, row:'front', bristlePassive:true,
         skills:[
             { name:'Квилл Спрей', type:'phys', mult:0.95, aoe:true, stun:0, mpCost:50, desc:'Веер игл по ВСЕМ героям отряда (Физ. урон).' },
             { name:'Вискос Назал Гу', type:'magic', mult:0.7, aoe:false, stun:0, armorDebuff:4, mpCost:40, desc:'Слизь снижает БРО цели на 4 (2 х.).' }
         ]
     },
     io_boss: {
-        name:'Ио (Висп)', icon:'🔵', hp:1050, mp:300, atk:55, armor:2, isMelee:false, isBoss:true, shieldMax:3,
+        name:'Ио (Висп)', icon:'🔵', hp:1050, mp:300, atk:55, armor:2, isMelee:false, isBoss:true, shieldMax:3, row:'back',
         skills:[
             { name:'Тезер-Хил', type:'heal_ally', mult:0, healAmt:280, mpCost:60, desc:'Восстанавливает +280 ЗД самому раненому союзнику и даёт ему +25% УРН!' },
             { name:'Спиритс', type:'magic', mult:1.15, aoe:true, stun:0, mpCost:75, desc:'Сферы бьют Маг. уроном по всему отряду.' }
         ]
     },
     tiny_boss: {
-        name:'Тини', icon:'🗿', hp:1650, mp:220, atk:82, armor:7, isMelee:true, isBoss:true, shieldMax:4,
+        name:'Тини', icon:'🗿', hp:1650, mp:220, atk:82, armor:7, isMelee:true, isBoss:true, shieldMax:4, row:'front',
         skills:[
             { name:'Аваланч', type:'magic', mult:1.1, aoe:true, frontOnly:true, stun:1, mpCost:75, desc:'Камнепад по 1-му ряду: Маг. урон и оглушение 1 х.' },
             { name:'Тосс', type:'phys', mult:1.75, aoe:false, stun:0, mpCost:70, desc:'Швыряет героя: огромный Физ. урон.' }
         ]
     },
     lycan_boss: {
-        name:'Люкан', icon:'🐺', hp:1350, mp:220, atk:88, armor:4, isMelee:true, isBoss:true, shieldMax:3,
+        name:'Люкан', icon:'🐺', hp:1350, mp:220, atk:88, armor:4, isMelee:true, isBoss:true, shieldMax:3, row:'front',
         skills:[
             { name:'Хоул', type:'magic', mult:0.8, aoe:true, armorDebuff:3, stun:0, mpCost:60, desc:'Вой снижает БРО всему отряду на −3 (2 х.).' },
             { name:'Шейпшифт', type:'phys', mult:1.6, aoe:false, selfAtkBuff:1.4, stun:0, mpCost:80, desc:'Оборотень усиливает свой УРН (+40%) и рвёт цель клыками!' }
         ]
     },
     hoodwink: {
-        name:'Белка-Мститель', icon:'🏹', hp:2100, mp:260, atk:105, armor:4, isMelee:false, shieldMax:3, treeEvade:true,
+        name:'Белка-Мститель', icon:'🏹', hp:2100, mp:260, atk:105, armor:4, isMelee:false, shieldMax:3, row:'back', treeEvade:true,
         skills:[
             { name:'Шарпшутер', type:'phys', mult:2.2, aoe:false, targetBackRow:true, stun:0, mpCost:70, desc:'Прицельный выстрел во 2-й ряд! Сбивайте каст станом, Хексом, Меткой X или Орчидом!' },
             { name:'Бушвэк', type:'magic', mult:1.2, aoe:true, stun:1, mpCost:80, desc:'Привязывает сетью к деревьям: AoE Маг. урон и стан 1 х.' }
         ]
     },
     roshan_boss: {
-        name:'Рошан Бессмертный', icon:'👹', hp:3600, mp:320, atk:125, armor:8, isMelee:true, isBoss:true, shieldMax:4, roshanPhases:true, phase:1,
+        name:'Рошан Бессмертный', icon:'👹', hp:3600, mp:320, atk:125, armor:8, isMelee:true, isBoss:true, shieldMax:4, row:'front', roshanPhases:true, phase:1,
         skills:[
             { name:'Слэм', type:'magic', mult:1.25, aoe:true, stun:0, mpCost:70, desc:'Удар по земле: AoE Маг. урон ВСЕМ героям.' },
             { name:'Могучий Баш', type:'phys', mult:1.75, aoe:false, stun:1, mpCost:60, desc:'Тяжёлый Физ. удар и оглушение 1 х.' }
         ]
     },
     dawnbreaker_enemy: {
-        name:'Донбрейкер', icon:'☀️', hp:3800, mp:300, atk:135, armor:7, isMelee:true, isBoss:true, shieldMax:4, scriptedDawn:true,
+        name:'Донбрейкер', icon:'☀️', hp:3800, mp:300, atk:135, armor:7, isMelee:true, isBoss:true, shieldMax:4, row:'front', scriptedDawn:true,
         skills:[
             { name:'Солнечный Молот', type:'phys', mult:1.5, aoe:true, stun:0, mpCost:60, desc:'Сметает отряд волной солнечного огня.' },
             { name:'Небесный Суд', type:'magic', mult:1.8, aoe:false, stun:1, mpCost:70, desc:'Карающий удар с небес.' }
         ]
     },
     dk_boss: {
-        name:'Драгон Найт', icon:'🛡️', hp:2900, mp:280, atk:135, armor:10, isMelee:true, isBoss:true, shieldMax:4,
+        name:'Драгон Найт', icon:'🛡️', hp:2900, mp:280, atk:135, armor:10, isMelee:true, isBoss:true, shieldMax:4, row:'front',
         skills:[
             { name:'Бриз Файр', type:'magic', mult:1.2, aoe:true, stun:0, mpCost:70, desc:'Огненное дыхание по всему отряду.' },
             { name:'Драгон Тейл', type:'phys', mult:1.5, aoe:false, stun:2, mpCost:75, desc:'Удар щитом: Физ. урон и стан 2 х.' }
         ]
     },
     dragon_fire: {
-        name:'Огненный Дракон', icon:'🐉', hp:1500, mp:220, atk:115, armor:5, isMelee:false, shieldMax:3,
+        name:'Огненный Дракон', icon:'🐉', hp:1500, mp:220, atk:115, armor:5, isMelee:false, shieldMax:3, row:'back',
         skills:[{ name:'Пламя Недр', type:'magic', mult:1.3, aoe:true, stun:0, mpCost:65, desc:'Мощный AoE Маг. урон огнём.' }]
     },
     dragon_ice: {
-        name:'Ледяной Дракон', icon:'❄️', hp:1500, mp:220, atk:105, armor:6, isMelee:false, shieldMax:3,
+        name:'Ледяной Дракон', icon:'❄️', hp:1500, mp:220, atk:105, armor:6, isMelee:false, shieldMax:3, row:'back',
         skills:[{ name:'Ледяное Дыхание', type:'magic', mult:1.15, aoe:true, stun:1, mpCost:75, desc:'AoE Маг. урон и шанс заморозить (стан 1 х.).' }]
     },
     dragon_poison: {
-        name:'Ядовитый Дракон', icon:'🐍', hp:1450, mp:220, atk:110, armor:4, isMelee:false, shieldMax:3,
+        name:'Ядовитый Дракон', icon:'🐍', hp:1450, mp:220, atk:110, armor:4, isMelee:false, shieldMax:3, row:'back',
         skills:[{ name:'Кислотный Плевок', type:'magic', mult:1.05, aoe:true, armorDebuff:4, stun:0, mpCost:60, desc:'AoE Маг. урон и −4 БРО всему отряду (2 х.).' }]
     },
     invoker_boss: {
-        name:'Инвокер Замка', icon:'🌟', hp:4200, mp:400, atk:145, armor:5, isMelee:false, isBoss:true, shieldMax:4, invokerBoss:true,
+        name:'Инвокер Замка', icon:'🌟', hp:4200, mp:400, atk:145, armor:5, isMelee:false, isBoss:true, shieldMax:4, row:'back', invokerBoss:true,
         skills:[
             { name:'Призыв Духов', type:'summon_forge', mult:0, mpCost:60, desc:'Призывает Огненного Духа, который снижает БРО героев!' },
             { name:'Катаклизм', type:'cataclysm_charge', mult:2.2, aoe:true, mpCost:90, desc:'Заряжает Катаклизм (1 ход), затем обрушивает мощнейший AoE Маг. урон — закройтесь БКБ/Пайпом/Ромом!' },
@@ -831,29 +862,29 @@ const SPECIAL_ENEMIES = {
         ]
     },
     forge_spirit: {
-        name:'Дух-Фордж', icon:'🔥', hp:650, mp:100, atk:75, armor:2, isMelee:false, shieldMax:1, isSummon:true,
+        name:'Дух-Фордж', icon:'🔥', hp:650, mp:100, atk:75, armor:2, isMelee:false, shieldMax:1, row:'back', isSummon:true,
         skills:[{ name:'Плавящий удар', type:'magic', mult:1.1, aoe:false, armorDebuff:3, stun:0, mpCost:40, desc:'Маг. урон и −3 БРО (2 х.).' }]
     },
     ck_boss: {
-        name:'Хаос Найт (ЦК)', icon:'🐴', hp:3600, mp:300, atk:150, armor:8, isMelee:true, isBoss:true, shieldMax:4, ckAmbusher:true,
+        name:'Хаос Найт (ЦК)', icon:'🐴', hp:3600, mp:300, atk:150, armor:8, isMelee:true, isBoss:true, shieldMax:4, row:'front', ckAmbusher:true,
         skills:[
             { name:'Фантазм (Копии)', type:'summon_ck', mult:0, mpCost:75, desc:'Призывает Иллюзию Хаоса в бой!' },
             { name:'Хаос Болт', type:'magic', mult:1.7, aoe:false, stun:2, mpCost:70, desc:'Мощный Маг. урон и стан на 2 хода.' }
         ]
     },
     ck_illusion: {
-        name:'Копия ЦК', icon:'👻', hp:950, mp:0, atk:95, armor:3, isMelee:true, shieldMax:1, isSummon:true,
+        name:'Копия ЦК', icon:'👻', hp:950, mp:0, atk:95, armor:3, isMelee:true, shieldMax:1, row:'front', isSummon:true,
         skills:[]
     },
     agent_gaben: {
-        name:'Агент Габена', icon:'🤖', hp:4400, mp:320, atk:165, armor:11, isMelee:true, isBoss:true, shieldMax:5,
+        name:'Агент Габена', icon:'🤖', hp:4400, mp:320, atk:165, armor:11, isMelee:true, isBoss:true, shieldMax:5, row:'front',
         skills:[
             { name:'Паровой Залп', type:'phys', mult:1.25, aoe:true, stun:0, mpCost:60, desc:'Паровой механизм обстреливает весь отряд ракетами (Физ. урон).' },
             { name:'Нерф Патча', type:'magic', mult:1.4, aoe:true, dispel:true, armorDebuff:4, stun:0, silence:1, mpCost:80, desc:'Снимает баффы, режет −4 БРО, AoE Маг. урон. 🔇 Безмолвие (1 х.): сбивает подготовку и запрещает скиллы!' }
         ]
     },
     throne_elder: {
-        name:'Хранитель Трона', icon:'👑', hp:6500, mp:450, atk:160, armor:9, isMelee:false, isBoss:true, shieldMax:5, throneBoss:true,
+        name:'Хранитель Трона', icon:'👑', hp:6500, mp:450, atk:160, armor:9, isMelee:false, isBoss:true, shieldMax:5, row:'back', throneBoss:true,
         skills:[
             { name:'Корни Трона', type:'magic', mult:1.25, aoe:true, stun:1, mpCost:70, desc:'Трон оплетает отряд: AoE Маг. урон и стан 1 х.' },
             { name:'Пробуждение Печати', type:'summon_seal', mult:0, mpCost:75, desc:'Призывает Печать Древних, защищающую Старика.' },
@@ -861,7 +892,7 @@ const SPECIAL_ENEMIES = {
         ]
     },
     ancient_seal: {
-        name:'Печать Древних', icon:'🧿', hp:1100, mp:120, atk:90, armor:5, isMelee:false, shieldMax:2, isSummon:true,
+        name:'Печать Древних', icon:'🧿', hp:1100, mp:120, atk:90, armor:5, isMelee:false, shieldMax:2, row:'back', isSummon:true,
         skills:[{ name:'Импульс Печати', type:'magic', mult:1.15, aoe:true, stun:0, mpCost:50, desc:'AoE Маг. урон по отряду.' }]
     }
 };
@@ -901,18 +932,24 @@ function createInitialState() {
         seenStories: [],
         chickenKilled: false,
         shamanKilled: false,
-        shamanFled: false
+        shamanFled: false,
+        orchidRecipeDropped: false
     };
 }
 
 let state = JSON.parse(localStorage.getItem(SAVE_KEY)) ||
+            JSON.parse(localStorage.getItem('dotaSave_v4_2')) ||
             JSON.parse(localStorage.getItem('dotaSave_v4_1')) ||
             JSON.parse(localStorage.getItem('dotaSave_v3_7')) ||
             JSON.parse(localStorage.getItem('dotaSave_v3_6')) ||
             JSON.parse(localStorage.getItem('dotaSave_v3_5')) ||
             JSON.parse(localStorage.getItem('dotaSave_v3_4')) ||
             createInitialState();
+state.heroes = state.heroes || [];
+state.squad = state.squad || [];
 state.neutralInv = state.neutralInv || [];
+state.forestInv = state.forestInv || [];
+state.raidInv = state.raidInv || [];
 state.forestArmy = state.forestArmy || 0;
 state.forestItemLevels = state.forestItemLevels || { dominator: 0, midas: 0, radiance: 0 };
 state.milestones = state.milestones || [];
@@ -932,7 +969,13 @@ state.shamanKilled = state.shamanKilled || false;
 state.chickenKilled = state.chickenKilled || false;
 state.nutcrackerDropped = state.nutcrackerDropped || false;
 state.act2CreepsKilled = state.act2CreepsKilled || 0;
+let hasOrchidOrRecipe = (state.raidInv || []).includes('orchid_recipe') ||
+                        (state.raidInv || []).includes('orchid_malevolence') ||
+                        (state.heroes || []).some(h => (h.items || []).includes('orchid_malevolence') || (h.items || []).includes('orchid_recipe'));
+state.orchidRecipeDropped = state.orchidRecipeDropped !== undefined ? state.orchidRecipeDropped : (hasOrchidOrRecipe ? true : false);
 state.heroes.forEach(h => {
+    h.skillLevels = h.skillLevels || [0, 0, 0, 0];
+    h.items = h.items || [null, null, null, null, null, null];
     if (!h.row) {
         let dbH = DB.heroes.find(x => x.id === h.dbId);
         h.row = (dbH && dbH.isMelee) ? 'front' : 'back';
@@ -981,6 +1024,7 @@ function save() {
 function resetGame() {
     if (confirm('Начать кампанию полностью с нуля (с 0 золота и Свеном)?')) {
         localStorage.removeItem(SAVE_KEY);
+        localStorage.removeItem('dotaSave_v4_2');
         localStorage.removeItem('dotaSave_v4_1');
         localStorage.removeItem('dotaSave_v3_7');
         localStorage.removeItem('dotaSave_v3_6');
@@ -1000,7 +1044,11 @@ function getEffectiveArmor(unit) {
     let base = unit.baseArmorVal !== undefined ? unit.baseArmorVal : unit.armor;
     let debuff = (unit.buffs || []).filter(b => b.type === 'armor_break').reduce((s, b) => s + b.value, 0);
     let bonus = (unit.buffs || []).filter(b => b.type === 'armor_up').reduce((s, b) => s + b.value, 0);
-    return base + bonus - debuff;
+    let rowBonus = 0;
+    if (unit.isEnemy && unit.row === 'front' && (unit.isMelee || unit.archetype === 'tank')) {
+        rowBonus = 2;
+    }
+    return base + bonus + rowBonus - debuff;
 }
 
 function getMagicReduction(unit) {
@@ -1018,9 +1066,14 @@ function getIncomingDmgMult(unit, dmgType) {
     } else if (unit.isEnemy && (unit.shield || 0) > 0) {
         mult *= unit.bristlePassive ? CONFIG.combat.bristleShieldDmgMult : CONFIG.combat.shieldDmgMult;
     }
+    if (unit.isEnemy && unit.row === 'front' && (!unit.isMelee || unit.archetype === 'mage' || unit.archetype === 'support') && dmgType === 'phys') {
+        mult *= 1.20; // Без прикрытия: +20% физ. урона
+    }
     if (unit.buffs) {
         let hx = unit.buffs.find(b => b.type === 'hex_vuln');
         if (hx) mult *= (1 + hx.amp);
+        let vn = unit.buffs.find(b => b.type === 'whip_vuln');
+        if (vn) mult *= (1 + vn.amp);
     }
     if (dmgType === 'magic' && unit.buffs) {
         let xm = unit.buffs.find(b => b.type === 'x_mark');
