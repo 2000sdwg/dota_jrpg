@@ -367,7 +367,119 @@ function showSkillInfo(heroDbId, idx) {
 }
 function closeSkillInfo() { document.getElementById('skill-info-modal').style.display = 'none'; }
 
-/* ===== РЕЙДОВАЯ ЛАВКА (ПО ТИРАМ ОТ ЛЕСА + ВИТРИНА НА 1 ШАГ ВПЕРЁД) ===== */
+/* ===== РЕЙДОВАЯ ЛАВКА (БАЗОВЫЕ ПРЕДМЕТЫ И СБОРКИ АРТЕФАКТОВ) ===== */
+const CRAFT_CONFIGS = [
+    { id:'blade_mail', tier:1, components:['broadsword','chainmail','bm_recipe'] },
+    { id:'crystalys', tier:2, components:['blades_of_attack','broadsword','crystalys_recipe'] },
+    { id:'kaya', tier:2, components:['staff_of_wizardry','kaya_recipe'] },
+    { id:'mekansm', tier:2, components:['headdress','buckler','mek_recipe'] },
+    { id:'orchid_malevolence', tier:2, components:['staff_of_wizardry','blades_of_attack','orchid_recipe'], isOrchid:true },
+    { id:'veil_of_discord', tier:3, components:['staff_of_wizardry','chainmail','veil_recipe'] },
+    { id:'desolator', tier:3, components:['blight','mithril','deso_recipe'] },
+    { id:'daedalus', tier:4, components:['crystalys','demon_edge','daedalus_recipe'] },
+    { id:'satanic', tier:4, components:['morbid','reaver','satanic_recipe'] },
+    { id:'bkb', tier:4, components:['reaver','mithril','bkb_recipe'] },
+    { id:'pipe_of_insight', tier:4, components:['headdress','pipe_recipe'] },
+    { id:'assault_cuirass', tier:5, components:['platemail','buckler','ac_recipe'] }
+];
+
+function isComponentAvailable(cId) {
+    if (cId === 'orchid_recipe' && state.orchidRecipeDropped) return true;
+    if (state.raidInv && state.raidInv.includes(cId)) return true;
+    if (state.heroes && state.heroes.some(h => (h.items || []).includes(cId) || h.neutralItem === cId)) return true;
+    return false;
+}
+
+function quickBuyComponent(cId) {
+    let item = DB.raidItems.find(x => x.id === cId);
+    if (!item || !isShopTierUnlocked(item.tier)) {
+        alert('🔒 Этот предмет доступен только в более позднем Тире лавки!');
+        return;
+    }
+    if (state.gold < item.cost) {
+        alert(`Недостаточно золота! Требуется ${item.cost} G.`);
+        return;
+    }
+    state.gold -= item.cost;
+    state.raidInv.push(cId);
+    checkRaidCrafts();
+    save();
+    updateUI();
+}
+window.quickBuyComponent = quickBuyComponent;
+
+function assembleCraft(craftId) {
+    let cfg = CRAFT_CONFIGS.find(x => x.id === craftId);
+    let art = DB.raidItems.find(x => x.id === craftId);
+    if (!cfg || !art) return;
+    if (!isShopTierUnlocked(cfg.tier)) {
+        let t = SHOP_TIERS.find(x => x.tier === cfg.tier);
+        alert(`🔒 Требуется открыть ${t ? t.name : 'Тир ' + cfg.tier}!`);
+        return;
+    }
+
+    if (cfg.id === 'orchid_malevolence') {
+        let hasRecipe = state.orchidRecipeDropped || isComponentAvailable('orchid_recipe');
+        if (!hasRecipe) {
+            alert('🔒 Требуется выбить Чертёж с Баунти Хантера!');
+            return;
+        }
+    }
+
+    let missing = [];
+    let missingCost = 0;
+    let missingLocked = false;
+
+    cfg.components.forEach(cId => {
+        if (isComponentAvailable(cId)) return;
+        let cItem = DB.raidItems.find(x => x.id === cId);
+        if (!cItem || cItem.bossDropOnly || !isShopTierUnlocked(cItem.tier)) {
+            missingLocked = true;
+        } else {
+            missing.push(cId);
+            missingCost += cItem.cost || 0;
+        }
+    });
+
+    if (missingLocked) {
+        alert('🔒 Не все компоненты открыты в лавке!');
+        return;
+    }
+
+    if (state.gold < missingCost) {
+        alert(`Недостаточно золота для быстрой сборки! Требуется ещё ${missingCost - state.gold} G.`);
+        return;
+    }
+
+    if (missingCost > 0) {
+        state.gold -= missingCost;
+    }
+
+    cfg.components.forEach(cId => {
+        if (cId === 'orchid_recipe' && !state.raidInv.includes('orchid_recipe')) {
+            return;
+        }
+        let invIdx = state.raidInv.indexOf(cId);
+        if (invIdx !== -1) {
+            state.raidInv.splice(invIdx, 1);
+        } else {
+            for (let h of (state.heroes || [])) {
+                let sIdx = (h.items || []).indexOf(cId);
+                if (sIdx !== -1) {
+                    h.items[sIdx] = null;
+                    break;
+                }
+            }
+        }
+    });
+
+    state.raidInv.push(craftId);
+    save();
+    updateUI();
+    alert(`⚒️ Собран артефакт: ${art.name}!`);
+}
+window.assembleCraft = assembleCraft;
+
 function renderRaidShop() {
     const list = document.getElementById('raid-shop');
     if (!list) return;
@@ -386,9 +498,13 @@ function renderRaidShop() {
     };
 
     let highestTier = getHighestUnlockedShopTier();
+
+    // СЕКЦИЯ 1: БАЗОВЫЕ ПРЕДМЕТЫ
+    list.innerHTML += `<div class="shop-section-header" style="color:gold; font-size:10px; font-weight:bold; margin:6px 0 8px; border-bottom:1px solid #555; padding-bottom:4px;">📦 Базовые предметы</div>`;
+
     SHOP_TIERS.forEach(t => {
         if (t.check(state)) {
-            let items = DB.raidItems.filter(i => !i.craftable && !i.bossDropOnly && i.tier === t.tier);
+            let items = DB.raidItems.filter(i => !i.craftable && !i.isRecipe && !i.bossDropOnly && i.tier === t.tier);
             list.innerHTML += `<div class="tier-banner">🔓 ${t.name}</div>`;
             items.forEach(item => { list.innerHTML += cardHtml(item); });
         } else if (t.tier === highestTier + 1) {
@@ -400,6 +516,94 @@ function renderRaidShop() {
                 <div style="font-size:7px; color:#0cf;">Прогресс: ${t.progress(state)}</div>
             </div>`;
         }
+    });
+
+    // СЕКЦИЯ 2: СБОРКИ (АРТЕФАКТЫ)
+    list.innerHTML += `<div class="shop-section-header" style="color:gold; font-size:10px; font-weight:bold; margin:16px 0 8px; border-bottom:1px solid #555; padding-bottom:4px;">⚒️ Сборки (Артефакты)</div>`;
+
+    CRAFT_CONFIGS.forEach(cfg => {
+        let art = DB.raidItems.find(x => x.id === cfg.id);
+        if (!art) return;
+
+        // Orchid Malevolence check: скрыт до дропа рецепта
+        if (cfg.id === 'orchid_malevolence') {
+            let hasRecipe = state.orchidRecipeDropped || isComponentAvailable('orchid_recipe');
+            if (!hasRecipe) return;
+        }
+
+        let isTierUnlocked = isShopTierUnlocked(cfg.tier);
+        let tierObj = SHOP_TIERS.find(x => x.tier === cfg.tier);
+        let tierName = tierObj ? tierObj.name : `Тир ${cfg.tier}`;
+
+        let compListHtml = '';
+        let missingCost = 0;
+        let hasAll = true;
+        let missingLocked = false;
+
+        cfg.components.forEach(cId => {
+            let isOwned = isComponentAvailable(cId);
+            let cItem = DB.raidItems.find(x => x.id === cId);
+            if (!cItem) return;
+
+            if (isOwned) {
+                let dropBadge = (cId === 'orchid_recipe') ? ' <span style="color:#0f0; font-size:7px;">✅ Чертёж найден</span>' : ` <span style="color:#0f0; font-size:7px;">✅ Есть</span>`;
+                compListHtml += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:8px; margin:2px 0;">
+                    <span>${cItem.icon} ${cItem.name}</span>
+                    <span>${dropBadge}</span>
+                </div>`;
+            } else {
+                hasAll = false;
+                if (cItem.bossDropOnly) {
+                    missingLocked = true;
+                    compListHtml += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:8px; margin:2px 0;">
+                        <span>${cItem.icon} ${cItem.name}</span>
+                        <span style="color:#f88; font-size:7px;">🔒 Только трофей</span>
+                    </div>`;
+                } else if (!isShopTierUnlocked(cItem.tier)) {
+                    missingLocked = true;
+                    compListHtml += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:8px; margin:2px 0;">
+                        <span>${cItem.icon} ${cItem.name}</span>
+                        <span style="color:#fa0; font-size:7px;">🔒 Нужен ${cItem.tier} Тир</span>
+                    </div>`;
+                } else {
+                    missingCost += cItem.cost || 0;
+                    compListHtml += `<div style="display:flex; justify-content:space-between; align-items:center; font-size:8px; margin:2px 0;">
+                        <span>${cItem.icon} ${cItem.name}</span>
+                        <button onclick="quickBuyComponent('${cId}')" ${state.gold < cItem.cost ? 'disabled' : ''} style="padding:2px 6px; font-size:7px; background:#143; border-color:#285;">Купить (${cItem.cost} G)</button>
+                    </div>`;
+                }
+            }
+        });
+
+        // Кнопка сборки
+        let btnHtml = '';
+        if (!isTierUnlocked) {
+            btnHtml = `<button disabled style="width:100%; margin-top:6px; opacity:0.6; font-size:8px;">🔒 Требуется открыть ${tierName}</button>`;
+        } else if (missingLocked) {
+            btnHtml = `<button disabled style="width:100%; margin-top:6px; opacity:0.6; font-size:8px;">🔒 Часть компонентов заблокирована</button>`;
+        } else if (hasAll) {
+            btnHtml = `<button onclick="assembleCraft('${cfg.id}')" style="width:100%; margin-top:6px; background:#252; border-color:#484; font-size:9px; font-weight:bold;">⚒️ Собрать</button>`;
+        } else {
+            let canAfford = state.gold >= missingCost;
+            btnHtml = `<button onclick="assembleCraft('${cfg.id}')" ${canAfford ? '' : 'disabled'} style="width:100%; margin-top:6px; background:${canAfford ? '#252' : '#333'}; border-color:${canAfford ? '#484' : '#555'}; font-size:8px;">⚒️ Собрать за ${missingCost} G</button>`;
+        }
+
+        let orchidBadge = (cfg.id === 'orchid_malevolence') ? '<span style="color:#0f0; font-size:7px; margin-left:6px;">✅ Чертёж найден</span>' : '';
+        let tierBadge = `<span style="color:#8af; font-size:7px; float:right;">${tierName}</span>`;
+
+        list.innerHTML += `<div class="card craft-group-card" style="margin-bottom:8px; border:1px solid #446; background:#121220; padding:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <div><span style="color:#fa0; font-size:10px; font-weight:bold;">${art.icon} ${art.name}</span>${orchidBadge}</div>
+                ${tierBadge}
+            </div>
+            <div style="font-size:8px; color:#aaa; margin-bottom:4px; line-height:1.4;">${fmtStats(art.short)}</div>
+            ${getItemMetaHtml(art)}
+            <div style="margin:6px 0 4px; padding:4px 6px; background:#1a1a2a; border-radius:4px; border:1px solid #334;">
+                <div style="font-size:7px; color:#888; margin-bottom:3px; font-weight:bold;">Компоненты:</div>
+                ${compListHtml}
+            </div>
+            ${btnHtml}
+        </div>`;
     });
 }
 
@@ -427,25 +631,25 @@ function renderInventory() {
 
 function checkRaidCrafts() {
     const crafts = [
+        { res:'blade_mail', name:'Шипастая броня', req:['broadsword','chainmail','bm_recipe'] },
         { res:'crystalys', name:'Кристалис', req:['blades_of_attack','broadsword','crystalys_recipe'] },
-        { res:'daedalus', name:'Дайдалус', req:['crystalys','demon_edge','daedalus_recipe'] },
+        { res:'daedalus', name:'Даэдал', req:['crystalys','demon_edge','daedalus_recipe'] },
         { res:'kaya', name:'Кайя', req:['staff_of_wizardry','kaya_recipe'] },
-        { res:'veil_of_discord', name:'Вейл оф Дискорд', req:['staff_of_wizardry','chainmail','veil_recipe'] },
-        { res:'blade_mail', name:'Блейдмейл', req:['broadsword','chainmail','bm_recipe'] },
-        { res:'assault_cuirass', name:'Ассаулт Кираса', req:['platemail','buckler','ac_recipe'] },
+        { res:'veil_of_discord', name:'Вуаль раздора', req:['staff_of_wizardry','chainmail','veil_recipe'] },
+        { res:'assault_cuirass', name:'Кираса штурма', req:['platemail','buckler','ac_recipe'] },
         { res:'mekansm', name:'Меказм', req:['headdress','buckler','mek_recipe'] },
-        { res:'pipe_of_insight', name:'Пайп оф Инсайт', req:['headdress','pipe_recipe'] },
-        { res:'orchid_malevolence', name:'Орчид Малеволенс', req:['staff_of_wizardry','blades_of_attack','orchid_recipe'] },
+        { res:'pipe_of_insight', name:'Трубка прозрения', req:['headdress','pipe_recipe'] },
+        { res:'orchid_malevolence', name:'Орхидея злобы', req:['staff_of_wizardry','blades_of_attack','orchid_recipe'] },
         { res:'desolator', name:'Дезолятор', req:['blight','mithril','deso_recipe'] },
         { res:'satanic', name:'Сатаник', req:['morbid','reaver','satanic_recipe'] },
-        { res:'bkb', name:'Блэк Кинг Бар', req:['reaver','mithril','bkb_recipe'] }
+        { res:'bkb', name:'Посох БКБ', req:['reaver','mithril','bkb_recipe'] }
     ];
     let craftedAny = false;
     crafts.forEach(c => {
         if (c.req.every(r => state.raidInv.includes(r))) {
             c.req.forEach(r => state.raidInv.splice(state.raidInv.indexOf(r), 1));
             state.raidInv.push(c.res);
-            alert(`⚒️ Собран ${c.name}!`);
+            alert(`⚒️ Собран артефакт: ${c.name}!`);
             craftedAny = true;
         }
     });
@@ -559,41 +763,86 @@ function renderHeroes() {
                 <button onclick="buyHero('${dbH.id}')" style="width:100%; background:#252; border-color:#484;">НАНЯТЬ ЗА ${cost} G${taxBadge}</button>`;
         } else {
             let stats = getHeroStats(owned, dbH);
-            let xpNeed = xpNeeded(owned.level);
-            let xpPct = owned.level >= 25 ? 100 : Math.min(100, (owned.xp / xpNeed) * 100);
-            let xpHtml = owned.level >= 25 ? '<span style="color:gold;">MAX УР.</span>'
-                : `Опыт: ${owned.xp}/${xpNeed} <span style="color:#0af;">(${xpPct.toFixed(0)}%)</span>`;
-            let skillsHtml = dbH.skills.map((sk, idx) => {
-                let lvl = owned.skillLevels[idx];
-                let maxLvl = sk.dmg.length;
-                let isUlt = (idx === 3);
-                let reqLvl = isUlt ? [6, 12, 18][lvl] : 0;
-                let canLevel = owned.sp > 0 && lvl < maxLvl && (!isUlt || owned.level >= reqLvl);
-                let lock = (isUlt && owned.level < reqLvl && lvl < maxLvl)
-                    ? `<div style="font-size:7px; color:#a55; margin-top:2px;">🔒 Нужен ${reqLvl} ур.</div>` : '';
-                let col = lvl > 0 ? '#0af' : '#666';
-                return `<div style="border-top:1px solid #333; margin-top:6px; padding-top:6px;">
-                    <span style="color:${col}; font-size:9px;">${isUlt ? '⭐ ' : ''}${sk.name} (${lvl}/${maxLvl})</span>
-                    <button class="info-btn" style="float:right; padding:2px 6px;" onclick="showSkillInfo('${dbH.id}',${idx})">[?]</button>
-                    ${canLevel ? `<button onclick="upgradeSkill('${owned.id}',${idx})" style="padding:2px 8px; float:right; background:#005; border-color:#008; margin-right:4px;">+</button>` : ''}
-                    ${getSkillMetaHtml(sk)}
-                    ${lock}
-                </div>`;
-            }).join('');
+            window.expandedHeroCards = window.expandedHeroCards || {};
+            let isExpanded = !!window.expandedHeroCards[owned.id];
+            let rowLabel = owned.row === 'back' ? '[2-й ряд]' : '[1-й ряд]';
+            let rowColor = owned.row === 'back' ? '#0af' : '#fa0';
+            let isInSquad = state.squad.includes(owned.id);
 
-            div.innerHTML = `<h4 style="margin-bottom:5px;">${dbH.icon} ${dbH.name} <span style="color:gold; font-size:9px;">Ур. ${owned.level}</span> <span class="role-tag">${dbH.role}</span></h4>
-                <p style="color:#aaa; font-size:8px; margin-bottom:6px; line-height:1.6;">${formatHeroStatsBlock(stats, dbH.mainAttr)}</p>
-                <p style="color:#aaa; font-size:8px; margin-bottom:6px;">${xpHtml} | <span style="color:gold;">SP: ${owned.sp}</span></p>
-                <div class="hp-bar-bg" style="background:#224; height:5px; margin-bottom:8px;">
-                    <div style="background:#0af; height:100%; width:${xpPct}%; transition:width 0.3s;"></div>
+            let squadBtnHtml = '';
+            if (isInSquad) {
+                squadBtnHtml = `<span style="color:#0f0; font-size:8px; font-weight:bold;">✓ В отряде</span>`;
+            } else if (state.squad.length < maxSquad) {
+                squadBtnHtml = `<button onclick="addToSquad('${owned.id}')" style="padding:3px 8px; font-size:8px; background:#142; border-color:#284;">+ В отряд</button>`;
+            } else {
+                squadBtnHtml = `<span style="color:#777; font-size:8px;">Отряд полон</span>`;
+            }
+
+            let compactHeader = `
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+                    <div>
+                        <span style="font-size:11px; font-weight:bold;">${dbH.icon} ${dbH.name}</span>
+                        <span style="color:gold; font-size:9px; margin-left:4px;">Ур. ${owned.level}</span>
+                        <span class="role-tag" style="margin-left:4px;">${dbH.role}</span>
+                        <span style="color:${rowColor}; font-size:8px; margin-left:4px; font-weight:bold;">${rowLabel}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        ${squadBtnHtml}
+                        <button class="hero-collapse-btn" onclick="toggleHeroCard('${owned.id}')" style="padding:3px 8px; font-size:8px; background:#223; border-color:#446; cursor:pointer;">${isExpanded ? 'Свернуть ▴' : 'Характеристики ▾'}</button>
+                    </div>
                 </div>
-                ${skillsHtml}
-                ${!state.squad.includes(owned.id) && state.squad.length < maxSquad ? `<button onclick="addToSquad('${owned.id}')" style="margin-top:10px; width:100%;">ДОБАВИТЬ В ОТРЯД (${state.squad.length}/${maxSquad})</button>` : ''}
-                ${state.squad.includes(owned.id) ? `<p style="color:#0f0; margin-top:10px; text-align:center;">✓ В отряде</p>` : ''}`;
+                <div style="font-size:8px; color:#aaa; margin-top:5px;">
+                    <span style="color:#0f0;">ЗД: ${stats.maxHp}</span> | <span style="color:#fa0;">УРН: ${stats.atk}</span> | <span style="color:#ddd;">БРО: ${stats.armor}</span> | <span style="color:#6cf;">МАГ.РЕЗ: ${Math.round(stats.magicRes * 100)}%</span>
+                </div>
+            `;
+
+            if (!isExpanded) {
+                div.innerHTML = compactHeader;
+            } else {
+                let xpNeed = xpNeeded(owned.level);
+                let xpPct = owned.level >= 25 ? 100 : Math.min(100, (owned.xp / xpNeed) * 100);
+                let xpHtml = owned.level >= 25 ? '<span style="color:gold;">MAX УР.</span>'
+                    : `Опыт: ${owned.xp}/${xpNeed} <span style="color:#0af;">(${xpPct.toFixed(0)}%)</span>`;
+                let skillsHtml = dbH.skills.map((sk, idx) => {
+                    let lvl = owned.skillLevels[idx];
+                    let maxLvl = sk.dmg.length;
+                    let isUlt = (idx === 3);
+                    let reqLvl = isUlt ? [6, 12, 18][lvl] : 0;
+                    let canLevel = owned.sp > 0 && lvl < maxLvl && (!isUlt || owned.level >= reqLvl);
+                    let lock = (isUlt && owned.level < reqLvl && lvl < maxLvl)
+                        ? `<div style="font-size:7px; color:#a55; margin-top:2px;">🔒 Нужен ${reqLvl} ур.</div>` : '';
+                    let col = lvl > 0 ? '#0af' : '#666';
+                    return `<div style="border-top:1px solid #333; margin-top:6px; padding-top:6px;">
+                        <span style="color:${col}; font-size:9px;">${isUlt ? '⭐ ' : ''}${sk.name} (${lvl}/${maxLvl})</span>
+                        <button class="info-btn" style="float:right; padding:2px 6px;" onclick="showSkillInfo('${dbH.id}',${idx})">[?]</button>
+                        ${canLevel ? `<button onclick="upgradeSkill('${owned.id}',${idx})" style="padding:2px 8px; float:right; background:#005; border-color:#008; margin-right:4px;">+</button>` : ''}
+                        ${getSkillMetaHtml(sk)}
+                        ${lock}
+                    </div>`;
+                }).join('');
+
+                div.innerHTML = compactHeader + `
+                    <div style="border-top:1px solid #334; margin-top:8px; padding-top:8px;">
+                        <p style="color:#aaa; font-size:8px; margin-bottom:6px; line-height:1.6;">${formatHeroStatsBlock(stats, dbH.mainAttr)}</p>
+                        <p style="color:#aaa; font-size:8px; margin-bottom:6px;">${xpHtml} | <span style="color:gold;">SP: ${owned.sp}</span></p>
+                        <div class="hp-bar-bg" style="background:#224; height:5px; margin-bottom:8px;">
+                            <div style="background:#0af; height:100%; width:${xpPct}%; transition:width 0.3s;"></div>
+                        </div>
+                        ${skillsHtml}
+                    </div>`;
+            }
         }
         list.appendChild(div);
     });
 }
+
+window.expandedHeroCards = window.expandedHeroCards || {};
+function toggleHeroCard(heroId) {
+    window.expandedHeroCards = window.expandedHeroCards || {};
+    window.expandedHeroCards[heroId] = !window.expandedHeroCards[heroId];
+    renderHeroes();
+}
+window.toggleHeroCard = toggleHeroCard;
 
 function toggleHeroRow(heroId) {
     let h = state.heroes.find(x => x.id === heroId);
@@ -612,7 +861,7 @@ function renderSquad() {
     if (hdr) hdr.innerText = `Ваш Отряд (${state.squad.length} / ${maxSquad} слотов)`;
 
     if (state.squad.length === 0) {
-        list.innerHTML = '<p style="color:#777; text-align:center; padding:20px;">Отряд пуст. Добавьте героев во вкладке «Герои».</p>';
+        list.innerHTML = '<p style="color:#777; text-align:center; padding:20px;">Отряд пуст. Добавьте героев во вкладке «Таверна».</p>';
         return;
     }
 

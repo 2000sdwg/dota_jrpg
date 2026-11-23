@@ -204,7 +204,8 @@ function spawnForestCreep() {
         nextCreepStacked = false;
         let expectedActiveDps = clickDmg * 4.5 * 1.5 + armyDps;
         let challengeHp = Math.floor(expectedActiveDps * 6.2);
-        hp = Math.max(Math.floor(hp * 3), challengeHp);
+        let stackMult = (CONFIG.forest && CONFIG.forest.stackHpMult) ? CONFIG.forest.stackHpMult : 1.18;
+        hp = Math.round(Math.max(Math.floor(hp * 3), challengeHp) * stackMult);
         gold = Math.floor(gold * 4.5);
         stackTime = 8.0;
         name = `[СТАК] ${t.n}`;

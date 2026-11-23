@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Dota Idle RPG v4.3</title>
-<link rel="stylesheet" href="style.css?v=43">
+<title>Dota Idle RPG v4.4</title>
+<link rel="stylesheet" href="style.css?v=44">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -67,9 +67,9 @@
         <div id="raid-shop" class="block-list" style="margin-top:10px;"></div>
     </div>
 
-    <!-- ГЕРОИ -->
+    <!-- ТАВЕРНА -->
     <div id="tab-heroes" class="tab">
-        <h3 style="border-bottom: 1px solid #444; padding-bottom: 5px;">Наём и Прокачка</h3>
+        <h3 style="border-bottom: 1px solid #444; padding-bottom: 5px;">🍻 Таверна (Наём и Прокачка)</h3>
         <div id="heroes-list" class="block-list" style="margin-top: 10px;"></div>
     </div>
 
@@ -94,7 +94,7 @@
                 <h4 style="color:#f55;"><span id="raid-level-display">Акт 1 • Этап 1</span></h4>
                 <button onclick="toggleSpeed()" id="btn-speed" style="padding:4px 8px; font-size:8px; background:#252; border-color:#484;">Ускорение x2: ВЫКЛ</button>
             </div>
-            <div style="font-size:7px; color:#888; text-align:center; margin-bottom:4px;">Нажмите на врага, чтобы посмотреть его статы и скиллы [?]</div>
+            <div style="font-size:7px; color:#888; text-align:center; margin-bottom:4px;">Нажмите на слот в шкале ходов, чтобы изучить героя/врага. Клик по врагу на арене — ручной таргет 🎯</div>
             <div id="turn-order-bar"></div>
             <div id="arena">
                 <div id="arena-heroes" class="arena-side heroes-side"></div>
@@ -119,7 +119,7 @@
 <div id="nav">
     <button class="nav-btn" id="nav-forest" onclick="switchTab('forest', this)">🌲 Лес</button>
     <button class="nav-btn" id="nav-shop" onclick="switchTab('shop', this)">💰 Лавка</button>
-    <button class="nav-btn" id="nav-heroes" onclick="switchTab('heroes', this)">🛡️ Герои</button>
+    <button class="nav-btn" id="nav-heroes" onclick="switchTab('heroes', this)">🍻 Таверна</button>
     <button class="nav-btn" id="nav-squad" onclick="switchTab('squad', this)">⚔️ Отряд</button>
     <button class="nav-btn active" id="nav-raid" onclick="switchTab('raid', this)">🔥 Рейд</button>
 </div>
@@ -175,6 +175,16 @@
             <b style="color:#0f0;">Лес ⇄ Рейд:</b> боссы открывают Лес и героев; Лес открывает Тиры Лавки, Рубежи Актов и даёт 🌿 Травы для ☕ Чая и 🫖 Котелка.
         </div>
         <button style="width: 100%; margin-top: 15px; background: #333; border-color:#555;" onclick="document.getElementById('glossary-modal').style.display='none'">ЗАКРЫТЬ</button>
+    </div>
+</div>
+
+<div id="unit-inspector-modal" style="display:none;">
+    <div class="modal">
+        <h3 id="inspector-modal-title" style="color: #0af; margin-bottom: 8px;">Инспектор юнита</h3>
+        <div id="inspector-modal-stats" style="font-size: 8px; line-height: 1.7; text-align: left; color: #ccc; margin-bottom: 10px; background:#151515; padding:8px; border:1px solid #444;"></div>
+        <h4 style="color:#fa0; text-align:left; margin-bottom:6px; font-size:9px;">Способности</h4>
+        <div id="inspector-modal-skills" style="text-align: left; font-size: 8px; line-height: 1.6; max-height:40vh; overflow-y:auto;"></div>
+        <button style="width: 100%; margin-top: 15px; background: #333; border-color:#555;" onclick="closeUnitInspector()">ЗАКРЫТЬ</button>
     </div>
 </div>
 
@@ -255,13 +265,13 @@
     </div>
 </div>
 
-<script src="config.js?v=43"></script>
-<script src="db.js?v=43"></script>
-<script src="forest.js?v=43"></script>
-<script src="ui.js?v=43"></script>
-<script src="combat.js?v=43"></script>
+<script src="config.js?v=44"></script>
+<script src="db.js?v=44"></script>
+<script src="forest.js?v=44"></script>
+<script src="ui.js?v=44"></script>
+<script src="combat.js?v=44"></script>
 <!-- DEBUG: удали строку ниже и файл debug.js перед релизом -->
-<script src="debug.js?v=43"></script>
+<script src="debug.js?v=44"></script>
 <script>
 if (window.Telegram && window.Telegram.WebApp) {
     window.Telegram.WebApp.ready();

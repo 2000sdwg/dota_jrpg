@@ -1,7 +1,7 @@
-/* ===== ЕДИНЫЙ КОНФИГ БАЛАНСА DOTA IDLE RPG v4.3 ===== */
+/* ===== ЕДИНЫЙ КОНФИГ БАЛАНСА DOTA IDLE RPG v4.4 ===== */
 window.CONFIG = {
-    version: '4.3',
-    saveKey: 'dotaSave_v4_3',
+    version: '4.4',
+    saveKey: 'dotaSave_v4_4',
 
     // Щиты, Пробитие, Иммунитет, мана и боевой баланс
     combat: {
@@ -54,6 +54,7 @@ window.CONFIG = {
         creepsPerHerb: 65,           // +1 🌿 за каждые 65 крипов (акцент на Стаки и Руны)
         goblinHerbs: 1,              // +1 🌿 за Золотого Гоблина
         stackHerbs: 1,               // +1 🌿 за Стак
+        stackHpMult: 1.18,           // +18% ЗД Стака крипов в Лесу
         runeHerbs: 1,                // +1 🌿 за Руну
         kettleMaxLevel: 10,          // Макс. уровень 🫖 Котелка
         kettleActCaps: {             // Потолок уровня Котелка по Актам

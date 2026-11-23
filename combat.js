@@ -22,77 +22,135 @@ function selectEnemyTarget(targetId) {
     }
 }
 
-/* ===== ОСМОТР ВРАГА В РЕЙДЕ ===== */
-function showEnemyInfo(enemyId) {
-    let e = combat.targets.find(t => t.id === enemyId && t.isEnemy);
-    if (!e) return;
+/* ===== ИНСПЕКТОР ЮНИТА (ГЕРОИ И ВРАГИ ИЗ ШКАЛЫ ХОДОВ) ===== */
+function showUnitInspector(unitId) {
+    if (!combat.active) return;
+    let u = combat.targets.find(t => t.id === unitId) || combat.turnQueue.find(t => t.id === unitId);
+    if (!u) return;
 
-    let arm = getEffectiveArmor(e);
+    let arm = getEffectiveArmor(u);
     let physPct = Math.round(getPhysicalReduction(arm) * 100);
-    let magPct = Math.round(getMagicReduction(e) * 100);
-    let rangeTxt = e.isMelee ? 'Ближний бой' : 'Дальний бой';
-    let intentTxt = (e.nextIntent && e.nextIntent.type === 'skill')
-        ? `<span style="color:#f66;">🔥 ${e.nextIntent.skill.name}</span>`
-        : `<span style="color:#ddd;">⚔️ Обычная атака (${e.atk} УРН)</span>`;
-
-    let passives = [];
-    if (e.bristlePassive) passives.push('🦔 Колючая спина: −55% урона (вместе со щитами) и ответ иглами, пока целы щиты 🛡️');
-    else if ((e.shield || 0) > 0) passives.push('🛡️ Целые щиты: −20% входящего урона и защита от оглушения');
-    if (e.treeEvade) passives.push('🌲 Укрытие в ветвях: 50% уклонение от обычных ударов с руки');
-    if (e.roshanPhases) passives.push(`👹 Бессмертие Рошана: Фаза ${e.phase || 1} / 2`);
-    if (e.scriptedDawn) passives.push('☀️ Сияние Замка: невероятно сильна, но не сломлена порчей...');
-    if (e.throneBoss) passives.push('👑 Хранитель Трона: −35% урона, пока жива Печать Древних');
+    let magPct = Math.round(getMagicReduction(u) * 100);
+    let rowTxt = u.row === 'front' ? '<span style="color:#fa0;">1-й ряд (Передовая)</span>' : '<span style="color:#0af;">2-й ряд (Тыл)</span>';
+    let rangeTxt = u.isMelee ? 'Ближний бой' : 'Дальний бой';
+    let sideTxt = u.isEnemy ? '<span style="color:#f66;">Враг</span>' : '<span style="color:#6f8;">Герой отряда</span>';
 
     let statusParts = [];
-    if (e.stunTurns > 0) statusParts.push(`💫 Оглушён (${e.stunTurns} х.)`);
-    if (e.cataclysmCharging) statusParts.push('☄️ Заряжает Катаклизм!');
-    (e.buffs || []).forEach(b => {
+    if (u.stunTurns > 0) statusParts.push(`💫 Оглушён (${u.stunTurns} х.)`);
+    if (u.cataclysmCharging) statusParts.push('☄️ Заряжает Катаклизм!');
+    if (u.preparing) statusParts.push(`⏳ Подготовка «${u.preparing.skillObj.name}» (1 х.)`);
+    if (u.buffs && u.buffs.some(b => b.type === 'defending')) statusParts.push('🛡️ Глухая защита (−50% урона, иммунитет к казням/критам)');
+    (u.buffs || []).forEach(b => {
         if (b.type === 'broken') statusParts.push(`💥 Пробит (+20% урона, ${b.turns} х.)`);
         if (b.type === 'thorns') statusParts.push(`🦔 Шипы (возврат 50% урона, ${b.turns} х.)`);
+        if (b.type === 'blade_mail') statusParts.push(`🦔 Шипастая броня (возврат 70% урона, ${b.turns} х.)`);
+        if (b.type === 'shallow_grave') statusParts.push(`✝️ Тонкая грань (бессмертие 1 ЗД, ${b.turns} х.)`);
+        if (b.type === 'decrepify') statusParts.push(`🟢 Астрал (+45% маг. урона, 100% иммунитет к физ. атакам, ${b.turns} х.)`);
+        if (b.type === 'dueling') statusParts.push(`⚔️ В дуэли (${b.turns} х.)`);
         if (b.type === 'x_mark') statusParts.push(`❌ Метка (+${Math.round(b.amp * 100)}% маг. урона, ${b.turns} х.)`);
         if (b.type === 'hex_vuln') statusParts.push(`🐸 Хекс (+${Math.round(b.amp * 100)}% всего урона, ${b.turns} х.)`);
         if (b.type === 'stun_immune') statusParts.push(`⛓️ Иммунитет к оглушению (${b.turns} х.)`);
         if (b.type === 'silence') statusParts.push(`🔇 Безмолвие (${b.turns} х.)`);
-        if (b.type === 'root') statusParts.push(`❄️ Оцепенение (${b.turns} х.)`);
+        if (b.type === 'root') statusParts.push(`❄️ Оцепенение (${b.turns} х., запрет атак с руки)`);
         if (b.type === 'burn_dot') statusParts.push(`🔥 Горение ${b.dmg}/х (${b.turns} х.)`);
         if (b.type === 'poison_dot') statusParts.push(`🧪 Яд ${b.dmg}/х (${b.turns} х.)`);
-        if (b.type === 'veil') statusParts.push(`🟣 Вейл (+20% маг. урона, ${b.turns} х.)`);
-        if (b.type === 'orchid') statusParts.push(`🌺 Орчид (безмолвие, накоплено ${b.accumDmg || 0} урона, ${b.turns} х.)`);
+        if (b.type === 'veil') statusParts.push(`🟣 Вуаль раздора (+20% маг. урона, ${b.turns} х.)`);
+        if (b.type === 'orchid') statusParts.push(`🌺 Орхидея злобы (безмолвие, ${b.turns} х.)`);
         if (b.type === 'weaken') statusParts.push(`🌊 Ослаблен (−${Math.round(b.reduce * 100)}% УРН, ${b.turns} х.)`);
         if (b.type === 'armor_break') statusParts.push(`💔 −${b.value} БРО (${b.turns} х.)`);
+        if (b.type === 'armor_up') statusParts.push(`🛡️ +${b.value} БРО (${b.turns} х.)`);
         if (b.type === 'atk') statusParts.push(`💪 +${Math.round((b.value - 1) * 100)}% УРН (${b.turns} х.)`);
-        if (b.type === 'dueling') statusParts.push(`⚔️ В дуэли (${b.turns} х.)`);
+        if (b.type === 'rum') statusParts.push(`🍺 Ром адмирала (−30% урона, ${b.turns} х.)`);
+        if (b.type === 'bkb') statusParts.push(`🛡️ БКБ (иммунитет к магии и станам, ${b.turns} х.)`);
+        if (b.type === 'nether_ward') statusParts.push(`🟢 Тотем Пустоты (${b.dmg} маг. урона за каст врага, ${b.turns} х.)`);
     });
 
-    document.getElementById('enemy-modal-title').innerText = `${e.icon} ${e.name}`;
-    document.getElementById('enemy-modal-stats').innerHTML = fmtStats(
-        `Тип: ${rangeTxt}<br>` +
-        `ЗД: ${Math.max(0, Math.ceil(e.hp))} / ${e.maxHp} | МН: ${Math.max(0, Math.floor(e.mp))} / ${e.maxMp}<br>` +
-        `УРН: ${e.atk} | БРО: ${arm} (${physPct}%) | МАГ.РЕЗ: ${magPct}%<br>` +
-        `Щит пробития: ${'🛡️'.repeat(Math.max(0, e.shield || 0)) || 'ПРОБИТ'} (${e.shield}/${e.shieldMax})<br>` +
-        `Намерение: ${intentTxt}` +
-        (passives.length ? `<br><span style="color:#0cf;">Особенности:</span> ${passives.join('<br>')}` : '') +
-        (statusParts.length ? `<br><span style="color:#ff0;">Эффекты:</span> ${statusParts.join(', ')}` : '')
-    );
+    if (u.isEnemy && u.row === 'front' && (!u.isMelee || u.archetype === 'mage' || u.archetype === 'support')) {
+        statusParts.push('⚠️ Без прикрытия (+20% физ. урона)');
+    }
+    if (u.row === 'back') {
+        statusParts.push('🛡️ Защита строя (−15% физ. урона от ближников)');
+    }
 
-    let skillsHtml = (e.skills || []).map(sk => {
-        let estDmg = sk.mult > 0 ? `~${Math.floor(e.atk * sk.mult)} базового урона` : 'Особый эффект';
-        let typeTag = sk.type === 'phys' ? '<span style="color:#fa0;">Физ.</span>' : (sk.type === 'magic' ? '<span style="color:#c6f;">Маг.</span>' : '<span style="color:#0cf;">Особый</span>');
-        let aoeTag = sk.aoe ? (sk.frontOnly ? '1-й ряд' : 'Все герои') : '1 цель';
-        return `<div class="enemy-skill-card">
-            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-                <b style="color:#ff8;">🔥 ${sk.name}</b>
-                <span style="color:#48f;">${sk.mpCost} МН</span>
-            </div>
-            <div style="font-size:7px; color:#aaa; margin-bottom:4px;">Тип: ${typeTag} | Цель: ${aoeTag} | ${estDmg}</div>
-            <div style="font-size:8px; color:#ddd;">${fmtStats(sk.desc)}</div>
-        </div>`;
-    }).join('');
+    let shieldInfo = '';
+    if (u.isEnemy) {
+        shieldInfo = `<br>Щит пробития: ${'🛡️'.repeat(Math.max(0, u.shield || 0)) || 'ПРОБИТ'} (${u.shield}/${u.shieldMax})`;
+    } else {
+        shieldInfo = `<br>Ярость: <b style="color:gold;">${u.rage || 0}% / 100%</b>`;
+    }
 
-    document.getElementById('enemy-modal-skills').innerHTML = skillsHtml || '<p style="color:#777;">Нет особых способностей.</p>';
-    document.getElementById('enemy-info-modal').style.display = 'flex';
+    let intentInfo = '';
+    if (u.isEnemy) {
+        let enemySilenced = u.buffs && u.buffs.some(b => b.type === 'orchid' || b.type === 'silence');
+        let intentTxt = (u.nextIntent && u.nextIntent.type === 'skill' && !enemySilenced)
+            ? `<span style="color:#f66;">🔥 Скилл «${u.nextIntent.skill.name}»</span>`
+            : `${enemySilenced ? '🔇 Безмолвие (только удар)' : '⚔️ Обычная атака'} (~${u.atk} УРН)`;
+        intentInfo = `<br>Намерение: ${intentTxt}`;
+    }
+
+    let modal = document.getElementById('unit-inspector-modal') || document.getElementById('enemy-info-modal');
+    let titleEl = document.getElementById('inspector-modal-title') || document.getElementById('enemy-modal-title');
+    let statsEl = document.getElementById('inspector-modal-stats') || document.getElementById('enemy-modal-stats');
+    let skillsEl = document.getElementById('inspector-modal-skills') || document.getElementById('enemy-modal-skills');
+
+    if (titleEl) titleEl.innerHTML = `${u.icon} ${u.name} (${sideTxt})`;
+    if (statsEl) {
+        statsEl.innerHTML = fmtStats(
+            `Позиция: ${rowTxt} • ${rangeTxt}<br>` +
+            `ЗД: ${Math.max(0, Math.ceil(u.hp))} / ${u.maxHp} | МН: ${Math.max(0, Math.floor(u.mp))} / ${u.maxMp}<br>` +
+            `УРН: ${u.atk} | БРО: ${arm} (${physPct}%) | МАГ.РЕЗ: ${magPct}%` +
+            shieldInfo +
+            intentInfo +
+            (statusParts.length ? `<br><span style="color:#ff0;">Эффекты:</span> ${statusParts.join(', ')}` : '<br><span style="color:#888;">Эффекты: нет</span>')
+        );
+    }
+
+    let skillsList = [];
+    if (u.isEnemy) {
+        skillsList = u.skills || [];
+    } else {
+        let dbH = DB.heroes.find(x => x.id === u.dbId);
+        skillsList = dbH ? dbH.skills : (u.skills || []);
+    }
+
+    if (skillsEl) {
+        let skillsHtml = (skillsList || []).map((sk, idx) => {
+            let isEnemySkill = u.isEnemy;
+            let lvl = !isEnemySkill && u.heroData && u.heroData.skillLevels ? u.heroData.skillLevels[idx] : 1;
+            let estDmg = '';
+            if (isEnemySkill) {
+                estDmg = sk.mult > 0 ? `~${Math.floor(u.atk * sk.mult)} базового урона` : 'Особый эффект';
+            } else {
+                estDmg = (sk.dmg && sk.dmg[lvl - 1]) ? `${sk.dmg[lvl - 1]} базового урона` : (sk.full || '');
+            }
+            let typeTag = sk.type === 'phys' ? '<span style="color:#fa0;">Физ.</span>' : (sk.type === 'magic' ? '<span style="color:#c6f;">Маг.</span>' : '<span style="color:#0cf;">Особый / Бафф</span>');
+            let costTag = sk.mpCost ? `${sk.mpCost} МН` : (sk.mp ? `${sk.mp[lvl - 1] || sk.mp[0]} МН` : 'Пассивно');
+
+            return `<div class="enemy-skill-card" style="margin-bottom:6px; padding:6px; background:#181824; border:1px solid #334; border-radius:4px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                    <b style="color:#ff8;">${sk.type === 'passive' ? '🔹' : '🔥'} ${sk.name}</b>
+                    <span style="color:#48f; font-size:7px;">${costTag}</span>
+                </div>
+                <div style="font-size:7px; color:#aaa; margin-bottom:3px;">Тип: ${typeTag} | ${estDmg}</div>
+                <div style="font-size:8px; color:#ddd; line-height:1.4;">${fmtStats(sk.desc || sk.full || '')}</div>
+            </div>`;
+        }).join('');
+        skillsEl.innerHTML = skillsHtml || '<p style="color:#777;">Нет особых способностей.</p>';
+    }
+
+    if (modal) modal.style.display = 'flex';
 }
-function closeEnemyInfo() { document.getElementById('enemy-info-modal').style.display = 'none'; }
+window.showUnitInspector = showUnitInspector;
+
+function closeUnitInspector() {
+    let m1 = document.getElementById('unit-inspector-modal');
+    if (m1) m1.style.display = 'none';
+    let m2 = document.getElementById('enemy-info-modal');
+    if (m2) m2.style.display = 'none';
+}
+window.closeUnitInspector = closeUnitInspector;
+function showEnemyInfo(id) { showUnitInspector(id); }
+function closeEnemyInfo() { closeUnitInspector(); }
 
 /* ===== ФОРМИРОВАНИЕ ВРАГОВ ПО ЭТАПАМ КАМПАНИИ ===== */
 function adaptHeroSkillsForEnemy(dbH, lvl) {
@@ -102,11 +160,12 @@ function adaptHeroSkillsForEnemy(dbH, lvl) {
     if (s1) {
         let isPhys = s1.type === 'phys';
         let bHits = s1.breakHits || (s1.type === 'magic' ? 1 : 0);
-        let stn = (s1.stun && s1.stun[lvl - 1]) || 0;
+        let sIdx = Math.max(0, Math.min(3, (lvl || 1) - 1));
+        let stn = (Array.isArray(s1.stun) ? (s1.stun[sIdx] || 0) : (s1.stun || 0));
         let sil = s1.silence || 0;
         let rt = s1.rootTurns || 0;
-        let dot = (s1.burnDmg && s1.burnDmg[lvl - 1]) || 0;
-        let debuffArm = (s1.armorDebuff && s1.armorDebuff[lvl - 1]) || 0;
+        let dot = (Array.isArray(s1.burnDmg) ? (s1.burnDmg[sIdx] || 0) : (s1.burnDmg || 0));
+        let debuffArm = (Array.isArray(s1.armorDebuff) ? (s1.armorDebuff[sIdx] || 0) : (s1.armorDebuff || 0));
         res.push({
             name: s1.name,
             type: isPhys ? 'phys' : 'magic',
@@ -120,8 +179,8 @@ function adaptHeroSkillsForEnemy(dbH, lvl) {
             root: rt,
             poisonDot: dot,
             armorDebuff: debuffArm,
-            mpCost: 55,
-            desc: `Тень воспроизводит ${s1.name}!`
+            mpCost: 50,
+            desc: `Тень воспроизводит «${s1.name}»!`
         });
     }
     let ult = dbH.skills[3];
@@ -134,8 +193,8 @@ function adaptHeroSkillsForEnemy(dbH, lvl) {
             aoe: !!ult.aoe,
             breakHits: 2,
             silence: ult.silence || 0,
-            mpCost: 95,
-            desc: `Тень обрушивает ${ult.name}!`
+            mpCost: 85,
+            desc: `Тень обрушивает «${ult.name}»!`
         });
     }
     return res;
@@ -548,11 +607,7 @@ function renderUnitCard(t) {
         return `<div class="enemy-unit-wrap${wrapCls}" onclick="selectEnemyTarget('${t.id}')" title="Нажмите для выбора цели 🎯">
             ${intentHtml}
             <div style="position:relative;"><div class="sprite enemy ${extraCls}${targetCls}" id="sprite-${t.id}">${t.icon}${stun}${buffIcon}${targetCross}</div></div>
-            <div style="font-size:7px; margin-top:3px; color:#ccc; display:flex; justify-content:center; align-items:center; gap:2px;">
-                <span>${t.name.split(' ')[0]}</span>
-                <span class="enemy-row-badge ${t.row === 'front' ? 'front' : 'back'}" title="${t.row === 'front' ? '1-й ряд (Передняя линия)' : '2-й ряд (Задняя линия)'}">${t.row === 'front' ? '1Р' : '2Р'}</span>
-                <button class="enemy-inspect-btn" onclick="event.stopPropagation(); showEnemyInfo('${t.id}')" title="Осмотр">[?]</button>
-            </div>
+            <div style="font-size:7px; margin-top:3px; color:#ccc;">${t.name.split(' ')[0]}</div>
             ${shieldHtml}
             <div class="hp-bar-bg" style="width:44px; margin:2px auto;"><div class="hp-bar-fill" style="width:${pctHp}%"></div></div>
             ${t.maxMp > 0 ? `<div class="mp-bar-bg" style="width:44px; margin:1px auto;"><div class="mp-bar-fill" style="width:${pctMp}%"></div></div>` : ''}
@@ -599,7 +654,7 @@ function renderTurnOrderBar() {
         let defBadge = (!u.isEnemy && u.buffs && u.buffs.some(b => b.type === 'defending'))
             ? `<span class="turn-def-badge">🛡️</span>`
             : '';
-        html += `<div class="${cls}" title="${u.name} (Ход #${i + 1})">
+        html += `<div class="${cls}" onclick="showUnitInspector('${u.id}')" style="cursor:pointer;" title="Нажмите, чтобы изучить ${u.name} (Ход #${i + 1})">
             <span class="slot-icon">${u.icon}</span>
             ${flame}${defBadge}
             <span class="slot-name">${u.name.split(' ')[0]}</span>
@@ -734,6 +789,13 @@ function checkEnemyLethal(enemy) {
             sil.atk = (sil.atk || 0) + 5;
             log(`🔮 ${sil.name} похищает разум поверженного врага: +5 ИНТ (${sil.int} ИНТ)!`);
         });
+        let livingPudges = combat.targets.filter(t => !t.isEnemy && t.dbId === 'pudge' && t.hp > 0);
+        livingPudges.forEach(p => {
+            let hpGain = Math.floor(p.maxHp * 0.04);
+            p.maxHp += hpGain;
+            p.hp = Math.min(p.maxHp, p.hp + hpGain);
+            log(`🪝 Хтоническая поросль: Пудж поглощает плоть врага (+4% ЗД, +${hpGain} ЗД)!`);
+        });
     }
 }
 
@@ -847,13 +909,15 @@ function triggerDawnbreakerJoin() {
 function getTeamArcaneAuraMp() {
     let cm = combat.targets.find(t => !t.isEnemy && t.hp > 0 && t.dbId === 'cm' && t.heroData.skillLevels[2] > 0);
     if (!cm) return 0;
-    return cm.skills[2].teamMpRegen[cm.heroData.skillLevels[2] - 1] || 0;
+    let s = cm.skills[2];
+    return s.teamMpGain || (s.teamMpRegen && s.teamMpRegen[cm.heroData.skillLevels[2] - 1]) || 6;
 }
 
 function getTeamWkLifesteal() {
     let wk = combat.targets.find(t => !t.isEnemy && t.hp > 0 && t.dbId === 'wk' && t.heroData.skillLevels[1] > 0);
     if (!wk) return 0;
-    return wk.skills[1].teamLifesteal[wk.heroData.skillLevels[1] - 1] || 0;
+    let s = wk.skills[1];
+    return s.frontLifesteal || (s.teamLifesteal && s.teamLifesteal[wk.heroData.skillLevels[1] - 1]) || 0.15;
 }
 
 function nextTurn() {
@@ -1471,7 +1535,9 @@ function showModal(name, target, baseDmg, type, skillObj, stunDur, cost = 0, use
             return `<div style="margin-left:10px;">→ ${e.name}: <b style="color:#f55;">${d}</b></div>`;
         }).join('');
         if (skillObj.rumBuff) desc += `<br><span style="color:#0f8;">🍺 + Корабельный ром отряду (−35% урона, 2 х.)</span>`;
-        if (skillObj.solarHeal) desc += `<br><span style="color:#0f0;">☀️ + Лечение отряда на ${skillObj.solarHeal[skillLvl - 1]} ЗД</span>`;
+        if (skillObj.teamShieldDmgRed) desc += `<br><span style="color:#fc0;">☀️ + Солнечный щит отряду (−${Math.round(skillObj.teamShieldDmgRed * 100)}% урона, 2 х.)</span>`;
+        if (skillObj.teamHealVal) desc += `<br><span style="color:#0f0;">☀️ + Лечение отряда на +${skillObj.teamHealVal[skillLvl - 1]} ЗД</span>`;
+        else if (skillObj.solarHeal) desc += `<br><span style="color:#0f0;">☀️ + Лечение отряда на ${skillObj.solarHeal[skillLvl - 1]} ЗД</span>`;
     } else if (skillObj && skillObj.splash) {
         let enemies = combat.targets.filter(t => t.isEnemy);
         desc = `<b style="color:#f80;">Сплэш (${enemies.length}):</b><br>` + enemies.map(e => {
@@ -1487,8 +1553,12 @@ function showModal(name, target, baseDmg, type, skillObj, stunDur, cost = 0, use
             return `<div style="margin-left:10px;">→ ${e.name}: <b style="color:#f55;">${d}</b></div>`;
         }).join('');
     } else if (type === 'heal') {
-        if (skillObj && skillObj.teamHeal) {
-            desc = `<b style="color:#0f0; font-size:11px;">Лечит ВЕСЬ отряд: +${baseDmg} ЗД</b><br>И наносит ~${Math.floor(baseDmg * 0.7)} Маг. урон врагу.`;
+        if (skillObj && skillObj.cleanseAll) {
+            let low = combat.targets.filter(t => !t.isEnemy).sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0] || actor;
+            desc = `<span style="color:#aaa;">Цель:</span> ${low.name}<br>Снимает ВСЕ дебаффы, лечит на <b>+${baseDmg} ЗД</b> и даёт <b>+30% УРН</b> (2 х.)!`;
+        } else if (skillObj && skillObj.teamHeal) {
+            desc = `<b style="color:#0f0; font-size:11px;">Лечит ВЕСЬ отряд: +${baseDmg} ЗД</b><br>И наносит ~${Math.floor(baseDmg * 0.7)} Маг. урон врагу.` +
+                   (skillObj.graveLowest ? `<br><span style="color:#fc0;">✝️ + Тонкая грань (бессмертие 2 х.) самому раненому союзнику!</span>` : '');
         } else {
             let lowest = combat.targets.filter(t => !t.isEnemy).sort((a, b) => a.hp - b.hp)[0];
             desc = `<span style="color:#aaa;">Цель:</span> ${lowest.name}<br><b style="color:#0f0; font-size:12px;">Лечение: +${baseDmg} ЗД</b>`;
@@ -2065,7 +2135,21 @@ function executeHeroAction(act) {
                 });
                 log(`🍺 Корабельный ром! Отряд получает −35% урона на ${rDur} х.!`);
             }
-            if (skillObj.solarHeal) {
+            if (skillObj.teamShieldDmgRed) {
+                let sDur = 2 + durBonus;
+                combat.targets.filter(t => !t.isEnemy && t.hp > 0).forEach(ally => {
+                    ally.buffs = (ally.buffs || []).filter(b => b.type !== 'solar_shield');
+                    ally.buffs.push({ type: 'solar_shield', reduce: skillObj.teamShieldDmgRed, turns: sDur });
+                });
+                log(`☀️ Солнечный страж: отряд укрыт щитом (−${Math.round(skillObj.teamShieldDmgRed * 100)}% входящего урона на ${sDur} х.)!`);
+            }
+            if (skillObj.teamHealVal) {
+                let sh = Math.floor(skillObj.teamHealVal[skillLvl - 1] * (usedRage ? 1.5 : 1));
+                combat.targets.filter(t => !t.isEnemy && t.hp > 0).forEach(ally => {
+                    ally.hp = Math.min(ally.maxHp, ally.hp + sh);
+                });
+                log(`☀️ Солнечный страж лечит ВЕСЬ отряд на +${sh} ЗД!`);
+            } else if (skillObj.solarHeal) {
                 let sh = Math.floor(skillObj.solarHeal[skillLvl - 1] * (usedRage ? 1.5 : 1));
                 combat.targets.filter(t => !t.isEnemy && t.hp > 0).forEach(ally => {
                     ally.hp = Math.min(ally.maxHp, ally.hp + sh);
@@ -2132,11 +2216,20 @@ function executeHeroAction(act) {
                 log(`🛡️ Легионка получает +30% к УРН на ${2 + durBonus} х.`);
             }
         } else if (type === 'heal') {
-            if (skillObj && skillObj.teamHeal) {
+            if (skillObj && skillObj.cleanseAll) {
+                let lowest = combat.targets.filter(t => !t.isEnemy && t.hp > 0).sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0] || actor;
+                lowest.hp = Math.min(lowest.maxHp, lowest.hp + baseDmg);
+                lowest.buffs = (lowest.buffs || []).filter(b => !['armor_break', 'weaken', 'burn_dot', 'burn', 'poison_dot', 'root', 'silence', 'hex_vuln', 'decrepify', 'x_mark'].includes(b.type));
+                lowest.stunTurns = 0;
+                let bDur = 2 + durBonus;
+                lowest.buffs = lowest.buffs.filter(b => b.type !== 'atk');
+                lowest.buffs.push({ type: 'atk', value: 1 + (skillObj.buffAtkPct || 0.30), turns: bDur });
+                log(`🛡️ ${actor.name} применяет ${skillObj.name} на ${lowest.name}: сняты ВСЕ дебаффы, +${baseDmg} ЗД и +30% УРН (${bDur} х.)!`);
+            } else if (skillObj && skillObj.teamHeal) {
                 combat.targets.filter(t => !t.isEnemy && t.hp > 0).forEach(ally => {
                     ally.hp = Math.min(ally.maxHp, ally.hp + baseDmg);
                 });
-                log(`🔮 Шэдоу Вейв лечит весь отряд на +${baseDmg} ЗД!`);
+                log(`🔮 Волна теней лечит весь отряд на +${baseDmg} ЗД!`);
                 let e = getHeroTargetEnemy();
                 if (e) {
                     let wd = Math.floor(baseDmg * 0.7 * (1 - getMagicReduction(e)) * getIncomingDmgMult(e, 'magic') * getThroneSealReduction(e));
@@ -2144,6 +2237,15 @@ function executeHeroAction(act) {
                     recordOrchidDmg(e, wd);
                     log(`🔮 Волна теней задевает ${e.name}: ${wd} Маг. урона!`);
                     applyBreakCheck(e, 1, actor);
+                }
+                if (skillObj.graveLowest) {
+                    let lowest = combat.targets.filter(t => !t.isEnemy && t.hp > 0).sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp))[0];
+                    if (lowest) {
+                        let gDur = 2 + durBonus;
+                        lowest.buffs = (lowest.buffs || []).filter(b => b.type !== 'shallow_grave');
+                        lowest.buffs.push({ type: 'shallow_grave', turns: gDur });
+                        log(`✝️ Тонкая грань: ${lowest.name} получает бессмертие на ${gDur} х.!`);
+                    }
                 }
             } else {
                 let lowest = combat.targets.filter(t => !t.isEnemy && t.hp > 0).sort((a, b) => a.hp - b.hp)[0];
@@ -2169,7 +2271,12 @@ function executeHeroAction(act) {
             let isCrit = false;
             let lumiProc = false;
 
-            if (skillObj && skillObj.guaranteedCrit) {
+            if (skillObj && skillObj.brokenOrRootedCrit) {
+                let isVuln = (target.shield <= 0) || (target.buffs && target.buffs.some(b => b.type === 'broken' || b.type === 'root'));
+                let mult = isVuln ? skillObj.brokenOrRootedCrit : skillObj.baseCrit;
+                isCrit = true;
+                baseDmg = Math.floor(baseDmg * mult);
+            } else if (skillObj && skillObj.guaranteedCrit) {
                 isCrit = true;
                 baseDmg = Math.floor(baseDmg * skillObj.guaranteedCrit[skillLvl - 1]);
             } else if (type === 'phys' && (!skillObj || (skillObj.id === 's1' && actor.dbId === 'pa'))) {
@@ -2231,6 +2338,66 @@ function executeHeroAction(act) {
             checkEnemyLethal(target);
             checkTravelerTransform(target);
 
+            if (skillObj && skillObj.detonateBurn && target.buffs) {
+                let bBuff = target.buffs.find(b => b.type === 'burn_dot' || b.type === 'burn');
+                if (bBuff) {
+                    let bDmgRate = bBuff.dmg || 50;
+                    let burst = Math.floor(bDmgRate * (bBuff.turns || 1) * 1.5);
+                    target.hp -= burst;
+                    recordOrchidDmg(target, burst);
+                    target.buffs = target.buffs.filter(b => b.type !== 'burn_dot' && b.type !== 'burn');
+                    log(`💥 Детонация горения! Клинок Лагуны взрывает огонь на ${target.name}: +${burst} чистого урона!`);
+                    checkEnemyLethal(target);
+                }
+            }
+
+            if (actor.dbId === 'lion' && skillObj && skillObj.id === 's1') {
+                actor.mp = Math.min(actor.maxMp, actor.mp + 22);
+                log(`🧙‍♂️ Лион восстанавливает +22 МН от Земляных шипов!`);
+                let otherRow = (target.row === 'front') ? 'back' : 'front';
+                let colEnemy = combat.targets.find(t => t.isEnemy && t.hp > 0 && t.id !== target.id && t.row === otherRow);
+                if (colEnemy) {
+                    let colDmg = Math.floor(baseDmg * (1 - getMagicReduction(colEnemy)) * getIncomingDmgMult(colEnemy, 'magic') * getThroneSealReduction(colEnemy));
+                    colEnemy.hp -= colDmg;
+                    recordOrchidDmg(colEnemy, colDmg);
+                    log(`🧙‍♂️ Земляные шипы пробивают колонну → ${colEnemy.name}: ${colDmg}`);
+                    applyBreakCheck(colEnemy, 1, actor);
+                    applyDuelDeathCheck(colEnemy);
+                    checkEnemyLethal(colEnemy);
+                    checkTravelerTransform(colEnemy);
+                }
+            }
+
+            if (actor.dbId === 'lion' && skillObj && skillObj.id === 's4' && target.hp <= 0) {
+                let refund = Math.floor((cost || 85) * 0.5);
+                actor.mp = Math.min(actor.maxMp, actor.mp + refund);
+                actor.rage = Math.min(100, (actor.rage || 0) + 50);
+                log(`🧙‍♂️ Палец смерти уничтожает цель! Возврат ${refund} МН и +50 Ярости!`);
+            }
+
+            if (skillObj && skillObj.tidebringerPureSplash) {
+                let backEnemies = combat.targets.filter(t => t.isEnemy && t.hp > 0 && t.row === 'back');
+                let splashDmg = Math.floor(d * (skillObj.splashPct || 0.65));
+                backEnemies.forEach(be => {
+                    be.hp -= splashDmg;
+                    recordOrchidDmg(be, splashDmg);
+                    log(`🌊 Приливный клинок прорубает тыл → ${be.name}: ${splashDmg} (чистый сплэш)!`);
+                    applyBreakCheck(be, 1, actor);
+                    applyDuelDeathCheck(be);
+                    checkEnemyLethal(be);
+                    checkTravelerTransform(be);
+                });
+            }
+
+            if (actor.dbId === 'zeus' && skillObj && actor.heroData.skillLevels[2] > 0 && target.hp > 0) {
+                let sPct = actor.skills[2].staticFieldPct || 0.05;
+                let sBurn = Math.max(1, Math.floor(target.hp * sPct));
+                target.hp -= sBurn;
+                recordOrchidDmg(target, sBurn);
+                log(`⚡ Статическое поле: ${sBurn} чистого урона по ${target.name}!`);
+                checkEnemyLethal(target);
+            }
+
             if (!skillObj && actor.dbId === 'silencer' && !actor.isEnemy) {
                 let pureDmg = Math.round((actor.int || 0) * 0.35);
                 if (pureDmg > 0) {
@@ -2258,6 +2425,17 @@ function executeHeroAction(act) {
 
             if (skillObj && skillObj.addIllusions) addPlIllusions(actor, skillObj.addIllusions);
             if (type === 'phys' && actor.dbId === 'pl' && actor.heroData.skillLevels[3] > 0) addPlIllusions(actor, 1);
+            if (skillObj && skillObj.spiritLanceRework) {
+                actor.mirageStacks = Math.min(3, (actor.mirageStacks || 0) + 2);
+                log(`🔱 Копьё духов: +2 стака Миража (всего: ${actor.mirageStacks})!`);
+            }
+            if (skillObj && skillObj.phantomRushRework) {
+                let st = actor.mirageStacks || 0;
+                actor.mirageStacks = 0;
+                let rushBreaks = Math.min(5, 2 + st);
+                applyBreakCheck(target, rushBreaks, actor);
+                log(`🔱 Натиск миражей! Обрушивает копии (серия ударов, −${rushBreaks} 🛡️)!`);
+            }
 
             let extraBreak = 0;
             if (skillObj && target.buffs) {
@@ -2270,6 +2448,9 @@ function executeHeroAction(act) {
                 }
             }
             let breakHits = (skillObj && skillObj.breakHits) ? skillObj.breakHits : ((type === 'magic' || isCrit) ? 1 : 0);
+            if (actor.dbId === 'sven' && actor.buffs && actor.buffs.some(b => b.type === 'atk')) {
+                breakHits = Math.max(breakHits, 2);
+            }
             applyBreakCheck(target, breakHits + extraBreak, actor);
 
             // Безмолвие (сбивает каст и запрещает скиллы поверх щитов и иммунитета)
@@ -2318,6 +2499,26 @@ function executeHeroAction(act) {
                 let dh = Math.floor(d * skillObj.drainHeal);
                 actor.hp = Math.min(actor.maxHp, actor.hp + dh);
                 log(`🟢 Лайф Дрейн: Пугна восстанавливает +${dh} ЗД!`);
+            }
+
+            if (skillObj && skillObj.drainHealPct && d > 0) {
+                let ph = Math.floor(d * skillObj.drainHealPct);
+                actor.hp = Math.min(actor.maxHp, actor.hp + ph);
+                log(`🪝 Расчленение: Пудж восстанавливает +${ph} ЗД!`);
+            }
+
+            if (skillObj && skillObj.poisonTurns && target.hp > 0) {
+                let pDur = skillObj.poisonTurns + durBonus;
+                let pDmg = (skillObj.poisonDmg && skillObj.poisonDmg[skillLvl - 1]) || 40;
+                target.buffs = (target.buffs || []).filter(b => b.type !== 'poison_dot');
+                target.buffs.push({ type: 'poison_dot', dmg: pDmg, turns: pDur });
+                log(`🧪 ${target.name} отравлен Расчленением (${pDmg} урона/ход, ${pDur} х.)!`);
+            }
+
+            if (skillObj && skillObj.wkHealDmgPct && d > 0) {
+                let wkHeal = Math.floor(d * skillObj.wkHealDmgPct);
+                actor.hp = Math.min(actor.maxHp, actor.hp + wkHeal);
+                log(`💀 Смертельный удар: Врайз Кинг восстанавливает +${wkHeal} ЗД!`);
             }
 
             if (skillObj && skillObj.torrentWeaken && target.hp > 0) {
@@ -2438,12 +2639,18 @@ function chooseEnemyTarget(enemy, action, playerHeroes) {
     if (aliveHeroes.length === 0) return { target: null, reason: null };
     if (aliveHeroes.length === 1) return { target: aliveHeroes[0], reason: null };
 
-    // Таунт / Дуэль
-    let tauntHero = aliveHeroes.find(h => h.buffs && h.buffs.some(b => b.type === 'taunt' || b.type === 'duel'));
+    // 1. Таунт / Дуэль Легионки
+    let enemyDuel = (enemy.buffs || []).find(b => b.type === 'dueling' || b.type === 'duel');
+    if (enemyDuel) {
+        let duelist = aliveHeroes.find(h => h.id === enemyDuel.targetId);
+        if (duelist) return { target: duelist, reason: 'скован дуэлью' };
+    }
+    let tauntHero = aliveHeroes.find(h => h.buffs && h.buffs.some(b => b.type === 'taunt' || b.type === 'duel' || (b.type === 'dueling' && b.targetId === enemy.id)));
     if (tauntHero) return { target: tauntHero, reason: 'скован дуэлью' };
 
     let isSkill = action && action.type === 'skill';
     let sk = isSkill ? action.skill : null;
+    let isPhysAttack = !sk || sk.type === 'phys';
 
     let hasFrontAlive = aliveHeroes.some(h => h.row === 'front');
     let isMelee = enemy.isMelee && (!sk || sk.type === 'phys');
@@ -2451,6 +2658,12 @@ function chooseEnemyTarget(enemy, action, playerHeroes) {
     let scored = aliveHeroes.map(h => {
         let score = 100;
         let reason = null;
+
+        // Декрепифай (Астрал): полный иммунитет к физ. атакам
+        let hasDecrep = h.buffs && h.buffs.some(b => b.type === 'decrepify');
+        if (hasDecrep && isPhysAttack) {
+            score -= 180;
+        }
 
         if (isMelee) {
             if (h.row === 'front') score += 65;
@@ -2466,7 +2679,12 @@ function chooseEnemyTarget(enemy, action, playerHeroes) {
         let arm = getEffectiveArmor(h);
         let red = (sk && sk.type === 'magic') ? getMagicReduction(h) : getPhysicalReduction(arm);
         let estDmg = Math.floor(effAtk * (sk ? (sk.mult || 1.2) : 1) * (1 - red));
-        if (h.hp < h.maxHp * 0.30 || estDmg >= h.hp) {
+
+        let hasGrave = h.buffs && h.buffs.some(b => b.type === 'shallow_grave');
+        if (hasGrave) {
+            // Под Крестом Даззла герой бессмертен (ЗД не падает ниже 1) — ИИ не сливает добивание
+            score -= 30;
+        } else if (h.hp < h.maxHp * 0.30 || estDmg >= h.hp) {
             score += 80;
             if (!reason) reason = 'пытается добить';
         } else if (h.hp < h.maxHp * 0.55) {
@@ -2712,6 +2930,8 @@ function enemyAI(actor, forcedTarget) {
                 let d = Math.floor(rawDmg * (1 - red));
 
                 if (sk.type === 'phys' && actor.isMelee && h.row === 'back') d = Math.floor(d * 0.85);
+                if (sk.aoe && h.row === 'back' && combat.targets.some(t => !t.isEnemy && t.hp > 0 && t.dbId === 'pudge')) d = Math.floor(d * 0.85);
+                if (h.buffs && h.buffs.some(b => b.type === 'solar_shield')) d = Math.floor(d * 0.75);
                 if (h.buffs && h.buffs.some(b => b.type === 'rum')) d = Math.floor(d * 0.65);
                 if (isDefending) d = Math.floor(d * 0.5);
 
@@ -2801,6 +3021,7 @@ function enemyAI(actor, forcedTarget) {
             let d = Math.floor(effAtk * (1 - red));
 
             if (actor.isMelee && target.row === 'back') d = Math.floor(d * 0.85);
+            if (target.buffs && target.buffs.some(b => b.type === 'solar_shield')) d = Math.floor(d * 0.75);
             if (target.buffs && target.buffs.some(b => b.type === 'rum')) d = Math.floor(d * 0.65);
             if (target.buffs && target.buffs.some(b => b.type === 'defending')) d = Math.floor(d * 0.5);
 
@@ -2809,8 +3030,10 @@ function enemyAI(actor, forcedTarget) {
                 d = 0; log(`🧥 ${target.name} полностью уклоняется (Глиммер)!`);
             } else if (target.buffs && target.buffs.some(b => b.type === 'doppel_evade') && Math.random() < 0.6) {
                 d = 0; log(`🔱 ${target.name} уходит в иллюзию (Доппельгангер)!`);
-            } else if (target.buffs && target.buffs.some(b => b.type === 'blur') && Math.random() < 0.5) {
-                d = 0; log(`🌫️ ${target.name} уклоняется (Блюр)!`);
+            } else if ((target.buffs && target.buffs.some(b => b.type === 'blur')) || (target.dbId === 'pa' && Math.random() < 0.25)) {
+                d = 0;
+                target.rage = Math.min(100, (target.rage || 0) + 15);
+                log(`🌫️ ${target.name} уклоняется (Блюр: +15 Ярости)!`);
             } else if (plDodge > 0 && Math.random() < plDodge) {
                 d = 0; log(`🔱 Удар пришёлся в Иллюзию Фантом Лансера!`);
             }
@@ -2843,13 +3066,15 @@ function enemyAI(actor, forcedTarget) {
                 }
             }
 
-            if (target.hp > 0 && actor.hp > 0 && target.dbId === 'lc' && target.heroData.skillLevels[2] > 0) {
-                let chance = [0, 0.2, 0.3, 0.4, 0.5][target.heroData.skillLevels[2]];
-                if (Math.random() < chance) {
-                    let cDmg = Math.floor(target.atk * (1 - getPhysicalReduction(getEffectiveArmor(actor))));
+            if (target.hp > 0 && actor.hp > 0 && target.dbId === 'lc') {
+                let inDuel = target.buffs && target.buffs.some(b => b.type === 'dueling');
+                let chance = inDuel ? 1.0 : ([0, 0.25, 0.35, 0.45, 0.55][target.heroData.skillLevels[2]] || 0.25);
+                if (inDuel || (target.heroData.skillLevels[2] > 0 && Math.random() < chance)) {
+                    let cDmg = Math.floor(target.atk * 0.65 * (1 - getPhysicalReduction(getEffectiveArmor(actor))));
                     actor.hp -= cDmg;
                     recordOrchidDmg(actor, cDmg);
-                    log(`🛡️ Момент оф Караж! Легионка контратакует ${actor.name}: ${cDmg}`);
+                    applyBreakCheck(actor, 1, target);
+                    log(`🛡️ Миг отваги! Легионка контратакует ${actor.name}: ${cDmg} (−1 🛡️)!`);
                     applyDuelDeathCheck(actor);
                 }
             }
