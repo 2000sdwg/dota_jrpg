@@ -33,9 +33,9 @@ const RELICS_DB = {
 
 /* Перекрёстные тиры Рейдовой лавки (обязательна реальная прокачка Леса: урон клика, Мидас, Доминатор+Армия, Радианс!) */
 const SHOP_TIERS = [
-    { tier:1, name:'Тир 1 — Походная лавка', reqText:'Победите Бельчонка (Этап 1)',
-      check: (s) => s.maxRaidCleared >= 1,
-      progress: (s) => `Этап 1: ${s.maxRaidCleared >= 1 ? '1/1' : '0/1'}` },
+    { tier:1, name:'Тир 1 — Походная лавка', reqText:'Победите Белку (Этап 1 Пролога)',
+      check: (s) => (s.prologueCleared >= 1 || s.maxRaidCleared >= 1),
+      progress: (s) => `Этап 1: ${(s.prologueCleared >= 1 || s.maxRaidCleared >= 1) ? '1/1' : '0/1'}` },
     { tier:2, name:'Тир 2 — Караван торговцев', reqText:'Лес: Урон клика ≥ 25, 50 крипов и 2 Стака',
       check: (s) => getForestDamage() >= 25 && s.creepsKilled >= 50 && s.stacksKilled >= 2,
       progress: (s) => `Клик: ${Math.min(25, getForestDamage())}/25 • Крипы: ${Math.min(50, s.creepsKilled)}/50 • Стаки: ${Math.min(2, s.stacksKilled)}/2` },
@@ -111,24 +111,24 @@ function getKettleActCap() {
 /* Сюжетные диалоги */
 const STORY_EVENTS = {
     prologue_p1_intro: {
-        icon:'🐿️', title:'Пробуждение в чаще',
-        text:'Тебя, рыцаря Свена, с позором вышвырнули за ворота Замка Древних Завоевателей. Без отряда, без золота, лишь с тяжёлым клинком и жгучей яростью.<br><br>Ты очнулся в незнакомой чаще. Раны ноют, а желудок сводит от голода. В кустах мелькает упитанная <b>лесная белка</b> — отличная добыча на ужин!'
+        icon:'🐿️', title:'Нападение в чаще',
+        text:'Тебя, рыцаря Свена, с позором вышвырнули за ворота Замка Древних Завоевателей. Без отряда, без золота, лишь с тяжёлым клинком и жгучей яростью.<br><br>Свен только приходит в себя после схватки с первыми крипами, как с раскачивающейся ветки прямо ему в лицо с яростным визгом бросается ошалевшая <b>бешеная белка с пеной у рта</b>! Приходится срочно отбиваться!'
     },
     prologue_p2_intro: {
         icon:'🐗', title:'Запах дыма',
-        text:'Белка зажарена на костре, и силы постепенно возвращаются к рыцарю. Но на запах жареного мяса и дыма из чащи с треском ломающихся ветвей выходит свирепый <b>лесной вепрь</b>!'
+        text:'Свен едва успел отбиться от бешеного зверька и развести костёр, как на запах дыма из чащи с треском ломающихся ветвей выходит свирепый <b>лесной вепрь</b>, закрытый толстой шкурой-щитами!'
     },
     prologue_p3_intro: {
         icon:'🔥', title:'Костёр разбойников',
         text:'Оставив вепря позади, Свен выходит на заросшую просеку. Впереди слышны голоса и звон стали — шайка лесных разбойников расположилась у костра, перекрыв путь к тракту!'
     },
     prologue_p4_intro: {
-        icon:'🏰', title:'Страж заставы',
-        text:'Чаща расступается, и впереди виднеется старая каменная застава перед выходом на тракт. Путь преграждает закованный в железо <b>Страж заставы</b> с дозорным бегуном!'
+        icon:'🏰', title:'Застава сержанта',
+        text:'Чаща расступается, и впереди виднеется старая каменная застава перед выходом на тракт. Путь преграждает закованный в железо суровый <b>Сержант</b> при поддержке верного <b>Оруженосца</b>!'
     },
     prologue_p4_win: {
         icon:'🌿', title:'Выход на тракт',
-        text:'Страж повержен! Врата заставы распахиваются, открывая дорогу к тракту и Запутанным тропам Акта 1. Впереди — долгий путь к Замку Завоевателей!'
+        text:'Сержант и его оруженосец повержены! Врата заставы распахиваются, открывая дорогу к тракту и Запутанным тропам Акта 1. Впереди — долгий путь к Замку Завоевателей!'
     },
     stage1_intro: {
         icon:'🐺', title:'Акт 1: Волчья стая',
@@ -142,7 +142,7 @@ const STORY_EVENTS = {
         icon:'🐺', title:'Волки разбиты!',
         text:'Волчья стая рассеяна по лесу! Дорога вдоль тракта свободна, но впереди ждут засады разбойников. Набирайтесь сил в Лесу и готовьтесь к следующим схваткам!'
     },
-    silence_tutorial: {
+    silence_escape: {
         icon:'🔇', title:'Чары побега и Безмолвие!',
         text:'Старик сбросил человеческий облик и обернулся <b>зачарованной курицей</b>! Она расправляет крылья и готовится удрать в кусты на своём ходу.<br><br><span style="color:#f55;">⚠️ Внимание:</span> Курица неуязвима к обычному урону! Единственный способ сорвать побег и уничтожить её — наложить <b>🔇 Безмолвие</b> (активный <b>Орчид</b>, <b>Сайленсер</b>, <b>Сглаз</b> Лиона, <b>Фишинг хук</b> Моржа-рыболова, <b>Морской поток / Крест</b> Кункки, <b>Удар молнии</b> Зевса) прямо сейчас!'
     },
@@ -758,32 +758,36 @@ const ENEMY_HEROES = ACT_ENEMY_POOLS[1].heroes;
 const SPECIAL_ENEMIES = {
     // === Акт 0: Пролог ===
     prologue_squirrel: {
-        name: 'Дикая белка', icon: '🐿️', hp: 120, mp: 0, atk: 11, armor: 0, isMelee: true, shieldMax: 0, row: 'front', archetype: 'minion',
+        name: 'Бешеная белка', icon: '🐿️', hp: 120, mp: 0, atk: 11, armor: 0, isMelee: true, shieldMax: 0, row: 'front', archetype: 'minion',
         skills: []
     },
     prologue_boar: {
-        name: 'Бронированный вепрь', icon: '🐗', hp: 210, mp: 30, atk: 17, armor: 1, isMelee: true, shieldMax: 2, row: 'front', archetype: 'tank',
+        name: 'Лесной вепрь', icon: '🐗', hp: 185, mp: 30, atk: 17, armor: 1, isMelee: true, shieldMax: 2, row: 'front', archetype: 'tank',
         skills: [{ name: 'Свирепый таран', type: 'phys', mult: 1.8, aoe: false, stun: 0, mpCost: 0, desc: 'Вепрь разгоняется для сокрушительного тарана!' }]
     },
     prologue_bandit: {
-        name: 'Разбойник', icon: '🗡️', hp: 150, mp: 20, atk: 14, armor: 1, isMelee: true, shieldMax: 2, row: 'front', archetype: 'tank',
+        name: 'Разбойник', icon: '🗡️', hp: 140, mp: 20, atk: 14, armor: 1, isMelee: true, shieldMax: 2, row: 'front', archetype: 'tank',
         skills: [{ name: 'Удар дубинкой', type: 'phys', mult: 1.2, aoe: false, stun: 0, mpCost: 20, desc: 'Глухой удар дубинкой.' }]
     },
     prologue_archer: {
-        name: 'Лесной стрелок', icon: '🏹', hp: 110, mp: 20, atk: 15, armor: 0, isMelee: false, shieldMax: 1, row: 'back', archetype: 'dd',
+        name: 'Лесной стрелок', icon: '🏹', hp: 105, mp: 20, atk: 15, armor: 0, isMelee: false, shieldMax: 1, row: 'back', archetype: 'dd',
         skills: [{ name: 'Выстрел из лука', type: 'phys', mult: 1.2, aoe: false, stun: 0, mpCost: 20, desc: 'Прицельный выстрел.' }]
     },
     prologue_guard_boss: {
-        name: 'Капитан стражи', icon: '🛡️', hp: 300, mp: 40, atk: 19, armor: 2, isMelee: true, isBoss: true, shieldMax: 3, row: 'front', archetype: 'tank',
+        name: 'Сержант', icon: '🛡️', hp: 280, mp: 40, atk: 20, armor: 2, isMelee: true, isBoss: true, shieldMax: 2, row: 'front', archetype: 'tank',
         skills: [{ name: 'Сокрушительный выпад', type: 'phys', mult: 1.6, aoe: false, stun: 0, mpCost: 20, desc: 'Опасный выпад копьём стража!' }]
     },
     prologue_runner: {
-        name: 'Юркий беглец', icon: '🏃', hp: 120, mp: 20, atk: 13, armor: 0, isMelee: true, shieldMax: 1, row: 'back', archetype: 'minion',
+        name: 'Оруженосец', icon: '🗡️', hp: 135, mp: 20, atk: 14, armor: 1, isMelee: true, shieldMax: 1, row: 'back', archetype: 'minion',
         skills: [{ name: 'Быстрый тычок', type: 'phys', mult: 1.1, aoe: false, stun: 0, mpCost: 20, desc: 'Колющий выпад кинжалом.' }]
     },
     // === Акт 1: Этап 1 ===
+    forest_wolf_alpha: {
+        name: 'Лесной вожак', icon: '🐺', hp: 200, mp: 0, atk: 18, armor: 1, isMelee: true, shieldMax: 2, row: 'front', archetype: 'tank',
+        skills: [{ name: 'Вожацкий укус', type: 'phys', mult: 1.3, aoe: false, stun: 0, mpCost: 0, desc: 'Грозный бросок вожака стаи.' }]
+    },
     forest_wolf: {
-        name: 'Лесной волк', icon: '🐺', hp: 220, mp: 0, atk: 18, armor: 1, isMelee: true, shieldMax: 2, row: 'front', archetype: 'minion',
+        name: 'Лесной волк', icon: '🐺', hp: 175, mp: 0, atk: 16, armor: 1, isMelee: true, shieldMax: 1, row: 'front', archetype: 'minion',
         skills: [{ name: 'Волчий укус', type: 'phys', mult: 1.2, aoe: false, stun: 0, mpCost: 0, desc: 'Яростный укус хищника.' }]
     },
     ringmaster: {
@@ -963,9 +967,9 @@ const SAVE_KEY = CONFIG.saveKey;
 
 const PROLOGUE_STAGES = [
     {
-        id: 'p1', stageNum: 1, title: 'Добыча на ужин', icon: '🐿️',
-        desc: 'Свен очнулся в незнакомой чаще. В кустах мелькает упитанная белка — отличная добыча на ужин.',
-        enemyName: 'Лесная белка', rewardGold: 90, rewardXp: 35
+        id: 'p1', stageNum: 1, title: 'Бешеная белка', icon: '🐿️',
+        desc: 'Свен переводит дух после первых крипов, как на него набрасывается бешеная белка с пеной у рта.',
+        enemyName: '🐿️ Бешеная белка', rewardGold: 90, rewardXp: 35
     },
     {
         id: 'p2', stageNum: 2, title: 'Запах дыма', icon: '🐗',
@@ -978,9 +982,9 @@ const PROLOGUE_STAGES = [
         enemyName: 'Разбойник и стрелок', rewardGold: 260, rewardXp: 80
     },
     {
-        id: 'p4', stageNum: 4, title: 'Страж заставы', icon: '🏰',
-        desc: 'Застава на выходе из чащи к тракту. Страж преграждает путь.',
-        enemyName: 'Страж заставы и бегун', rewardGold: 350, rewardXp: 110
+        id: 'p4', stageNum: 4, title: 'Застава сержанта', icon: '🏰',
+        desc: 'Застава перед выходом на тракт. Сержант и его оруженосец преграждают путь.',
+        enemyName: 'Сержант и оруженосец', rewardGold: 350, rewardXp: 110
     }
 ];
 window.PROLOGUE_STAGES = PROLOGUE_STAGES;
@@ -1099,11 +1103,11 @@ function getUnlockedFeatures(s) {
         forestTab: true,
         raidTab: !!(st.raidUnlocked || st.prologueCleared > 0 || st.maxRaidCleared >= 1),
         shopTab: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
-        tavernTab: !!(st.prologueCleared >= 4 || st.maxRaidCleared >= 1),
-        partyTab: !!(st.prologueCleared >= 4 || st.maxRaidCleared >= 1),
+        tavernTab: !!(st.prologueCleared >= 3 || st.maxRaidCleared >= 1),
+        partyTab: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
         forestCombo: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
         forestUpgrades: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
-        forestEvents: !!(st.prologueCleared >= 3 || st.maxRaidCleared >= 1),
+        forestEvents: !!(st.prologueCleared >= 2 || st.maxRaidCleared >= 1),
         forestHerbsAndTea: !!(st.teaUnlocked || heroCount >= 2),
         combatTurnBar: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
         combatShields: !!(st.prologueCleared >= 1 || st.maxRaidCleared >= 1),
@@ -1136,15 +1140,39 @@ function getActForStage(stage) {
 }
 
 function isShopTierUnlocked(tier) {
+    if (tier <= 1) {
+        let f = (typeof getUnlockedFeatures === 'function') ? getUnlockedFeatures() : null;
+        if (f && f.shopTab) return true;
+        return (state.prologueCleared >= 1 || state.maxRaidCleared >= 1);
+    }
     let t = SHOP_TIERS.find(x => x.tier === tier);
-    return t ? t.check(state) : true;
+    return t ? t.check(state) : false;
 }
 
 function getHighestUnlockedShopTier() {
     let highest = 0;
-    SHOP_TIERS.forEach(t => { if (t.check(state)) highest = Math.max(highest, t.tier); });
+    SHOP_TIERS.forEach(t => { if (isShopTierUnlocked(t.tier)) highest = Math.max(highest, t.tier); });
     return highest;
 }
+
+function getHeroSkillBreakHits(heroActor, skillObj, usedRage = false) {
+    if (!skillObj) return 0;
+    if (heroActor && heroActor.isEnemy) {
+        return skillObj.breakHits || 0;
+    }
+    let baseBreak = skillObj.breakHits || 0;
+    if (skillObj.primaryBreakHits) baseBreak = Math.max(baseBreak, skillObj.primaryBreakHits);
+    if (skillObj.breakHitsTarget) baseBreak = Math.max(baseBreak, skillObj.breakHitsTarget);
+    if (baseBreak >= 2) {
+        let lvl = (heroActor && (heroActor.level || (heroActor.heroData && heroActor.heroData.level))) || 1;
+        baseBreak = (lvl >= 4) ? 2 : 1;
+    }
+    if (usedRage) {
+        baseBreak += 1;
+    }
+    return baseBreak;
+}
+window.getHeroSkillBreakHits = getHeroSkillBreakHits;
 
 function save() {
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
@@ -1237,14 +1265,20 @@ function getItemMetaHtml(item) {
     return `<div style="font-size:7px; color:#888; margin-top:3px;">♾ Пассивный${cdTxt}</div>`;
 }
 
-function getSkillMetaHtml(sk) {
+function getSkillMetaHtml(sk, heroLevel = null) {
     if (!sk) return '';
     if (sk.type === 'passive') return '<div class="skill-meta-line" style="color:#888;">♾ Пассивный</div>';
     let parts = [];
     if (sk.prep) parts.push(`⏳ Подготовка: ${sk.prep} х.`);
     if (sk.cd) parts.push(`🔄 КД: ${sk.cd} х.`);
     if (sk.duration) parts.push(`⏱ Длит: ${sk.duration} х.`);
-    if (sk.breakHits >= 2 || sk.primaryBreakHits >= 2) parts.push(`💥 Пробитие (−2 🛡️)`);
+    if (sk.breakHits >= 2 || sk.primaryBreakHits >= 2 || sk.breakHitsTarget >= 2) {
+        if (heroLevel && heroLevel < 4) {
+            parts.push(`💥 Пробитие (−1 🛡️, 2 🛡️ с 4 ур.)`);
+        } else {
+            parts.push(`💥 Пробитие (−2 🛡️)`);
+        }
+    }
     if (sk.silence) parts.push(`🔇 Безмолвие: ${sk.silence} х.`);
     if (sk.rootTurns) parts.push(`❄️ Оцепенение: ${sk.rootTurns} х.`);
     if (!parts.length) parts.push(`⚡ Мгновенный`);

@@ -292,7 +292,7 @@ function buildCircusEnemies(contract) {
 function makeSpecialEnemy(key, idTag, contract) {
     let tpl = SPECIAL_ENEMIES[key];
     let hp = tpl.hp;
-    let atk = Math.floor(tpl.atk * (CONFIG.combat.enemyBaseAtkMult || 1.28));
+    let atk = (key.startsWith('prologue_') || key.startsWith('forest_wolf')) ? tpl.atk : Math.floor(tpl.atk * (CONFIG.combat.enemyBaseAtkMult || 1.28));
     let sh = (typeof tpl.shieldMax === 'number') ? tpl.shieldMax : 2;
     if (contract === 'ambush') { hp = Math.floor(hp * CONFIG.contracts.ambush.enemyHpMult); atk = Math.floor(atk * CONFIG.contracts.ambush.enemyAtkMult); }
     if (contract === 'trial')  { sh += CONFIG.contracts.trial.enemyShieldBonus; atk = Math.floor(atk * CONFIG.contracts.trial.enemyAtkMult); }
@@ -323,7 +323,7 @@ function buildStageEnemies(stage, contract) {
     if (stage === 'p2') return [makeSpecialEnemy('prologue_boar', 'e1', 'normal')];
     if (stage === 'p3') return [makeSpecialEnemy('prologue_bandit', 'e1', 'normal'), makeSpecialEnemy('prologue_archer', 'e2', 'normal')];
     if (stage === 'p4') return [makeSpecialEnemy('prologue_guard_boss', 'e1', 'normal'), makeSpecialEnemy('prologue_runner', 'e2', 'normal')];
-    if (stage === 1)  return [makeSpecialEnemy('forest_wolf', 'e1', contract), makeSpecialEnemy('forest_wolf', 'e2', contract)];
+    if (stage === 1)  return [makeSpecialEnemy('forest_wolf_alpha', 'e1', contract), makeSpecialEnemy('forest_wolf', 'e2', contract)];
     if (stage === 5)  return [makeSpecialEnemy('bandit_thug', 'e1', contract), makeSpecialEnemy('bounty_hunter', 'e2', contract), makeSpecialEnemy('bandit_archer', 'e3', contract)];
     if (stage === 6)  return [
         makeSpecialEnemy('bristleback', 'e1', contract),
@@ -441,6 +441,13 @@ function rollEnemyIntent(enemy) {
 function startRaid(stage, contract = 'normal') {
     if (state.squad.length === 0) { alert('Отряд пуст! Добавьте героя во вкладке «Таверна».'); return; }
     stage = stage || (state.prologueCleared < 4 ? ('p' + Math.min(4, (state.prologueCleared || 0) + 1)) : (state.selectedStage || Math.min(25, state.maxRaidCleared + 1)));
+    if (typeof stage === 'string' && stage.startsWith('p')) {
+        let pNum = parseInt(stage.replace('p', ''), 10) || 1;
+        if (pNum <= (state.prologueCleared || 0)) {
+            alert('Этот этап Пролога уже пройден!');
+            return;
+        }
+    }
     let gate = (typeof ACT_FOREST_GATES !== 'undefined') ? ACT_FOREST_GATES[stage] : null;
     if (gate && stage > state.maxRaidCleared && !window.DEBUG_BYPASS_GATES && !gate.check(state)) {
         alert(`🔒 ${gate.title}\n${gate.reqText}\n(${gate.progress(state)})`);
@@ -835,8 +842,8 @@ function checkTravelerTransform(enemy) {
     log('🧓 Путник сбрасывает плащ и в клубах дыма превращается в 🐔 Курицу-беглеца! Она готовится удрать в кусты на своём ходу!');
     renderArena();
 
-    if (!state.seenStories.includes('silence_tutorial')) {
-        showStory('silence_tutorial', null, true);
+    if (!state.seenStories.includes('silence_escape')) {
+        showStory('silence_escape', null, true);
     }
     return true;
 }
@@ -1314,7 +1321,11 @@ function raidAction(type) {
                 if (sk.hexAmp) infoTxt = `🔇 ${sk.silence}х, +${Math.round(sk.hexAmp[lvl - 1] * 100)}% урн`;
                 if (sk.rootTurns) infoTxt += (infoTxt ? ', ' : '') + `❄️ ${sk.rootTurns}х`;
                 if (sk.silence && !sk.hexAmp) infoTxt += (infoTxt ? ', ' : '') + `🔇 ${sk.silence}х`;
-                if (sk.breakHits >= 2 || sk.primaryBreakHits >= 2) infoTxt += (infoTxt ? ', ' : '') + `💥 −2🛡️`;
+                if (sk.breakHits >= 2 || sk.primaryBreakHits >= 2 || sk.breakHitsTarget >= 2) {
+                    let aLvl = (actor && (actor.level || (actor.heroData && actor.heroData.level))) || 1;
+                    let bText = (aLvl < 4) ? (isRage ? '💥 −2🛡️' : '💥 −1🛡️ (2🛡️ с 4 ур.)') : (isRage ? '💥 −3🛡️' : '💥 −2🛡️');
+                    infoTxt += (infoTxt ? ', ' : '') + bText;
+                }
                 if (sk.type === 'duel') infoTxt = 'Дуэль 3х';
                 let prepTag = sk.prep ? (isRage ? ' <span style="color:#fc0;">[МГНОВЕННО!]</span>' : ` <span style="color:#0ef;">[⏳ ${sk.prep}х]</span>`) : '';
                 let rightTxt = cdLeft > 0 ? `<span style="float:right; color:#f66;">КД: ${cdLeft}х</span>` : `<span style="float:right; color:#0af;">МН: ${cost}</span>`;
@@ -1713,8 +1724,10 @@ function showModal(name, target, baseDmg, type, skillObj, stunDur, cost = 0, use
     if (usedRage && skillObj && (skillObj.duration || skillObj.silence || skillObj.rootTurns)) {
         desc += `<br><span style="color:#fc0;">🔥 ЯРОСТЬ: +1 ход к длительности эффекта!</span>`;
     }
-    if (skillObj && (skillObj.breakHits >= 2 || skillObj.primaryBreakHits >= 2)) {
-        desc += `<br><span style="color:#f80;">💥 Пробитие: снимает 2 щита 🛡️${skillObj.brokenBonus ? ' (+25% урона по пробитому)' : ''}</span>`;
+    if (skillObj && (skillObj.breakHits >= 2 || skillObj.primaryBreakHits >= 2 || skillObj.breakHitsTarget >= 2)) {
+        let aLvl = (actor && (actor.level || (actor.heroData && actor.heroData.level))) || 1;
+        let note = (aLvl < 4) ? (usedRage ? 'снимает 2 щита 🛡️ (⚡ Ярость!)' : 'снимает 1 щит 🛡️ (2 🛡️ с 4 ур.)') : (usedRage ? 'снимает 3 щита 🛡️ (⚡ Ярость!)' : 'снимает 2 щита 🛡️');
+        desc += `<br><span style="color:#f80;">💥 Пробитие: ${note}${skillObj.brokenBonus ? ' (+25% урона по пробитому)' : ''}</span>`;
     }
     if (skillObj && skillObj.silence && !skillObj.hexAmp) {
         desc += `<br><span style="color:#ff8;">🔇 Безмолвие (${skillObj.silence + (usedRage ? 1 : 0)} х.): сбивает каст и запрещает скиллы поверх щитов</span>`;
@@ -2165,8 +2178,11 @@ function executeHeroAction(act) {
                         log(`🧪 Разъедание щита: −1 🛡️ у ${e.name}!`);
                     }
                 }
-                let bHits = (primaryEnemy && e.id === primaryEnemy.id && skillObj.primaryBreakHits) ? skillObj.primaryBreakHits : 0;
-                if (isCleaveCrit) bHits = Math.max(bHits, 1);
+                let bHits = 0;
+                if (primaryEnemy && e.id === primaryEnemy.id) {
+                    bHits = getHeroSkillBreakHits(actor, skillObj, usedRage);
+                }
+                if (isCleaveCrit) bHits = Math.max(bHits, 1 + (usedRage ? 1 : 0));
                 if (bHits + extraBreak > 0) applyBreakCheck(e, bHits + extraBreak, actor);
                 if (stunDur > 0 && primaryEnemy && e.id === primaryEnemy.id && e.hp > 0) {
                     applyHardStun(e, stunDur, skillObj.name);
@@ -2221,7 +2237,9 @@ function executeHeroAction(act) {
                         log(`🧪 Разъедание щита: −1 🛡️ у ${e.name}!`);
                     }
                 }
-                applyBreakCheck(e, (skillObj.breakHits || 1) + extraBreak, actor);
+                let aoeBreak = getHeroSkillBreakHits(actor, skillObj, usedRage);
+                if (!aoeBreak) aoeBreak = (skillObj.breakHits || 1) + (usedRage ? 1 : 0);
+                applyBreakCheck(e, aoeBreak + extraBreak, actor);
                 applyThornsReflect(e, actor, d);
                 if (skillObj.weaken && e.hp > 0) {
                     e.buffs = e.buffs.filter(b => b.type !== 'weaken');
@@ -2439,8 +2457,9 @@ function executeHeroAction(act) {
                 if (target.row === 'back') target.row = 'front';
                 target.buffs = target.buffs || [];
                 target.buffs.push({ type: 'uncovered', turns: 2 });
-                applyBreakCheck(target, 2, actor);
-                log(`🎣 Морж-рыболов подсекает ${target.name} «Фишинг хуком» и вытягивает в 1-й ряд (−2 🛡️)!`);
+                let hookBreaks = getHeroSkillBreakHits(actor, skillObj, usedRage) || 2;
+                applyBreakCheck(target, hookBreaks, actor);
+                log(`🎣 Морж-рыболов подсекает ${target.name} «Фишинг хуком» и вытягивает в 1-й ряд (−${hookBreaks} 🛡️)!`);
             }
 
             target.hp -= d;
@@ -2559,9 +2578,24 @@ function executeHeroAction(act) {
                     log(`🧪 Разъедание щита: −1 🛡️ у ${target.name}!`);
                 }
             }
-            let breakHits = (skillObj && skillObj.breakHits) ? skillObj.breakHits : ((type === 'magic' || isCrit) ? 1 : 0);
+            let baseBreaks = getHeroSkillBreakHits(actor, skillObj, usedRage);
+            let breakHits = (skillObj && baseBreaks > 0) ? baseBreaks : ((type === 'magic' || isCrit) ? (1 + (usedRage ? 1 : 0)) : 0);
             if (actor.dbId === 'sven' && actor.buffs && actor.buffs.some(b => b.type === 'atk')) {
-                breakHits = Math.max(breakHits, 2);
+                let svenLvl = (actor.level || (actor.heroData && actor.heroData.level)) || 1;
+                let svenBreak = (svenLvl >= 4 ? 2 : 1) + (usedRage ? 1 : 0);
+                breakHits = Math.max(breakHits, svenBreak);
+            }
+            if (actor.dbId === 'sven' && skillObj && skillObj.id === 's1' && target.buffs && target.buffs.some(b => b.type === 'root')) {
+                extraBreak++;
+                log(`❄️ Ледяное комбо Свена: −1 🛡️ у ${target.name}!`);
+                let neighbors = combat.targets.filter(t => t.isEnemy && t.hp > 0 && t.id !== target.id && t.row === target.row);
+                neighbors.forEach(n => {
+                    let nDmg = Math.floor(d * 0.5);
+                    n.hp -= nDmg;
+                    recordOrchidDmg(n, nDmg);
+                    applyBreakCheck(n, 1, actor);
+                    log(`⚡ Молот бури задевает соседа → ${n.name}: ${nDmg} (−1 🛡️)!`);
+                });
             }
             applyBreakCheck(target, breakHits + extraBreak, actor);
 
@@ -3287,23 +3321,29 @@ function winBattle(isScriptedVictory = false) {
         });
 
         state.prologueCleared = Math.max(state.prologueCleared || 0, pNum);
+        if (pNum < 4) {
+            state.selectedPrologueStage = pNum + 1;
+        } else {
+            state.selectedStage = 1;
+        }
 
         if (pNum === 1) {
             state.seenTabs = state.seenTabs || {};
             state.seenTabs.shop = false;
             state.seenTabs.squad = false;
             if (typeof showFeatureToast === 'function') {
-                showFeatureToast('🛒 Открыты Лавка и Отряд! Наденьте снаряжение перед следующим боем.');
+                showFeatureToast('🏪 Открыта вкладка 🏪 Лавка — покупайте снаряжение и собирайте артефакты, чтобы усилить героев.');
+                showFeatureToast('🎒 Открыта вкладка 🎒 Отряд — надевайте купленные вещи на героев и расставляйте их по рядам.');
             }
         } else if (pNum === 2) {
             if (typeof showFeatureToast === 'function') {
-                showFeatureToast('⚡ Открыты Руны, Стаки в Лесу, Ярость и способности в бою!');
+                showFeatureToast('🌲 В Лесу появились Стаки, Руны и Золотой Гоблин — успевайте ловить их, чтобы быстрее фармить золото.');
             }
         } else if (pNum === 3) {
             state.seenTabs = state.seenTabs || {};
             state.seenTabs.heroes = false;
             if (typeof showFeatureToast === 'function') {
-                showFeatureToast('🍺 Открыта Таверна! Наймите первого напарника.');
+                showFeatureToast('🍺 Открыта вкладка 🍺 Таверна — нанимайте новых героев, чтобы собрать полноценный отряд.');
             }
         } else if (pNum === 4) {
             state.selectedStage = 1;
@@ -3345,6 +3385,9 @@ function winBattle(isScriptedVictory = false) {
         state.maxRaidCleared = st;
         state.raidLevel = Math.min(25, st + 1);
         state.selectedStage = Math.min(25, st + 1);
+        if (st === 2 && typeof showFeatureToast === 'function') {
+            showFeatureToast('📜 В Рейдах открыты Контракты — выбирайте Засаду или Испытание ради повышенного золота, опыта и редкого лута.');
+        }
     }
 
     let baseGold = Math.floor(95 * Math.pow(1.20, st - 1));
@@ -3455,6 +3498,11 @@ function loseBattle() {
 
 function closeVictory() {
     document.getElementById('victory-modal').style.display = 'none';
+    if (state.prologueCleared < 4) {
+        state.selectedPrologueStage = Math.min(4, (state.prologueCleared || 0) + 1);
+    } else {
+        state.selectedStage = 1;
+    }
     switchTab('raid');
 }
 

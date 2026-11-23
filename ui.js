@@ -33,17 +33,37 @@ function showCustomStory(ev, onCloseCb = null) {
 }
 window.showCustomStory = showCustomStory;
 
-function showFeatureToast(msg) {
-    let t = document.getElementById('feature-toast');
-    if (!t) return;
-    t.innerHTML = msg;
-    t.classList.remove('hidden');
-    t.classList.add('visible');
-    clearTimeout(t._toastTimer);
-    t._toastTimer = setTimeout(() => {
-        t.classList.remove('visible');
-        t.classList.add('hidden');
-    }, 3200);
+function showFeatureToast(msg, duration = 5500) {
+    let container = document.getElementById('feature-toast-container');
+    if (!container) {
+        let t = document.getElementById('feature-toast');
+        if (!t) return;
+        t.innerHTML = msg;
+        t.classList.remove('hidden');
+        t.classList.add('visible');
+        clearTimeout(t._toastTimer);
+        t._toastTimer = setTimeout(() => {
+            t.classList.remove('visible');
+            t.classList.add('hidden');
+        }, duration);
+        return;
+    }
+    let toast = document.createElement('div');
+    toast.className = 'feature-toast-item visible';
+    toast.innerHTML = msg;
+    toast.onclick = () => {
+        toast.classList.remove('visible');
+        toast.classList.add('hidden');
+        setTimeout(() => toast.remove(), 250);
+    };
+    container.appendChild(toast);
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.classList.remove('visible');
+            toast.classList.add('hidden');
+            setTimeout(() => toast.remove(), 250);
+        }
+    }, duration);
 }
 window.showFeatureToast = showFeatureToast;
 
@@ -164,16 +184,16 @@ function toggleInventory() {
 /* ===== ОПИСАНИЕ ЭТАПОВ И ЭКРАН КАМПАНИИ ===== */
 function getStageMeta(stage) {
     const special = {
-        p1: { title:'Одинокий путник', icon:'🐿️', tag:'ПРОЛОГ • ЭТАП 1/4', isStory:true,
-              desc:'Свен очнулся после изгнания в глухой чаще. Впереди шелестит куст — навстречу выскакивает дикий зверёк.', enemies:'🐿️ Дикая белка (55 ЗД)' },
-        p2: { title:'Яростный вепрь', icon:'🐗', tag:'ПРОЛОГ • ЭТАП 2/4', isStory:true,
-              desc:'Огромный кабан с крепкой шкурой закрывается щитами и готовится к сокрушительному тарану!', enemies:'🐗 Бронированный вепрь (120 ЗД, 2 🛡️)' },
-        p3: { title:'Засада на тракте', icon:'🥷', tag:'ПРОЛОГ • ЭТАП 3/4', isStory:true,
-              desc:'Двое разбойников подкараулили вас: копейщик в первом ряду и меткий лучник во втором ряду.', enemies:'🥷 Разбойник (1-й ряд) + 🏹 Стрелок (2-й ряд)' },
-        p4: { title:'Брошенный аванпост', icon:'🛡️', tag:'ПРОЛОГ • ЭТАП 4/4', isBoss:true, isStory:true,
-              desc:'Капитан стражи и юркий беглец держат оборону у ворот в Большой Лес. Пробейте их строй!', enemies:'🛡️ Капитан стражи (180 ЗД, 2 🛡️) + 🏃 Юркий беглец' },
+        p1: { title:'Бешеная белка', icon:'🐿️', tag:'ПРОЛОГ • ЭТАП 1/4', isStory:true,
+              desc:'Свен только переводит дух после первых крипов, как с ветки в лицо бросается бешеная белка с пеной у рта!', enemies:'🐿️ Бешеная белка (120 ЗД, 0 🛡️)' },
+        p2: { title:'Лесной вепрь', icon:'🐗', tag:'ПРОЛОГ • ЭТАП 2/4', isStory:true,
+              desc:'На запах костра из кустов выходит свирепый лесной вепрь, прикрытый прочной шкурой-щитами!', enemies:'🐗 Лесной вепрь (185 ЗД, 2 🛡️)' },
+        p3: { title:'Костёр разбойников', icon:'🔥', tag:'ПРОЛОГ • ЭТАП 3/4', isStory:true,
+              desc:'Разбойники у костра перекрыли путь: громила в 1-м ряду и лучник во 2-м ряду.', enemies:'🗡️ Разбойник (140 ЗД, 2 🛡️) + 🏹 Стрелок (105 ЗД, 1 🛡️)' },
+        p4: { title:'Застава сержанта', icon:'🏰', tag:'ПРОЛОГ • ЭТАП 4/4', isBoss:true, isStory:true,
+              desc:'Каменная застава перед выходом на тракт. Сержант и его оруженосец держат оборону!', enemies:'🛡️ Сержант (280 ЗД, 2 🛡️) + 🗡️ Оруженосец (135 ЗД, 1 🛡️)' },
         1:  { title:'Волчья стая', icon:'🐺', tag:'СЮЖЕТ • СТАЯ ХИЩНИКОВ', isStory:true,
-              desc:'Свен вышел на лесную опушку и наткнулся на волчью стаю. Одолейте двух лесных волков, чтобы обезопасить тракт!', enemies:'🐺 2 лесных волка (440 ЗД суммарно)' },
+              desc:'На опушке тракта рыщет волчья стая во главе с матёрым вожаком. Одолейте волков, чтобы расчистить тракт!', enemies:'🐺 Лесной вожак (200 ЗД, 2 🛡️) + 🐺 Лесной волк (175 ЗД, 1 🛡️)' },
         5:  { title:'БОСС АКТА 1: Банда разбойников', icon:'🥷', tag:'БОСС АКТА 1', isBoss:true, isStory:true,
               desc:'Шайка разбойников во главе с Баунти Хантером. Награда: 🚩 Знамя Изгнанника (+4-й слот, Мидас, Средний лес).', enemies:'🥷 Баунти Хантер + 2 разбойника' },
         6:  { title:'Колючая спина', icon:'🦔', tag:'СЮЖЕТ • СТЕНА ЩИТОВ', isStory:true,
@@ -263,7 +283,9 @@ function renderCampaign() {
             dotsHtml += `<div class="${cls}" title="Этап ${s}"></div>`;
         }
 
-        let clearedBadge = pStage <= state.prologueCleared ? '<span style="color:#0f0; font-size:7px;">✓ ПРОЙДЕН</span>' : '<span style="color:#fa0; font-size:7px;">НОВЫЙ</span>';
+        let isCleared = pStage <= state.prologueCleared;
+        let isCurrent = pStage === (state.prologueCleared || 0) + 1;
+        let clearedBadge = isCleared ? '<span style="color:#6c8; font-weight:bold; font-size:7px;">✅ Пройдено</span>' : (isCurrent ? '<span style="color:gold; font-weight:bold; font-size:7px;">🔥 ТЕКУЩИЙ БОЙ</span>' : '<span style="color:#aaa; font-size:7px;">НОВЫЙ</span>');
 
         let banner = document.getElementById('campaign-act-banner');
         if (banner) {
@@ -280,6 +302,7 @@ function renderCampaign() {
 
         let stageCard = document.getElementById('campaign-stage-card');
         if (stageCard) {
+            stageCard.className = 'card campaign-card' + (isCleared ? ' prologue-card-cleared' : (isCurrent ? ' prologue-card-active' : ''));
             stageCard.innerHTML = `
                 <div class="stage-nav-row">
                     <button onclick="changeSelectedPrologueStage(-1)" ${pStage <= 1 ? 'disabled' : ''} style="padding:5px 10px; font-size:9px; background:#224; border-color:#448;">◀</button>
@@ -302,13 +325,19 @@ function renderCampaign() {
 
         let box = document.getElementById('campaign-contracts-box');
         if (box) {
-            box.innerHTML = `<div class="contract-card story" onclick="startRaid('${pStageKey}', 'normal')">
-                <div style="flex:1;">
-                    <div style="color:gold; font-size:9px; margin-bottom:4px;">⚔️ В БОЙ!</div>
-                    <div style="font-size:7px; color:#ccc; line-height:1.45;">Одиночный поединок Свена.</div>
-                </div>
-                <button style="background:#840; border-color:#fc0; font-size:9px;">В БОЙ</button>
-            </div>`;
+            if (isCleared) {
+                box.innerHTML = `<div class="card locked-card" style="text-align:center; padding:10px; font-size:8px; color:#8c8; border:1px solid #363; background:#122016;">
+                    ✅ Этап пройден. Повторный бой недоступен.
+                </div>`;
+            } else {
+                box.innerHTML = `<div class="contract-card story" onclick="startRaid('${pStageKey}', 'normal')">
+                    <div style="flex:1;">
+                        <div style="color:gold; font-size:9px; margin-bottom:4px;">⚔️ В БОЙ!</div>
+                        <div style="font-size:7px; color:#ccc; line-height:1.45;">Одиночный поединок Свена.</div>
+                    </div>
+                    <button style="background:#840; border-color:#fc0; font-size:9px;">В БОЙ</button>
+                </div>`;
+            }
         }
         return;
     }
@@ -483,13 +512,19 @@ function showSkillInfo(heroDbId, idx) {
         if (sk.burnDmg && sk.burnDmg[l - 1] > 0) parts.push(`поджог ${sk.burnDmg[l - 1]} Маг. урон/ход (2 х.)`);
         if (sk.silence) parts.push(`безмолвие ${sk.silence} х. (сбивает каст)`);
         if (sk.rootTurns) parts.push(`оцепенение ${sk.rootTurns} х.`);
-        if (sk.breakHits >= 2 || sk.primaryBreakHits >= 2) parts.push(`пробитие (−2 щита${sk.brokenBonus ? ', +25% по пробитому' : ''})`);
+        if (sk.breakHits >= 2 || sk.primaryBreakHits >= 2 || sk.breakHitsTarget >= 2) {
+            let heroInst = (typeof state !== 'undefined' && state.heroes) ? state.heroes.find(h => h.dbId === heroDbId) : null;
+            let heroLvl = heroInst ? heroInst.level : 1;
+            parts.push(heroLvl < 4 ? `пробитие (−1 🛡️, 2 🛡️ с 4 ур.)` : `пробитие (−2 🛡️)`);
+        }
         if (sk.rumBuff) parts.push('Ром отряду: −35% урона (2 х.)');
         if (sk.name === 'Блюр') parts.push('50% уклонение (2 х.)');
         if (parts.length) levelsHtml += `<div style="color:#0f0; margin-left:10px;">Ур. ${l}: ${fmtStats(parts.join(', '))}</div>`;
     }
 
-    let metaHtml = getSkillMetaHtml(sk);
+    let heroInst = (typeof state !== 'undefined' && state.heroes) ? state.heroes.find(h => h.dbId === heroDbId) : null;
+    let heroLvl = heroInst ? heroInst.level : 1;
+    let metaHtml = getSkillMetaHtml(sk, heroLvl);
     let reqHtml = (idx === 3) ? `<div style="color:#fa0; margin-top:8px;">🔒 Ультимейт:<br>Ур.1 — 6 ур. героя<br>Ур.2 — 12 ур. героя<br>Ур.3 — 18 ур. героя</div>` : '';
 
     document.getElementById('skill-modal-title').innerText = sk.name;
@@ -997,7 +1032,7 @@ function renderHeroes() {
                         <span style="color:${col}; font-size:9px;">${isUlt ? '⭐ ' : ''}${sk.name} (${lvl}/${maxLvl})</span>
                         <button class="info-btn" style="float:right; padding:2px 6px;" onclick="event.stopPropagation(); showSkillInfo('${dbH.id}',${idx})">[?]</button>
                         ${canLevel ? `<button onclick="event.stopPropagation(); upgradeSkill('${owned.id}',${idx})" style="padding:2px 8px; float:right; background:#005; border-color:#008; margin-right:4px;">+</button>` : ''}
-                        ${getSkillMetaHtml(sk)}
+                        ${getSkillMetaHtml(sk, owned.level)}
                         ${lock}
                     </div>`;
                 }).join('');
@@ -1114,7 +1149,7 @@ function buyHero(dbId) {
             state.seenTabs = state.seenTabs || {};
             state.seenTabs.forest = false;
             setTabBadge('forest', true);
-            showFeatureToast('🌿 Открыты Травы и Котелок! +3 🌿 получено');
+            showFeatureToast('🌿 В Лесу открыты 🌿 Травы и 🫖 Котелок — собирайте травы, заваривайте чай перед боями и усиливайте весь отряд.');
 
             const heroTeaLore = {
                 cm: '«Я знаю толк в северных травах! Добавь ледяную мяту в походный котелок — и мана польётся рекой. Держи мой запас снегоцвета (+3 🌿)!»',

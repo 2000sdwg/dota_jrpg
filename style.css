@@ -219,34 +219,58 @@ button:disabled { background: #333; border-color: #555; color: #777; cursor: not
     box-shadow: 0 0 10px rgba(80, 140, 255, 0.3);
 }
 
-.feature-toast {
+.feature-toast-container {
     position: fixed;
-    top: 50px;
+    top: 48px;
     left: 50%;
-    transform: translateX(-50%) translateY(-20px);
-    background: rgba(25, 20, 10, 0.96);
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 1000;
+    pointer-events: none;
+    max-width: 92vw;
+    width: 360px;
+    align-items: center;
+}
+
+.feature-toast-item, .feature-toast {
+    background: rgba(20, 16, 8, 0.96);
     color: #ffd700;
     border: 1px solid #d4af37;
     border-radius: 6px;
-    padding: 8px 16px;
+    padding: 8px 14px;
     font-size: 8px;
     line-height: 1.5;
     text-align: center;
-    z-index: 1000;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: auto;
+    cursor: pointer;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 12px rgba(212, 175, 55, 0.4);
-    max-width: 90vw;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    animation: toastPop 0.25s ease-out;
 }
-.feature-toast.visible {
+@keyframes toastPop {
+    from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.feature-toast-item.visible, .feature-toast.visible {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
 }
-.feature-toast.hidden {
+.feature-toast-item.hidden, .feature-toast.hidden {
     opacity: 0;
-    transform: translateX(-50%) translateY(-20px);
+    transform: translateY(-10px);
     pointer-events: none;
+}
+
+.prologue-card-cleared {
+    opacity: 0.72;
+    border-color: #353 !important;
+    background: #182218 !important;
+}
+.prologue-card-active {
+    border-color: #fc0 !important;
+    box-shadow: 0 0 12px rgba(255, 204, 0, 0.35);
 }
 
 .forest-prologue-banner {

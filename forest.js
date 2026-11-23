@@ -245,7 +245,7 @@ function updateForestUI() {
             if (!state.raidUnlocked) {
                 pBanner.innerHTML = '🧭 <i>Свен очнулся в незнакомой чаще. Добудьте 30 G с лесных крипов, чтобы осмотреться.</i>';
             } else if (state.prologueCleared === 0) {
-                pBanner.innerHTML = '🍗 <i>Желудок сводит от голода — загляните в Рейд!</i>';
+                pBanner.innerHTML = '🐿️ <i>В кустах что-то злобно шипит — загляните в ⚔️ Рейд!</i>';
             } else if (state.prologueCleared === 1) {
                 pBanner.innerHTML = '🛒 <i>Загляните в Лавку и наденьте снаряжение в Отряде.</i>';
             } else {
@@ -368,7 +368,7 @@ function updateForestUI() {
 }
 
 function formatShopUnlockProgress(s) {
-    let nextTier = (typeof SHOP_TIERS !== 'undefined') ? SHOP_TIERS.find(t => !t.check(s)) : null;
+    let nextTier = (typeof SHOP_TIERS !== 'undefined') ? SHOP_TIERS.find(t => t.tier > 1 && !t.check(s)) : null;
     if (!nextTier) {
         return { isAll: true, text: '🏪 В лавке открыты все товары' };
     }
@@ -554,7 +554,7 @@ function clickCreep(e) {
             state.raidUnlocked = true;
             if (typeof setTabBadge === 'function') setTabBadge('raid', true);
             if (typeof showFeatureToast === 'function') {
-                showFeatureToast('⚔️ Открыта вкладка «Рейд»! Свен готов к первой вылазке.');
+                showFeatureToast('⚔️ Открыта вкладка ⚔️ Рейд — сражайтесь с врагами в пошаговых боях, получайте опыт, золото и продвигайтесь по сюжету.');
             }
             if (typeof updateNavLocks === 'function') updateNavLocks();
         }
@@ -623,7 +623,7 @@ setInterval(() => {
             state.raidUnlocked = true;
             if (typeof setTabBadge === 'function') setTabBadge('raid', true);
             if (typeof showFeatureToast === 'function') {
-                showFeatureToast('⚔️ Открыта вкладка «Рейд»! Свен готов к первой вылазке.');
+                showFeatureToast('⚔️ Открыта вкладка ⚔️ Рейд — сражайтесь с врагами в пошаговых боях, получайте опыт, золото и продвигайтесь по сюжету.');
             }
             if (typeof updateNavLocks === 'function') updateNavLocks();
         }
@@ -724,8 +724,12 @@ function renderForestShop() {
                 <button onclick="upgradeForestItem('${item.id}')" style="margin-top:5px; background:#a50; border-color:#f80;">Улучшить ${upgCost} G</button></div>`;
             }
         } else {
-            html += `<div style="text-align:right;"><span style="font-size:8px; color:#aaa;">Имеется: ${count}</span><br>
-            <button onclick="buyForestItem('${item.id}')" style="margin-top:5px;">${item.cost} G</button></div>`;
+            let reqRaid = item.reqRaid || 0;
+            let isUnlocked = (reqRaid === 0) || (state.maxRaidCleared >= reqRaid) || (reqRaid === 1 && (state.prologueCleared >= 2 || item.id === 'branch'));
+            let btn = isUnlocked
+                ? `<button onclick="buyForestItem('${item.id}')" style="margin-top:5px;">${item.cost} G</button>`
+                : `<button disabled style="margin-top:5px; background:#333; border-color:#555; color:#777;">🔒 со 2-го боя</button>`;
+            html += `<div style="text-align:right;"><span style="font-size:8px; color:#aaa;">Имеется: ${count}</span><br>${btn}</div>`;
         }
         return html + `</div>`;
     };
@@ -786,7 +790,9 @@ function buyMilestone(id) {
 function buyForestItem(id) {
     let item = DB.forestItems.find(i => i.id === id);
     if (!item || item.isUpgradable || state.gold < item.cost) return;
-    if (item.reqRaid && state.maxRaidCleared < item.reqRaid) return;
+    let reqRaid = item.reqRaid || 0;
+    let isUnlocked = (reqRaid === 0) || (state.maxRaidCleared >= reqRaid) || (reqRaid === 1 && (state.prologueCleared >= 2 || item.id === 'branch'));
+    if (!isUnlocked) return;
     state.gold -= item.cost;
     let prevTier = getHighestUnlockedShopTier();
     state.forestInv.push(id);
