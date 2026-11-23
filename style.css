@@ -123,3 +123,15 @@ button:disabled { background: #333; border-color: #555; color: #777; cursor: not
 .gate-card { background: #261a14; border: 2px dashed #e90; border-radius: 5px; padding: 10px; margin-bottom: 8px; }
 .neutral-slot-box { width: 48px; height: 48px; border: 2px dashed #0ef; background: #142230; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; border-radius: 6px; box-shadow: 0 0 8px rgba(0,238,255,0.25); }
 .sprite-img { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+#turn-order-bar { display: none; flex-direction: row; align-items: center; justify-content: flex-start; gap: 4px; background: #14141e; border: 1px solid #334; border-radius: 4px; padding: 4px 6px; margin-bottom: 6px; overflow-x: auto; }
+.turn-order-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 38px; padding: 3px 4px; border: 1px solid #444; border-radius: 3px; background: #1f1f2a; position: relative; font-size: 7px; }
+.turn-order-slot.hero { border-color: #268; background: #122338; }
+.turn-order-slot.enemy { border-color: #822; background: #2a1418; }
+.turn-order-slot.active { border-color: #ff0 !important; box-shadow: 0 0 8px #ff0; transform: scale(1.05); }
+.turn-order-slot .slot-icon { font-size: 14px; line-height: 16px; }
+.turn-order-slot .slot-name { font-size: 6px; color: #ccc; max-width: 36px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+.intent-flame { position: absolute; top: -5px; right: -4px; font-size: 9px; filter: drop-shadow(0 0 3px #f50); }
+.turn-def-badge { position: absolute; top: -5px; left: -4px; font-size: 9px; }
+.sprite.defending-state { border-color: #3f5 !important; box-shadow: 0 0 10px #2a4, inset 0 0 6px #3f5 !important; }
+.defending-badge { font-size: 6px; padding: 2px 4px; border-radius: 3px; margin-bottom: 3px; display: inline-block; background: #142; border: 1px solid #3c5; color: #8f9; }

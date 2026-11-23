@@ -105,14 +105,12 @@ function getStageMeta(stage) {
     const special = {
         1:  { title:'Обучение: Лесной бельчонок', icon:'🐿️', tag:'СЮЖЕТ • ОБУЧЕНИЕ', isStory:true,
               desc:'Свен ранен после изгнания (34% ЗД). Одолейте бешеного бельчонка, чтобы раздобыть пропитание и открыть Лес!', enemies:'🐿️ Лесной бельчонок' },
-        2:  { title:'Засада у развилки', icon:'🧓', tag:'СЮЖЕТ • ТАИНСТВЕННЫЙ ПУТНИК', isStory:true,
-              desc:'На узкой лесной тропе вас встречает подозрительный старик в окружении разбойников. Что он скрывает?', enemies:'🧓 Странствующий путник + 2 разбойника' },
-        3:  { title:'Возвращение Отшельника', icon:'⚡', tag:'МИНИ-БОСС • РАЗОБЛАЧЕНИЕ', isStory:true,
-              desc:'Беглый старик сбросил маску! Перед вами грозный Шаман-отшельник, повелевающий молниями и змеями.', enemies:'⚡ Шаман-отшельник + 2 разбойника' },
         5:  { title:'БОСС АКТА 1: Банда разбойников', icon:'🥷', tag:'БОСС АКТА 1', isBoss:true, isStory:true,
               desc:'Шайка разбойников во главе с Баунти Хантером. Награда: 🚩 Знамя Изгнанника (+4-й слот, Мидас, Средний лес).', enemies:'🥷 Баунти Хантер + 2 разбойника' },
         6:  { title:'Обучение: Колючая спина', icon:'🦔', tag:'СЮЖЕТ • ПРОБИТИЕ', isStory:true,
               desc:'Жирный Бристлбэк режет 55% урона, пока целы щиты 🛡️. Ломайте их магией и критами!', enemies:'🦔 Бристлбэк' },
+        7:  { title:'Таинственный путник', icon:'🧓', tag:'СЮЖЕТ • ТАЙНА ТЁМНОЙ ЧАЩИ', isStory:true,
+              desc:'На тропе стоит одинокий старец, опираясь на сучковатый посох. Он пристально смотрит на вас...', enemies:'🧓 Таинственный путник (СОЛО)' },
         8:  { title:'Поляна Мясника', icon:'🪝', tag:'МИНИ-БОСС • СЮЖЕТНЫЙ СОЮЗНИК', isStory:true,
               desc:'Огромный Мясник орудует крюком и ядовитой гнилью. Поговаривают, его ярость можно растопить заколдованным орехом из Леса...', enemies:'🪝 Пудж + 2 лесные твари' },
         10: { title:'БОСС АКТА 2: Стражи Тёмной чащи', icon:'🐺', tag:'БОСС АКТА 2', isBoss:true, isStory:true,
@@ -379,7 +377,7 @@ function renderRaidShop() {
     let highestTier = getHighestUnlockedShopTier();
     SHOP_TIERS.forEach(t => {
         if (t.check(state)) {
-            let items = DB.raidItems.filter(i => !i.craftable && i.tier === t.tier);
+            let items = DB.raidItems.filter(i => !i.craftable && !i.bossDropOnly && i.tier === t.tier);
             list.innerHTML += `<div class="tier-banner">🔓 ${t.name}</div>`;
             items.forEach(item => { list.innerHTML += cardHtml(item); });
         } else if (t.tier === highestTier + 1) {
@@ -416,12 +414,7 @@ function renderInventory() {
     });
 }
 
-function buyRaidItem(id) {
-    let item = DB.raidItems.find(i => i.id === id);
-    if (!item || item.craftable || !isShopTierUnlocked(item.tier) || state.gold < item.cost) return;
-    state.gold -= item.cost;
-    state.raidInv.push(id);
-
+function checkRaidCrafts() {
     const crafts = [
         { res:'crystalys', name:'Кристалис', req:['blades_of_attack','broadsword','crystalys_recipe'] },
         { res:'daedalus', name:'Дайдалус', req:['crystalys','demon_edge','daedalus_recipe'] },
@@ -436,13 +429,25 @@ function buyRaidItem(id) {
         { res:'satanic', name:'Сатаник', req:['morbid','reaver','satanic_recipe'] },
         { res:'bkb', name:'Блэк Кинг Бар', req:['reaver','mithril','bkb_recipe'] }
     ];
+    let craftedAny = false;
     crafts.forEach(c => {
         if (c.req.every(r => state.raidInv.includes(r))) {
             c.req.forEach(r => state.raidInv.splice(state.raidInv.indexOf(r), 1));
             state.raidInv.push(c.res);
             alert(`⚒️ Собран ${c.name}!`);
+            craftedAny = true;
         }
     });
+    return craftedAny;
+}
+window.checkRaidCrafts = checkRaidCrafts;
+
+function buyRaidItem(id) {
+    let item = DB.raidItems.find(i => i.id === id);
+    if (!item || item.craftable || item.bossDropOnly || !isShopTierUnlocked(item.tier) || state.gold < item.cost) return;
+    state.gold -= item.cost;
+    state.raidInv.push(id);
+    checkRaidCrafts();
     save();
 }
 
@@ -470,6 +475,21 @@ function getUnlockedHeroAct() {
     if (state.maxRaidCleared < 15) return 3;
     return 4;
 }
+
+function getHeroCurrentCost(dbHero) {
+    if (!dbHero || !dbHero.cost) return 0;
+    let boughtInSameAct = 0;
+    (state.heroes || []).forEach(h => {
+        let hDb = DB.heroes.find(x => x.id === h.dbId);
+        if (hDb && !hDb.storyUnlock && hDb.unlockAct > 0 && hDb.unlockAct === dbHero.unlockAct) {
+            boughtInSameAct++;
+        }
+    });
+    let taxMult = (CONFIG.economy && CONFIG.economy.tavernTaxPerActHero) ? CONFIG.economy.tavernTaxPerActHero : 0.40;
+    let cost = Math.round(dbHero.cost * Math.pow(1 + taxMult, boughtInSameAct) / 50) * 50;
+    return cost;
+}
+window.getHeroCurrentCost = getHeroCurrentCost;
 
 function renderHeroes() {
     const list = document.getElementById('heroes-list');
@@ -516,9 +536,16 @@ function renderHeroes() {
         if (!owned) {
             let role = dbH.mainAttr === 'str' ? '<span style="color:#f55;">Сила</span>' : '<span style="color:#0af;">Интеллект</span>';
             let range = dbH.isMelee ? 'Ближний' : 'Дальний';
+            let cost = getHeroCurrentCost(dbH);
+            let boughtInSameAct = (state.heroes || []).filter(h => {
+                let hDb = DB.heroes.find(x => x.id === h.dbId);
+                return hDb && !hDb.storyUnlock && hDb.unlockAct > 0 && hDb.unlockAct === dbH.unlockAct;
+            }).length;
+            let taxPct = boughtInSameAct > 0 ? Math.round((Math.pow(1.4, boughtInSameAct) - 1) * 100) : 0;
+            let taxBadge = taxPct > 0 ? ` <span style="font-size:7px; color:#ff8;">(налог Таверны: +${taxPct}%)</span>` : '';
             div.innerHTML = `<h4 style="margin-bottom:5px;">${dbH.icon} ${dbH.name} <span class="role-tag">${dbH.role}</span></h4>
                 <div style="font-size:7px; color:#aaa; margin-bottom:6px;">${role} • ${range}</div>
-                <button onclick="buyHero('${dbH.id}')" style="width:100%; background:#252; border-color:#484;">НАНЯТЬ ЗА ${dbH.cost} G</button>`;
+                <button onclick="buyHero('${dbH.id}')" style="width:100%; background:#252; border-color:#484;">НАНЯТЬ ЗА ${cost} G${taxBadge}</button>`;
         } else {
             let stats = getHeroStats(owned, dbH);
             let xpNeed = xpNeeded(owned.level);
@@ -622,8 +649,10 @@ function renderSquad() {
 function buyHero(dbId) {
     const dbH = DB.heroes.find(x => x.id === dbId);
     if (!dbH || dbH.storyUnlock || dbH.unlockAct > getUnlockedHeroAct()) return;
-    if (state.gold >= dbH.cost) {
-        state.gold -= dbH.cost;
+    if (state.heroes.some(h => h.dbId === dbId)) return;
+    let cost = getHeroCurrentCost(dbH);
+    if (state.gold >= cost) {
+        state.gold -= cost;
         let newHero = {
             id: Math.random().toString(36).substr(2, 9), dbId,
             level: 1, xp: 0, sp: 1, skillLevels: [0, 0, 0, 0],

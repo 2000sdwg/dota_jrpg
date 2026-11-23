@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Dota Idle RPG v3.7</title>
-<link rel="stylesheet" href="style.css?v=37">
+<title>Dota Idle RPG v4.2</title>
+<link rel="stylesheet" href="style.css?v=42">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -93,6 +93,7 @@
                 <button onclick="toggleSpeed()" id="btn-speed" style="padding:4px 8px; font-size:8px; background:#252; border-color:#484;">Ускорение x2: ВЫКЛ</button>
             </div>
             <div style="font-size:7px; color:#888; text-align:center; margin-bottom:4px;">Нажмите на врага, чтобы посмотреть его статы и скиллы [?]</div>
+            <div id="turn-order-bar"></div>
             <div id="arena">
                 <div id="arena-heroes" class="arena-side heroes-side"></div>
                 <div class="arena-divider"></div>
@@ -103,6 +104,7 @@
                 <div style="display:flex; gap:5px;">
                     <button style="flex:1;" onclick="raidAction('attack')" id="btn-attack">УДАР</button>
                     <button style="flex:1; background: #005; border-color: #008;" onclick="raidAction('skills')" id="btn-skills">СКИЛЛЫ</button>
+                    <button style="flex:1; background: #242; border-color: #383;" onclick="raidAction('defend')" id="btn-defend">🛡️ БЛОК</button>
                     <button style="flex:1; background: #520; border-color: #840;" onclick="openItemUse()" id="btn-items">ПРЕДМЕТЫ</button>
                 </div>
                 <div id="skills-submenu" style="display:none; margin-top:5px;"></div>
@@ -142,7 +144,7 @@
     <div class="modal">
         <h3 style="color: #6f8; margin-bottom: 8px;">☕ Сбор чая и Котелок</h3>
         <div id="tea-herbs-display" style="font-size: 8px; color: #ff0; margin-bottom: 8px;">🌿 Собранные травы: 0</div>
-        <div style="font-size: 7px; color: #aaa; margin-bottom: 10px; line-height: 1.5;">Травы добываются в Лесу: +1 🌿 за каждые 35 крипов, +1 🌿 за Стак, +1 🌿 за Руну и +1 🌿 за Золотого Гоблина!</div>
+        <div style="font-size: 7px; color: #aaa; margin-bottom: 10px; line-height: 1.5;">Травы добываются в Лесу: +1 🌿 за каждые 65 крипов, +1 🌿 за Стак, +1 🌿 за Руну и +1 🌿 за Золотого Гоблина!</div>
         <div id="tea-kettle-box" style="text-align: left; margin-bottom: 10px;"></div>
         <div style="font-size: 8px; color: #0cf; text-align: left; margin-bottom: 6px;">Заварить чай на следующий Рейд:</div>
         <div id="tea-list" style="text-align: left;"></div>
@@ -154,16 +156,19 @@
     <div class="modal">
         <h3 style="color: #0af; margin-bottom: 10px;">📖 Справочник</h3>
         <div style="text-align: left; font-size: 8px; line-height: 1.7; color: #ccc;">
-            <b style="color:#f55;">СИЛ:</b> +22 <span style="color:#0f0;">ЗД</span>, +0.1 реген/х • <b style="color:#0af;">ИНТ:</b> +12 <span style="color:#48f;">МН</span>, +0.05 реген/х. Профильный атрибут даёт +1 <span style="color:#fa0;">УРН</span>.<br>
+            <b style="color:#f55;">СИЛ:</b> +22 <span style="color:#0f0;">ЗД</span>, +0.1 реген/х • <b style="color:#0af;">ИНТ:</b> +8 <span style="color:#48f;">МН</span>, +0.09 реген/х, +0.5% маг. урона. Профильный атрибут даёт +1 <span style="color:#fa0;">УРН</span>.<br>
             <b style="color:#ddd;">БРО:</b> режет только <span style="color:#fa0;">Физ. урон</span> • <b style="color:#6cf;">МАГ.РЕЗ:</b> 25% базово, режет <span style="color:#c6f;">Маг. урон</span>.<br><br>
             <b style="color:#fa0;">Ряды:</b> 1-й ряд (+2 БРО, 80% ближних атак) • 2-й ряд (−15% ближ. урона; ближники со 2-го ряда бьют на −25% слабее).<br><br>
-            <b style="color:#f80;">Щиты (🛡️) и 💥 Пробитие:</b> целые щиты режут <b>−20%</b> урона и защищают от оглушения. Магия/криты: −1 🛡️, Пробитие: −2 🛡️ (+25% по пробитому). На 0 🛡️: сбитие каста, +15 Ярости, <b>+20% урона</b> и оглушение на 1 х. Щиты восстанавливаются в конце активного хода врага.<br><br>
-            <b style="color:#ff8;">Контроль:</b><br>
+            <b style="color:#f80;">Щиты (🛡️) и 💥 Пробитие:</b> целые щиты режут <b>−35%</b> урона (у Бристлбэка <b>−60%</b>) и защищают от оглушения. Магия/криты: −1 🛡️, Пробитие: −2 🛡️ (+25% по пробитому). На 0 🛡️: сбитие каста, +15 Ярости, <b>+20% урона</b> и оглушение на 1 х. Щиты восстанавливаются в конце активного хода врага.<br><br>
+            <b style="color:#3f5;">🛡️ Блок:</b> действие в бою — на 1 ход режет входящий урон на −50%, даёт иммунитет к казням и критам, восстанавливает +25 МН и +15 Ярости.<br><br>
+            <b style="color:#ff8;">Контроль и Комбо:</b><br>
             • <b>💥 Пробитие:</b> оглушает на 1 х. После выхода — <b>⛓️ Иммунитет</b> (2 х. / 3 х. боссам).<br>
             • <b>🔇 Безмолвие:</b> поверх щитов и ⛓️ — сбивает каст и запрещает скиллы (1–2 х.).<br>
-            • <b>❄️ Оцепенение:</b> поверх щитов и ⛓️ — запрещает атаки с руки (2 х.).<br><br>
+            • <b>❄️ Оцепенение:</b> поверх щитов и ⛓️ — запрещает атаки с руки (2 х.).<br>
+            • <b>❄️ Хрупкость:</b> физ. урон по Оцепенению даёт <b>+25% урона</b>!<br>
+            • <b>🔥/🧪 Снятие щитов:</b> атакующий скилл по Горению или Яду ломает дополнительный <b>−1 🛡️</b>!<br><br>
             <b style="color:#0ef;">⏳ Подготовка (1 х.):</b> ульты заряжаются 1 х. (сбиваются оглушением/безмолвием; возврат 50% МН).<br>
-            <b style="color:#fc0;">⚡ Ярость (100%):</b> 0 МН, ×1.5 урона/хила, мгновенный каст без подготовки и +1 х. к эффектам.<br>
+            <b style="color:#fc0;">⚡ Ярость (100%):</b> требует 100% обычной маны, даёт ×1.5 урона/хила, мгновенный каст без подготовки и +1 х. к длительности баффов/дебаффов.<br>
             <b style="color:#0f0;">Лес ⇄ Рейд:</b> боссы открывают Лес и героев; Лес открывает Тиры Лавки, Рубежи Актов и даёт 🌿 Травы для ☕ Чая и 🫖 Котелка.
         </div>
         <button style="width: 100%; margin-top: 15px; background: #333; border-color:#555;" onclick="document.getElementById('glossary-modal').style.display='none'">ЗАКРЫТЬ</button>
@@ -247,13 +252,13 @@
     </div>
 </div>
 
-<script src="config.js?v=37"></script>
-<script src="db.js?v=37"></script>
-<script src="forest.js?v=37"></script>
-<script src="ui.js?v=37"></script>
-<script src="combat.js?v=37"></script>
+<script src="config.js?v=42"></script>
+<script src="db.js?v=42"></script>
+<script src="forest.js?v=42"></script>
+<script src="ui.js?v=42"></script>
+<script src="combat.js?v=42"></script>
 <!-- DEBUG: удали строку ниже и файл debug.js перед релизом -->
-<script src="debug.js?v=37"></script>
+<script src="debug.js?v=42"></script>
 <script>
 if (window.Telegram && window.Telegram.WebApp) {
     window.Telegram.WebApp.ready();

@@ -84,7 +84,17 @@ const TEA_BUFFS = [
       desc:`Ледяная ясность: старт Рейда с ${CONFIG.forest.teas.mint_tea.startRage}% Ярости и +${CONFIG.forest.teas.mint_tea.mpRegen} МН/ход.` }
 ];
 
-function getKettleUpgradeCost(lvl) { return CONFIG.forest.kettleBaseCost + lvl * CONFIG.forest.kettleCostStep; }
+function getKettleUpgradeCost(lvl) {
+    return (CONFIG.forest.kettleCosts && CONFIG.forest.kettleCosts[lvl]) || null;
+}
+function getKettleActCap() {
+    let cleared = (typeof state !== 'undefined' && state.maxRaidCleared) ? state.maxRaidCleared : 0;
+    if (cleared < 5) return CONFIG.forest.kettleActCaps[1];
+    if (cleared < 10) return CONFIG.forest.kettleActCaps[2];
+    if (cleared < 15) return CONFIG.forest.kettleActCaps[3];
+    if (cleared < 20) return CONFIG.forest.kettleActCaps[4];
+    return CONFIG.forest.kettleActCaps[5];
+}
 
 /* Сюжетные диалоги и обучающие вставки */
 const STORY_EVENTS = {
@@ -96,10 +106,22 @@ const STORY_EVENTS = {
         icon:'🌲', title:'Лес открыт!',
         text:'Бельчонок повержен... но раненый зверёк успевает удрать в чащу, оставив тебя наедине с дорогой к Замку. Впереди — разбойники, а одному тебе не выстоять.<br><br><span style="color:#0f0;">🌲 Открыт ЛЕС:</span> кликай по крипам, копи комбо, лови 1-секундные руны и <b>стакай лагерь</b> на время.<br><span style="color:#fa0;">💰 Связь Лес ⇄ Рейд:</span> фарм крипов, Стаков и Рун в Лесу даёт золото, открывает новые тиры <b>Рейдовой лавки</b> и приносит <b>🌿 Травы</b> для <b>☕ Сбора чая</b> (Иван-чай, Ромашка, Мята) и прокачки <b>🫖 Походного котелка</b>! А победы над боссами Актов открывают новые земли Леса, героев и слоты отряда!'
     },
+    silence_tutorial: {
+        icon:'🔇', title:'Чары побега и Безмолвие!',
+        text:'Старик сбросил человеческий облик и обернулся <b>зачарованной курицей</b>! Она расправляет крылья и готовится удрать в кусты на своём ходу.<br><br><span style="color:#f55;">⚠️ Обучение:</span> Курица неуязвима к обычному урону! Единственный способ сорвать побег и уничтожить её — наложить <b>🔇 Безмолвие</b> (активный <b>Орчид</b>, <b>Хекс</b> Лиона, <b>Мит Хук</b> Пуджа, <b>Торрент / Метка</b> Кункки, <b>Лайтнинг Болт</b> Зевса) прямо сейчас!'
+    },
+    stage9_no_shaman: {
+        icon:'🗡️', title:'Тёмная чаща: Засада без вожака',
+        text:'Разбойники выходят из зарослей, растерянно переглядываясь:<br><br><i>«Где старик? Куда подевался шаман?! Нас бросили!»</i><br><br>Лишившись своего мистического предводителя, бандиты нападают без боевых чар и змеиных молний!'
+    },
+    stage9_shaman_reveal: {
+        icon:'⚡', title:'Тёмная чаща: Месть Шамана-отшельника',
+        text:'Из тумана с треском вырываются змеиные молнии! Тот самый беглец предстаёт в своём истинном обличье — грозный <b>Шаман-отшельник</b> в окружении лесных бандитов!<br><br><i>«Ха-ха-ха! Думали, я просто старик или глупая курица?! Вы поплатитесь за то, что загнали меня в угол — познайте ярость змеиных чар!»</i>'
+    },
     stage3_shaman_intro: {
         icon:'⚡', title:'Возвращение Отшельника',
         get text() {
-            if (typeof state !== 'undefined' && state.chickenKilled) {
+            if (typeof state !== 'undefined' && (state.chickenKilled || state.shamanKilled)) {
                 return 'Хотя на прошлом этапе вам удалось развеять куриную форму Безмолвием, Шаман-отшельник оправился от удара и преграждает путь вместе с бандой разбойников!<br><br><i>«Вы дерзнули разрушить мои чары немотой! Но в честном бою вам не выстоять — познайте гнев змеиных молний!»</i>';
             }
             return 'Та самая сбежавшая курица выскакивает из кустов, сбрасывает перья и превращается в грозного Шамана-отшельника с боевыми змеями и бандой разбойников!<br><br><i>«Ха-ха! Не смогли поймать меня? Теперь познайте гнев змеиных чар!»</i>';
@@ -154,118 +176,118 @@ const DB = {
         { id:'sven', name:'Свен', cost:0, icon:'⚔️', role:'Танк / ДД', unlockAct:0, mainAttr:'str', isMelee:true,
           baseStr:25, gainStr:3.5, baseInt:16, gainInt:1.5, baseMp:75, baseArmor:4, gainArmor:0.7,
           skills:[
-            {id:'s1',name:'Шторм Хаммер',type:'magic',dmg:[95,155,215,275],mp:[70,85,100,115],cd:3,breakHits:2,brokenBonus:0.25,full:'💥 Пробитие (−2 щита): бросает магический молот, наносит Маг. урон и ломает 2 щита врага. По уже пробитой цели наносит +25% урона!'},
+            {id:'s1',name:'Шторм Хаммер',type:'magic',dmg:[95,155,215,275],mp:[95,115,135,155],cd:3,breakHits:2,brokenBonus:0.25,full:'💥 Пробитие (−2 щита): бросает магический молот, наносит Маг. урон и ломает 2 щита врага. По уже пробитой цели наносит +25% урона!'},
             {id:'s2',name:'Грейт Клив',type:'passive',dmg:[0,0,0,0],mp:[0,0,0,0],cleavePct:[0.40,0.55,0.70,0.85],full:'Пассивка. Обычные атаки Свена прорубают остальных врагов на 40/55/70/85% Физ. урона.'},
-            {id:'s3',name:'Варкрай',type:'buff',dmg:[0,0,0,0],mp:[50,55,60,65],cd:3,duration:2,teamArmor:[4,6,8,10],full:'Боевой клич: даёт +4/6/8/10 БРО всему отряду на 2 хода.'},
-            {id:'s4',name:'Годс Стренс',type:'buff',dmg:[0,0,0],mp:[100,130,160],cd:5,duration:3,selfAtkMult:[1.8,2.2,2.6],full:'Ультимейт (мгновенный). Наполняет Свена божественной силой: +80/120/160% к УРН на 3 хода!'}
+            {id:'s3',name:'Варкрай',type:'buff',dmg:[0,0,0,0],mp:[70,75,80,90],cd:3,duration:2,teamArmor:[4,6,8,10],full:'Боевой клич: даёт +4/6/8/10 БРО всему отряду на 2 хода.'},
+            {id:'s4',name:'Годс Стренс',type:'buff',dmg:[0,0,0],mp:[135,175,215],cd:5,duration:3,selfAtkMult:[1.8,2.2,2.6],full:'Ультимейт (мгновенный). Наполняет Свена божественной силой: +80/120/160% к УРН на 3 хода!'}
           ]},
         /* Акт 1 (открываются после 1-го боя) */
-        { id:'lion', name:'Лион', cost:350, icon:'🧙‍♂️', role:'Контроль', unlockAct:1, mainAttr:'int', isMelee:false,
+        { id:'lion', name:'Лион', cost:1200, icon:'🧙‍♂️', role:'Контроль', unlockAct:1, mainAttr:'int', isMelee:false,
           baseStr:18, gainStr:2.0, baseInt:22, gainInt:3.5, baseMp:100, baseArmor:1, gainArmor:0.35,
           skills:[
-            {id:'s1',name:'Эрс Спайк',type:'magic',dmg:[105,170,235,300],mp:[90,110,130,150],cd:3,breakHits:2,brokenBonus:0.25,full:'💥 Пробитие (−2 щита): подбрасывает цель, наносит Маг. урон и ломает 2 щита врага (+25% урона по уже пробитому).'},
-            {id:'s2',name:'Хекс',type:'debuff',dmg:[0,0,0,0],mp:[90,105,120,135],cd:4,duration:2,silence:1,hexAmp:[0.25,0.30,0.35,0.40],full:'🔇 Безмолвие (1 х.): работает поверх щитов — сбивает каст и запрещает врагу скиллы (1 х.), а также увеличивает ВЕСЬ входящий урон по цели на +25/30/35/40% (2 х.).'},
+            {id:'s1',name:'Эрс Спайк',type:'magic',dmg:[105,170,235,300],mp:[120,150,175,205],cd:3,breakHits:2,brokenBonus:0.25,full:'💥 Пробитие (−2 щита): подбрасывает цель, наносит Маг. урон и ломает 2 щита врага (+25% урона по уже пробитому).'},
+            {id:'s2',name:'Хекс',type:'debuff',dmg:[0,0,0,0],mp:[120,140,160,180],cd:4,duration:2,silence:1,hexAmp:[0.25,0.30,0.35,0.40],full:'🔇 Безмолвие (1 х.): работает поверх щитов — сбивает каст и запрещает врагу скиллы (1 х.), а также увеличивает ВЕСЬ входящий урон по цели на +25/30/35/40% (2 х.).'},
             {id:'s3',name:'Мана Дрейн',type:'mana_drain',dmg:[0,0,0,0],mp:[0,0,0,0],cd:2,manaSteal:[55,80,110,140],full:'Крадёт МН у цели и передаёт Лиону. Если у цели 0 МН — наносит Маг. урон.'},
-            {id:'s4',name:'Фингер оф Дез',type:'magic',dmg:[400,600,825],mp:[150,200,250],cd:4,prep:1,full:'Ультимейт с Подготовкой (1 х.). Заряжает сокрушительный луч Маг. урона по 1 цели. Под Яростью срабатывает мгновенно!'}
+            {id:'s4',name:'Фингер оф Дез',type:'magic',dmg:[400,600,825],mp:[205,270,340],cd:4,prep:1,full:'Ультимейт с Подготовкой (1 х.). Заряжает сокрушительный луч Маг. урона по 1 цели. Под Яростью срабатывает мгновенно!'}
           ]},
-        { id:'cm', name:'Кристал Мейден', cost:400, icon:'❄️', role:'Саппорт', unlockAct:1, mainAttr:'int', isMelee:false,
+        { id:'cm', name:'Кристал Мейден', cost:1400, icon:'❄️', role:'Саппорт', unlockAct:1, mainAttr:'int', isMelee:false,
           baseStr:18, gainStr:2.0, baseInt:24, gainInt:3.4, baseMp:110, baseArmor:1, gainArmor:0.35,
           skills:[
-            {id:'s1',name:'Кристал Нова',type:'magic',dmg:[70,120,170,220],mp:[85,95,105,115],cd:2,duration:2,aoe:true,weaken:0.20,full:'Ледяной взрыв: Маг. урон ВСЕМ врагам (−1 щит) и −20% к их УРН на 2 хода.'},
-            {id:'s2',name:'Фростбайт',type:'magic',dmg:[95,150,210,270],mp:[90,105,120,135],cd:3,duration:2,rootTurns:2,full:'❄️ Оцепенение (2 х.): работает поверх щитов — наносит Маг. урон и запрещает врагу бить обычной атакой с руки (скиллы разрешены).'},
+            {id:'s1',name:'Кристал Нова',type:'magic',dmg:[70,120,170,220],mp:[115,130,140,155],cd:2,duration:2,aoe:true,weaken:0.20,full:'Ледяной взрыв: Маг. урон ВСЕМ врагам (−1 щит) и −20% к их УРН на 2 хода.'},
+            {id:'s2',name:'Фростбайт',type:'magic',dmg:[95,150,210,270],mp:[120,140,160,180],cd:3,duration:2,rootTurns:2,full:'❄️ Оцепенение (2 х.): работает поверх щитов — наносит Маг. урон и запрещает врагу бить обычной атакой с руки (скиллы разрешены).'},
             {id:'s3',name:'Аркейн Аура',type:'passive',dmg:[0,0,0,0],mp:[0,0,0,0],teamMpRegen:[8,14,20,28],full:'Пассивная аура. Восстанавливает +8/14/20/28 МН каждый ход ВСЕМУ отряду.'},
-            {id:'s4',name:'Фризинг Филд',type:'magic',dmg:[300,460,630],mp:[180,240,300],cd:5,prep:1,duration:2,aoe:true,selfArmor:12,full:'Ультимейт с Подготовкой (1 х.). Сразу даёт +12 БРО на время подготовки, затем обрушивает бурю Маг. урона по ВСЕМ врагам! Под Яростью — мгновенно!'}
+            {id:'s4',name:'Фризинг Филд',type:'magic',dmg:[300,460,630],mp:[245,325,405],cd:5,prep:1,duration:2,aoe:true,selfArmor:12,full:'Ультимейт с Подготовкой (1 х.). Сразу даёт +12 БРО на время подготовки, затем обрушивает бурю Маг. урона по ВСЕМ врагам! Под Яростью — мгновенно!'}
           ]},
-        { id:'lina', name:'Лина', cost:450, icon:'🔥', role:'Маг-ДД', unlockAct:1, mainAttr:'int', isMelee:false,
+        { id:'lina', name:'Лина', cost:1700, icon:'🔥', role:'Маг-ДД', unlockAct:1, mainAttr:'int', isMelee:false,
           baseStr:20, gainStr:2.2, baseInt:30, gainInt:3.8, baseMp:100, baseArmor:1, gainArmor:0.35,
           skills:[
-            {id:'s1',name:'Драгон Слейв',type:'magic',dmg:[80,140,200,260],mp:[90,100,110,120],cd:2,splash:0.55,full:'Волна огня: Маг. урон основной цели и 55% урона остальным врагам.'},
-            {id:'s2',name:'Лайт Страйк Эррей',type:'magic',dmg:[90,140,190,240],mp:[95,105,115,125],cd:3,duration:2,breakHits:2,burnDmg:[35,55,75,95],full:'💥 Пробитие (−2 щита): огненный столб наносит Маг. урон, снимает 2 щита и поджигает цель на 2 хода (35/55/75/95 Маг. урон/ход).'},
+            {id:'s1',name:'Драгон Слейв',type:'magic',dmg:[80,140,200,260],mp:[120,135,150,160],cd:2,splash:0.55,full:'Волна огня: Маг. урон основной цели и 55% урона остальным врагам.'},
+            {id:'s2',name:'Лайт Страйк Эррей',type:'magic',dmg:[90,140,190,240],mp:[130,140,155,170],cd:3,duration:2,breakHits:2,burnDmg:[35,55,75,95],full:'💥 Пробитие (−2 щита): огненный столб наносит Маг. урон, снимает 2 щита и поджигает цель на 2 хода (35/55/75/95 Маг. урон/ход).'},
             {id:'s3',name:'Файери Соул',type:'passive',dmg:[0,0,0,0],mp:[0,0,0,0],full:'Пассивка. После применения способности даёт +50% к УРН с руки на 2 хода.'},
-            {id:'s4',name:'Лагуна Блейд',type:'magic',dmg:[500,725,950],mp:[240,360,480],cd:4,prep:1,full:'Ультимейт с Подготовкой (1 х.). Заряжает молнию колоссального Маг. урона по 1 цели. Под Яростью — мгновенно!'}
+            {id:'s4',name:'Лагуна Блейд',type:'magic',dmg:[500,725,950],mp:[325,485,650],cd:4,prep:1,full:'Ультимейт с Подготовкой (1 х.). Заряжает молнию колоссального Маг. урона по 1 цели. Под Яростью — мгновенно!'}
           ]},
-        { id:'lc', name:'Легионка', cost:650, icon:'🛡️', role:'Танк', unlockAct:1, mainAttr:'str', isMelee:true,
+        { id:'lc', name:'Легионка', cost:2200, icon:'🛡️', role:'Танк', unlockAct:1, mainAttr:'str', isMelee:true,
           baseStr:26, gainStr:3.3, baseInt:20, gainInt:2.2, baseMp:50, baseArmor:3, gainArmor:0.75,
           skills:[
-            {id:'s1',name:'Овервелминг Оддс',type:'magic',dmg:[55,85,115,145],mp:[85,90,95,100],cd:2,duration:2,targets:2,full:'Маг. урон до 2 врагов. Даёт +30% к УРН на 2 хода.'},
-            {id:'s2',name:'Пресс Зе Аттак',type:'heal',dmg:[150,210,270,330],mp:[80,90,100,110],cd:2,full:'Восстанавливает ЗД союзнику с наименьшим здоровьем.'},
+            {id:'s1',name:'Овервелминг Оддс',type:'magic',dmg:[55,85,115,145],mp:[115,120,130,135],cd:2,duration:2,targets:2,full:'Маг. урон до 2 врагов. Даёт +30% к УРН на 2 хода.'},
+            {id:'s2',name:'Пресс Зе Аттак',type:'heal',dmg:[150,210,270,330],mp:[110,120,135,150],cd:2,full:'Восстанавливает ЗД союзнику с наименьшим здоровьем.'},
             {id:'s3',name:'Момент оф Караж',type:'passive',dmg:[0,0,0,0],mp:[0,0,0,0],counterChance:[0,0.2,0.3,0.4,0.5],full:'Пассивка. Шанс контратаковать при получении физ. урона (20/30/40/50%).'},
-            {id:'s4',name:'Дуэль',type:'duel',dmg:[0,0,0],mp:[140,140,140],cd:5,duration:3,duelBonus:[15,25,35],full:'Ультимейт (мгновенный). Сбивает каст и вызывает на Дуэль (3 х.): оба бьют только с руки. Победа навсегда даёт +15/+25/+35 УРН.'}
+            {id:'s4',name:'Дуэль',type:'duel',dmg:[0,0,0],mp:[190,190,190],cd:5,duration:3,duelBonus:[15,25,35],full:'Ультимейт (мгновенный). Сбивает каст и вызывает на Дуэль (3 х.): оба бьют только с руки. Победа навсегда даёт +15/+25/+35 УРН.'}
           ]},
         /* Акт 2 (открываются после победы над Боссом Акта 1 — Рейд 5) */
-        { id:'dazzle', name:'Даззл', cost:1400, icon:'🔮', role:'Саппорт', unlockAct:2, mainAttr:'int', isMelee:false,
+        { id:'dazzle', name:'Даззл', cost:4500, icon:'🔮', role:'Саппорт', unlockAct:2, mainAttr:'int', isMelee:false,
           baseStr:20, gainStr:2.3, baseInt:26, gainInt:3.5, baseMp:100, baseArmor:2, gainArmor:0.4,
           skills:[
-            {id:'s1',name:'Пойзон Тач',type:'magic',dmg:[65,105,145,185],mp:[75,85,95,105],cd:2,duration:2,targets:2,armorDebuff:[2,3,4,5],full:'Яд поражает до 2 врагов: Маг. урон и −2/3/4/5 БРО на 2 хода.'},
-            {id:'s2',name:'Шэллоу Грейв',type:'buff',dmg:[0,0,0,0],mp:[90,90,90,90],cd:4,duration:2,shallowGrave:true,full:'Крест на союзника с наименьшим ЗД: 2 хода его ЗД не может упасть ниже 1!'},
-            {id:'s3',name:'Шэдоу Вейв',type:'heal',dmg:[90,130,175,220],mp:[90,105,120,135],cd:2,teamHeal:true,full:'Волна теней лечит ВЕСЬ отряд и наносит Маг. урон 1 врагу.'},
-            {id:'s4',name:'Бэд Джуджу',type:'debuff',dmg:[0,0,0],mp:[120,150,180],cd:5,duration:3,jujuArmor:[4,6,8],jujuCd:[1,2,2],full:'Ультимейт (мгновенный). Снижает БРО всех врагов на 4/6/8 (3 х.) и сокращает КД предметов отряда на 1/2/2 хода!'}
+            {id:'s1',name:'Пойзон Тач',type:'magic',dmg:[65,105,145,185],mp:[100,115,130,140],cd:2,duration:2,targets:2,armorDebuff:[2,3,4,5],full:'Яд поражает до 2 врагов: Маг. урон и −2/3/4/5 БРО на 2 хода.'},
+            {id:'s2',name:'Шэллоу Грейв',type:'buff',dmg:[0,0,0,0],mp:[120,120,120,120],cd:4,duration:2,shallowGrave:true,full:'Крест на союзника с наименьшим ЗД: 2 хода его ЗД не может упасть ниже 1!'},
+            {id:'s3',name:'Шэдоу Вейв',type:'heal',dmg:[90,130,175,220],mp:[120,140,160,180],cd:2,teamHeal:true,full:'Волна теней лечит ВЕСЬ отряд и наносит Маг. урон 1 врагу.'},
+            {id:'s4',name:'Бэд Джуджу',type:'debuff',dmg:[0,0,0],mp:[160,205,245],cd:5,duration:3,jujuArmor:[4,6,8],jujuCd:[1,2,2],full:'Ультимейт (мгновенный). Снижает БРО всех врагов на 4/6/8 (3 х.) и сокращает КД предметов отряда на 1/2/2 хода!'}
           ]},
-        { id:'kunkka', name:'Кункка', cost:1800, icon:'⚓', role:'Танк / Сейв', unlockAct:2, mainAttr:'str', isMelee:true,
+        { id:'kunkka', name:'Кункка', cost:5500, icon:'⚓', role:'Танк / Сейв', unlockAct:2, mainAttr:'str', isMelee:true,
           baseStr:25, gainStr:3.6, baseInt:18, gainInt:1.8, baseMp:75, baseArmor:3, gainArmor:0.65,
           skills:[
-            {id:'s1',name:'Торрент',type:'magic',dmg:[95,155,215,275],mp:[85,95,105,115],cd:3,duration:2,silence:1,breakHits:2,torrentWeaken:0.25,full:'💥 Пробитие (−2 щита) + 🔇 Безмолвие (1 х.): Маг. урон, сбивает каст, ломает 2 щита и −25% УРН цели (2 х.).'},
-            {id:'s2',name:'Тайдбрингер',type:'phys',dmg:[45,90,135,180],mp:[35,40,45,50],cd:2,cleave:true,atkBonus:1.0,ignoreArmor:true,full:'Прорубающий Физ. удар (100% УРН + бонус) ВСЕМ врагам, игнорируя 50% БРО. Может критовать.'},
-            {id:'s3',name:'Икс Маркс зе Спот',type:'debuff',dmg:[0,0,0,0],mp:[50,50,50,50],cd:3,duration:2,silence:1,xMarkAmp:[0.35,0.45,0.55,0.65],full:'🔇 Безмолвие (1 х.): работает поверх щитов — сбивает каст и запрещает скиллы (1 х.), +35/45/55/65% входящего Маг. урона (2 х.).'},
-            {id:'s4',name:'Гостшип',type:'magic',dmg:[320,480,640],mp:[150,200,250],cd:5,prep:1,duration:2,aoe:true,breakHits:2,brokenBonus:0.25,rumBuff:true,full:'Ультимейт с Подготовкой (1 х.) + 💥 Массовое Пробитие (−2 щита ВСЕМ врагам, +25% по пробитым). Вешает отряду Ром (−35% урона, 2 х.)! Под Яростью — мгновенно!'}
+            {id:'s1',name:'Торрент',type:'magic',dmg:[95,155,215,275],mp:[115,130,140,155],cd:3,duration:2,silence:1,breakHits:2,torrentWeaken:0.25,full:'💥 Пробитие (−2 щита) + 🔇 Безмолвие (1 х.): Маг. урон, сбивает каст, ломает 2 щита и −25% УРН цели (2 х.).'},
+            {id:'s2',name:'Тайдбрингер',type:'phys',dmg:[45,90,135,180],mp:[50,55,60,70],cd:2,cleave:true,atkBonus:1.0,ignoreArmor:true,full:'Прорубающий Физ. удар (100% УРН + бонус) ВСЕМ врагам, игнорируя 50% БРО. Может критовать.'},
+            {id:'s3',name:'Икс Маркс зе Спот',type:'debuff',dmg:[0,0,0,0],mp:[70,70,70,70],cd:3,duration:2,silence:1,xMarkAmp:[0.35,0.45,0.55,0.65],full:'🔇 Безмолвие (1 х.): работает поверх щитов — сбивает каст и запрещает скиллы (1 х.), +35/45/55/65% входящего Маг. урона (2 х.).'},
+            {id:'s4',name:'Гостшип',type:'magic',dmg:[320,480,640],mp:[205,270,340],cd:5,prep:1,duration:2,aoe:true,breakHits:2,brokenBonus:0.25,rumBuff:true,full:'Ультимейт с Подготовкой (1 х.) + 💥 Массовое Пробитие (−2 щита ВСЕМ врагам, +25% по пробитым). Вешает отряду Ром (−35% урона, 2 х.)! Под Яростью — мгновенно!'}
           ]},
-        { id:'wk', name:'Врайз Кинг', cost:2000, icon:'💀', role:'Танк', unlockAct:2, mainAttr:'str', isMelee:true,
+        { id:'wk', name:'Врайз Кинг', cost:6500, icon:'💀', role:'Танк', unlockAct:2, mainAttr:'str', isMelee:true,
           baseStr:27, gainStr:3.6, baseInt:18, gainInt:1.7, baseMp:75, baseArmor:3, gainArmor:0.7,
           skills:[
-            {id:'s1',name:'Врайзфайр Бласт',type:'magic',dmg:[100,160,220,280],mp:[90,100,110,120],cd:3,duration:2,breakHits:2,brokenBonus:0.25,torrentWeaken:0.20,full:'💥 Пробитие (−2 щита): Маг. урон, ломает 2 щита (+25% урона по пробитому) и −20% УРН цели (2 х.).'},
+            {id:'s1',name:'Врайзфайр Бласт',type:'magic',dmg:[100,160,220,280],mp:[120,135,150,160],cd:3,duration:2,breakHits:2,brokenBonus:0.25,torrentWeaken:0.20,full:'💥 Пробитие (−2 щита): Маг. урон, ломает 2 щита (+25% урона по пробитому) и −20% УРН цели (2 х.).'},
             {id:'s2',name:'Вампирик Спирит',type:'passive',dmg:[0,0,0,0],mp:[0,0,0,0],teamLifesteal:[0.12,0.18,0.24,0.30],full:'Пассивная аура. Даёт +12/18/24/30% физ. вампиризма ВСЕМУ отряду.'},
-            {id:'s3',name:'Мортал Страйк',type:'phys',dmg:[20,40,60,80],mp:[40,45,50,55],cd:2,atkBonus:1.0,guaranteedCrit:[1.6,1.9,2.2,2.5],full:'Гарантированный критический Физ. удар (×1.6/1.9/2.2/2.5), снимающий щит пробития!'},
+            {id:'s3',name:'Мортал Страйк',type:'phys',dmg:[20,40,60,80],mp:[55,60,70,75],cd:2,atkBonus:1.0,guaranteedCrit:[1.6,1.9,2.2,2.5],full:'Гарантированный критический Физ. удар (×1.6/1.9/2.2/2.5), снимающий щит пробития!'},
             {id:'s4',name:'Реинкарнация',type:'passive',dmg:[0,0,0],mp:[0,0,0],reincarnatePct:[0.6,0.8,1.0],full:'Пассивный ультимейт. 1 раз за бой при смерти воскрешается с 60/80/100% ЗД и ослабляет УРН всех врагов на −25% (2 х.).'}
           ]},
         /* Акт 3 (открываются после победы над Боссом Акта 2 — Рейд 10) */
-        { id:'pa', name:'Фантомка', cost:2600, icon:'🗡️', role:'Крит-ДД', unlockAct:3, mainAttr:'str', isMelee:true,
+        { id:'pa', name:'Фантомка', cost:10000, icon:'🗡️', role:'Крит-ДД', unlockAct:3, mainAttr:'str', isMelee:true,
           baseStr:23, gainStr:3.4, baseInt:15, gainInt:1.4, baseMp:50, baseArmor:3, gainArmor:0.7,
           skills:[
-            {id:'s1',name:'Стифлинг Даггер',type:'phys',dmg:[60,90,120,150],mp:[30,30,30,30],atkBonus:0.5,full:'Физ. урон кинжалом + 50% от УРН. Может критовать от Куп де Грас и предметов.'},
-            {id:'s2',name:'Фантом Страйк',type:'phys',dmg:[100,150,200,250],mp:[40,40,40,40],cd:2,duration:2,ignoreArmor:true,full:'Рывок (Физ. урон), игнорирующий 50% БРО. Даёт +50% к УРН на 2 хода.'},
-            {id:'s3',name:'Блюр',type:'buff',dmg:[0,0,0,0],mp:[50,50,50,50],cd:3,duration:2,full:'50% шанс уклонения от физических атак на 2 хода.'},
+            {id:'s1',name:'Стифлинг Даггер',type:'phys',dmg:[60,90,120,150],mp:[40,40,40,40],atkBonus:0.5,full:'Физ. урон кинжалом + 50% от УРН. Может критовать от Куп де Грас и предметов.'},
+            {id:'s2',name:'Фантом Страйк',type:'phys',dmg:[100,150,200,250],mp:[55,55,55,55],cd:2,duration:2,ignoreArmor:true,full:'Рывок (Физ. урон), игнорирующий 50% БРО. Даёт +50% к УРН на 2 хода.'},
+            {id:'s3',name:'Блюр',type:'buff',dmg:[0,0,0,0],mp:[70,70,70,70],cd:3,duration:2,full:'50% шанс уклонения от физических атак на 2 хода.'},
             {id:'s4',name:'Куп де Грас',type:'passive',dmg:[0,0,0],mp:[0,0,0],critChance:0.18,critMult:[2.2,3.2,4.2],full:'Пассивный ультимейт. 18% шанс крита (×2.2/×3.2/×4.2) атакой или Даггером.'}
           ]},
-        { id:'pugna', name:'Пугна', cost:2800, icon:'🟢', role:'Маг-ДД', unlockAct:3, mainAttr:'int', isMelee:false,
+        { id:'pugna', name:'Пугна', cost:11500, icon:'🟢', role:'Маг-ДД', unlockAct:3, mainAttr:'int', isMelee:false,
           baseStr:19, gainStr:2.0, baseInt:28, gainInt:4.4, baseMp:110, baseArmor:1, gainArmor:0.35,
           skills:[
-            {id:'s1',name:'Незер Бласт',type:'magic',dmg:[95,155,215,275],mp:[85,100,115,130],cd:2,aoe:true,full:'Взрыв зелёного пламени: Маг. урон ВСЕМ врагам на арене.'},
-            {id:'s2',name:'Декрепифай',type:'debuff',dmg:[0,0,0,0],mp:[60,65,70,75],cd:3,duration:2,xMarkAmp:[0.30,0.40,0.50,0.60],weakenTarget:0.35,full:'Изгоняет врага в астрал (2 х.): +30/40/50/60% входящего Маг. урона и −35% УРН врага.'},
-            {id:'s3',name:'Незер Вард',type:'buff',dmg:[0,0,0,0],mp:[80,85,90,95],cd:4,duration:3,wardDmg:[80,130,180,240],full:'Ставит тотем на 3 хода: каждый раз, когда враг кастует скилл, он получает 80/130/180/240 Маг. урона!'},
-            {id:'s4',name:'Лайф Дрейн',type:'magic',dmg:[325,500,700],mp:[140,180,220],cd:4,prep:1,drainHeal:1.0,full:'Ультимейт с Подготовкой (1 х.). Огромный Маг. урон и лечение Пугны на 100% нанесённого урона! Под Яростью — мгновенно!'}
+            {id:'s1',name:'Незер Бласт',type:'magic',dmg:[95,155,215,275],mp:[115,135,155,175],cd:2,aoe:true,full:'Взрыв зелёного пламени: Маг. урон ВСЕМ врагам на арене.'},
+            {id:'s2',name:'Декрепифай',type:'debuff',dmg:[0,0,0,0],mp:[80,90,95,100],cd:3,duration:2,xMarkAmp:[0.30,0.40,0.50,0.60],weakenTarget:0.35,full:'Изгоняет врага в астрал (2 х.): +30/40/50/60% входящего Маг. урона и −35% УРН врага.'},
+            {id:'s3',name:'Незер Вард',type:'buff',dmg:[0,0,0,0],mp:[110,115,120,130],cd:4,duration:3,wardDmg:[80,130,180,240],full:'Ставит тотем на 3 хода: каждый раз, когда враг кастует скилл, он получает 80/130/180/240 Маг. урона!'},
+            {id:'s4',name:'Лайф Дрейн',type:'magic',dmg:[325,500,700],mp:[190,245,300],cd:4,prep:1,drainHeal:1.0,full:'Ультимейт с Подготовкой (1 х.). Огромный Маг. урон и лечение Пугны на 100% нанесённого урона! Под Яростью — мгновенно!'}
           ]},
-        { id:'pl', name:'Фантом Лансер', cost:3000, icon:'🔱', role:'Физ-ДД', unlockAct:3, mainAttr:'str', isMelee:true,
+        { id:'pl', name:'Фантом Лансер', cost:13000, icon:'🔱', role:'Физ-ДД', unlockAct:3, mainAttr:'str', isMelee:true,
           baseStr:22, gainStr:3.2, baseInt:20, gainInt:2.0, baseMp:75, baseArmor:3, gainArmor:0.75,
           skills:[
-            {id:'s1',name:'Спирит Лэнс',type:'magic',dmg:[90,145,200,260],mp:[80,90,100,110],cd:2,addIllusions:1,full:'Магическое копьё: Маг. урон по 1 цели и создаёт +1 Иллюзию.'},
-            {id:'s2',name:'Доппельгангер',type:'buff',dmg:[0,0,0,0],mp:[50,50,50,50],cd:3,duration:2,doppel:true,full:'Сбрасывает дебаффы, даёт 60% уклонения (2 х.) и создаёт +2 Иллюзии.'},
-            {id:'s3',name:'Фантом Раш',type:'phys',dmg:[50,85,120,160],mp:[40,45,50,55],cd:2,atkBonus:0.8,ignoreArmor:true,useIllusions:true,full:'Стремительный выпад (−50% БРО), усиленный всеми активными Иллюзиями!'},
+            {id:'s1',name:'Спирит Лэнс',type:'magic',dmg:[90,145,200,260],mp:[110,120,135,150],cd:2,addIllusions:1,full:'Магическое копьё: Маг. урон по 1 цели и создаёт +1 Иллюзию.'},
+            {id:'s2',name:'Доппельгангер',type:'buff',dmg:[0,0,0,0],mp:[70,70,70,70],cd:3,duration:2,doppel:true,full:'Сбрасывает дебаффы, даёт 60% уклонения (2 х.) и создаёт +2 Иллюзии.'},
+            {id:'s3',name:'Фантом Раш',type:'phys',dmg:[50,85,120,160],mp:[55,60,70,75],cd:2,atkBonus:0.8,ignoreArmor:true,useIllusions:true,full:'Стремительный выпад (−50% БРО), усиленный всеми активными Иллюзиями!'},
             {id:'s4',name:'Джукстапоз',type:'passive',dmg:[0,0,0],mp:[0,0,0],maxIllusions:[4,6,8],full:'Пассивный ультимейт. Каждая атака добавляет +1 Иллюзию (макс. 4/6/8). Каждая Иллюзия даёт +12% Физ. урона и +5% уклонения!'}
           ]},
         /* Акт 4 (открываются после победы над Боссом Акта 3 — Рейд 15; Донбрейкер — по сюжету на Этапе 16!) */
-        { id:'zeus', name:'Зевс', cost:3600, icon:'⚡', role:'Маг-ДД', unlockAct:4, mainAttr:'int', isMelee:false,
+        { id:'zeus', name:'Зевс', cost:20000, icon:'⚡', role:'Маг-ДД', unlockAct:4, mainAttr:'int', isMelee:false,
           baseStr:21, gainStr:2.1, baseInt:25, gainInt:3.6, baseMp:100, baseArmor:2, gainArmor:0.35,
           skills:[
-            {id:'s1',name:'Арк Лайтнинг',type:'magic',dmg:[105,135,165,195],mp:[80,85,90,95],bounces:[1,2,3,3],full:'Цепная молния (Маг. урон): бьёт цель и делает до 3 отскоков.'},
-            {id:'s2',name:'Лайтнинг Болт',type:'magic',dmg:[150,230,310,390],mp:[90,90,90,90],cd:2,silence:1,breakHits:2,full:'💥 Пробитие (−2 щита) + 🔇 Безмолвие (1 х.): мощный Маг. урон, сбивает каст и ломает 2 щита!'},
-            {id:'s3',name:'Хивенли Джамп',type:'buff',dmg:[0,0,0,0],mp:[50,60,70,80],cd:3,duration:2,heavenlyJump:[70,110,150,190],full:'Защита от ближней атаки (2 х., −50% урона) + контрудар Маг. уроном.'},
-            {id:'s4',name:'Тандергодс Рэс',type:'magic',dmg:[385,600,820],mp:[240,340,440],cd:5,prep:1,aoe:true,full:'Ультимейт с Подготовкой (1 х.). Обрушивает гнев небес на ВСЕХ врагов на арене! Под Яростью — мгновенно!'}
+            {id:'s1',name:'Арк Лайтнинг',type:'magic',dmg:[105,135,165,195],mp:[110,115,120,130],bounces:[1,2,3,3],full:'Цепная молния (Маг. урон): бьёт цель и делает до 3 отскоков.'},
+            {id:'s2',name:'Лайтнинг Болт',type:'magic',dmg:[150,230,310,390],mp:[120,120,120,120],cd:2,silence:1,breakHits:2,full:'💥 Пробитие (−2 щита) + 🔇 Безмолвие (1 х.): мощный Маг. урон, сбивает каст и ломает 2 щита!'},
+            {id:'s3',name:'Хивенли Джамп',type:'buff',dmg:[0,0,0,0],mp:[70,80,95,110],cd:3,duration:2,heavenlyJump:[70,110,150,190],full:'Защита от ближней атаки (2 х., −50% урона) + контрудар Маг. уроном.'},
+            {id:'s4',name:'Тандергодс Рэс',type:'magic',dmg:[385,600,820],mp:[325,460,595],cd:5,prep:1,aoe:true,full:'Ультимейт с Подготовкой (1 х.). Обрушивает гнев небес на ВСЕХ врагов на арене! Под Яростью — мгновенно!'}
           ]},
         { id:'dawnbreaker', name:'Донбрейкер', cost:0, icon:'☀️', role:'Танк / Сейв', unlockAct:99, storyUnlock:true, mainAttr:'str', isMelee:true,
           baseStr:28, gainStr:3.8, baseInt:20, gainInt:2.2, baseMp:90, baseArmor:4, gainArmor:0.75,
           skills:[
-            {id:'s1',name:'Старбрейкер',type:'phys',dmg:[75,120,170,220],mp:[60,65,70,75],cd:3,cleave:true,atkBonus:0.85,primaryBreakHits:2,full:'💥 Пробитие (−2 щита осн. цели): размашистый Физ. удар ВСЕМ врагам и снимает 2 щита у основной цели.'},
-            {id:'s2',name:'Селестиал Хаммер',type:'magic',dmg:[100,155,210,265],mp:[75,85,95,105],cd:2,duration:2,torrentWeaken:0.20,full:'Огненный молот: Маг. урон и −20% УРН цели (2 х.).'},
+            {id:'s1',name:'Старбрейкер',type:'phys',dmg:[75,120,170,220],mp:[80,90,95,100],cd:3,cleave:true,atkBonus:0.85,primaryBreakHits:2,full:'💥 Пробитие (−2 щита осн. цели): размашистый Физ. удар ВСЕМ врагам и снимает 2 щита у основной цели.'},
+            {id:'s2',name:'Селестиал Хаммер',type:'magic',dmg:[100,155,210,265],mp:[100,115,130,140],cd:2,duration:2,torrentWeaken:0.20,full:'Огненный молот: Маг. урон и −20% УРН цели (2 х.).'},
             {id:'s3',name:'Люминосити',type:'passive',dmg:[0,0,0,0],mp:[0,0,0,0],lumiHeal:[0.30,0.40,0.50,0.60],full:'Пассивка. Каждая 3-я атака Донбрейкер критует (×1.8) и лечит ВЕСЬ отряд на 30/40/50/60% нанесённого урона!'},
-            {id:'s4',name:'Солар Гардиан',type:'magic',dmg:[290,435,580],mp:[150,200,250],cd:5,prep:1,aoe:true,breakHits:2,brokenBonus:0.25,solarHeal:[200,310,420],full:'Ультимейт с Подготовкой (1 х.) + 💥 Массовое Пробитие (−2 щита ВСЕМ врагам, +25% по пробитым) + лечит отряд на 200/310/420 ЗД! Под Яростью — мгновенно!'}
+            {id:'s4',name:'Солар Гардиан',type:'magic',dmg:[290,435,580],mp:[205,270,340],cd:5,prep:1,aoe:true,breakHits:2,brokenBonus:0.25,solarHeal:[200,310,420],full:'Ультимейт с Подготовкой (1 х.) + 💥 Массовое Пробитие (−2 щита ВСЕМ врагам, +25% по пробитым) + лечит отряд на 200/310/420 ЗД! Под Яростью — мгновенно!'}
           ]},
         { id:'pudge', name:'Пудж', cost:0, icon:'🪝', role:'Танк / Контроль', unlockAct:99, storyUnlock:true, mainAttr:'str', isMelee:true,
           baseStr:28, gainStr:4.0, baseInt:16, gainInt:1.5, baseMp:75, baseArmor:2, gainArmor:0.5,
           skills:[
-            {id:'s1',name:'Мит Хук',type:'magic',dmg:[110,175,240,310],mp:[85,95,105,115],cd:3,breakHits:2,brokenBonus:0.25,silence:1,full:'💥 Пробитие (−2 щита) + 🔇 Безмолвие (1 х.): бросает крюк, наносит Маг. урон, сбивает каст и ломает 2 щита (+25% урона по уже пробитому).'},
-            {id:'s2',name:'Рот',type:'magic',dmg:[75,120,165,210],mp:[60,70,80,90],cd:2,aoe:true,weaken:0.20,selfHpCostPct:0.05,full:'Ядовитое облако: AoE Маг. урон ВСЕМ врагам (−1 щит) и −20% к их УРН на 2 хода. Тратит 5% макс. ЗД Пуджа (не может опустить ниже 1 ЗД).'},
+            {id:'s1',name:'Мит Хук',type:'magic',dmg:[110,175,240,310],mp:[115,130,140,155],cd:3,breakHits:2,brokenBonus:0.25,silence:1,full:'💥 Пробитие (−2 щита) + 🔇 Безмолвие (1 х.): бросает крюк, наносит Маг. урон, сбивает каст и ломает 2 щита (+25% урона по уже пробитому).'},
+            {id:'s2',name:'Рот',type:'magic',dmg:[75,120,165,210],mp:[80,95,110,120],cd:2,aoe:true,weaken:0.20,selfHpCostPct:0.05,full:'Ядовитое облако: AoE Маг. урон ВСЕМ врагам (−1 щит) и −20% к их УРН на 2 хода. Тратит 5% макс. ЗД Пуджа (не может опустить ниже 1 ЗД).'},
             {id:'s3',name:'Флеш Хип',type:'passive',dmg:[0,0,0,0],mp:[0,0,0,0],pudgeArmor:[3,5,7,9],pudgeMres:[0.06,0.10,0.14,0.18],full:'Пассивка. Накапливает плоть, давая Пуджу +3/5/7/9 БРО и +6/10/14/18% МАГ.РЕЗ.'},
-            {id:'s4',name:'Дисмембер',type:'magic',dmg:[350,520,700],mp:[140,180,220],cd:4,breakHits:2,brokenBonus:0.25,silence:1,drainHeal:1.0,full:'Ультимейт (мгновенный). 💥 Пробитие (−2 щита) + 🔇 Безмолвие (1 х.): чудовищный Маг. урон по 1 цели и лечение Пуджа на 100% нанесённого урона!'}
+            {id:'s4',name:'Дисмембер',type:'magic',dmg:[350,520,700],mp:[190,245,300],cd:4,breakHits:2,brokenBonus:0.25,silence:1,drainHeal:1.0,full:'Ультимейт (мгновенный). 💥 Пробитие (−2 щита) + 🔇 Безмолвие (1 х.): чудовищный Маг. урон по 1 цели и лечение Пуджа на 100% нанесённого урона!'}
           ]}
     ],
     forestItems: [
@@ -338,7 +360,7 @@ const DB = {
         {id:'reaver',tier:4,icon:'🪓',name:'Ривер',cost:2800,stats:{str:25},partOf:'satanic',short:'+25 СИЛ.',full:'Даёт +25 СИЛ. Компонент Сатаника и БКБ.'},
         {id:'daedalus_recipe',tier:4,icon:'📜',name:'Рецепт: Дайдалус',cost:1000,isRecipe:true,buildsInto:'daedalus',short:'Кристалис + Демон Эдж → Дайдалус.',full:'Объединяет Кристалис и Демон Эдж в Дайдалус.'},
         {id:'daedalus',tier:4,icon:'🔥',name:'Дайдалус',cost:0,craftable:true,dmg:88,critChance:0.30,critMult:2.25,components:['crystalys','demon_edge','daedalus_recipe'],short:'+88 УРН, 30% крит (×2.25).',full:'Даёт +88 УРН и 30% шанс крита (×2.25). Криты снимают щиты.'},
-        {id:'orchid_recipe',tier:4,icon:'📜',name:'Рецепт: Орчид',cost:1300,isRecipe:true,buildsInto:'orchid_malevolence',short:'Стафф + Блейдс → Орчид.',full:'Объединяет Стафф оф Визардри и Блейдс оф Аттак в Орчид.'},
+        {id:'orchid_recipe',tier:4,icon:'📜',name:'Рецепт: Орчид',cost:0,bossDropOnly:true,isRecipe:true,buildsInto:'orchid_malevolence',short:'Трофей с Баунти Хантера. Стафф + Блейдс → Орчид.',full:'Редкий свиток, выбиваемый с Баунти Хантера (Босс Акта 1). Объединяет Стафф оф Визардри и Блейдс оф Аттак в Орчид Малеволенс.'},
         {id:'orchid_malevolence',tier:4,icon:'🌺',name:'Орчид Малеволенс',cost:0,craftable:true,stats:{int:20},dmg:25,isActive:true,duration:2,cd:5,components:['staff_of_wizardry','blades_of_attack','orchid_recipe'],short:'+20 ИНТ, +25 УРН. Актив: безмолвие + взрыв 25%.',full:'Безмолвие на 1 врага (2 х., сбивает каст); в конце взрыв на 25% полученного урона (Маг. урон).'},
         {id:'satanic_recipe',tier:4,icon:'📜',name:'Рецепт: Сатаник',cost:1350,isRecipe:true,buildsInto:'satanic',short:'Морбид + Ривер → Сатаник.',full:'Объединяет Морбид Маск и Ривер в Сатаник.'},
         {id:'satanic',tier:4,icon:'😈',name:'Сатаник',cost:0,stats:{str:25},dmg:25,physLifesteal:0.25,craftable:true,isActive:true,duration:3,cd:6,components:['morbid','reaver','satanic_recipe'],short:'+25 СИЛ, +25 УРН, 25% физ. вампиризм.',full:'Активно: 175% вампиризма от Физ. урон (макс. 50% макс. ЗД за удар).'},
@@ -687,15 +709,15 @@ const ENEMY_HEROES = ACT_ENEMY_POOLS[1].heroes;
 
 const SPECIAL_ENEMIES = {
     traveler: {
-        name:'Странствующий путник', icon:'🧓', hp:180, mp:100, atk:22, armor:1, isMelee:false, shieldMax:1, isTraveler:true,
+        name:'Таинственный путник', icon:'🧓', hp:520, mp:100, atk:38, armor:2, isMelee:false, shieldMax:2, isMysteriousTraveler:true,
         skills:[{ name:'Удар посохом', type:'phys', mult:1.0, aoe:false, stun:0, mpCost:30, desc:'Дряхлый старик отмахивается сучковатым посохом.' }]
     },
     hermit_shaman_boss: {
-        name:'Шаман-отшельник', icon:'⚡', hp:550, mp:240, atk:46, armor:3, isMelee:false, isBoss:true, shieldMax:3,
+        name:'Шаман-отшельник', icon:'⚡', hp:1100, mp:260, atk:55, armor:4, isMelee:false, isBoss:true, shieldMax:3,
         skills:[
-            { name:'Змеиные оковы', type:'magic', mult:1.2, aoe:false, stun:0, root:2, mpCost:60, desc:'Опутывает змеями: Маг. урон и ❄️ Оцепенение (2 х.).' },
-            { name:'Эфирный шок', type:'magic', mult:1.05, aoe:true, stun:0, mpCost:70, desc:'AoE Маг. урон по всему отряду.' },
-            { name:'Знахарский настой', type:'heal_ally', mult:0, healAmt:180, mpCost:50, desc:'Лечит раненого союзника на +180 ЗД.' }
+            { name:'Змеиные оковы', type:'magic', mult:1.25, aoe:false, stun:0, root:2, mpCost:60, desc:'Опутывает змеями: Маг. урон и ❄️ Оцепенение (2 х.).' },
+            { name:'Эфирный шок', type:'magic', mult:1.1, aoe:true, stun:0, mpCost:75, desc:'AoE Маг. урон по всему отряду.' },
+            { name:'Тотем защиты', type:'shield_buff', mult:0, addShield:true, mpCost:50, desc:'Тотем наделяет шамана или союзника защитным 🛡️ щитом.' }
         ]
     },
     pudge_stage8: {
@@ -877,11 +899,15 @@ function createInitialState() {
         milestones: [],
         relics: [],
         seenStories: [],
-        chickenKilled: false
+        chickenKilled: false,
+        shamanKilled: false,
+        shamanFled: false
     };
 }
 
 let state = JSON.parse(localStorage.getItem(SAVE_KEY)) ||
+            JSON.parse(localStorage.getItem('dotaSave_v4_1')) ||
+            JSON.parse(localStorage.getItem('dotaSave_v3_7')) ||
             JSON.parse(localStorage.getItem('dotaSave_v3_6')) ||
             JSON.parse(localStorage.getItem('dotaSave_v3_5')) ||
             JSON.parse(localStorage.getItem('dotaSave_v3_4')) ||
@@ -902,6 +928,7 @@ state.kettleLevel = state.kettleLevel || 0;
 state.maxRaidCleared = state.maxRaidCleared || 0;
 state.selectedStage = state.selectedStage || Math.min(25, state.maxRaidCleared + 1);
 state.shamanFled = state.shamanFled || false;
+state.shamanKilled = state.shamanKilled || false;
 state.chickenKilled = state.chickenKilled || false;
 state.nutcrackerDropped = state.nutcrackerDropped || false;
 state.act2CreepsKilled = state.act2CreepsKilled || 0;
@@ -954,6 +981,8 @@ function save() {
 function resetGame() {
     if (confirm('Начать кампанию полностью с нуля (с 0 золота и Свеном)?')) {
         localStorage.removeItem(SAVE_KEY);
+        localStorage.removeItem('dotaSave_v4_1');
+        localStorage.removeItem('dotaSave_v3_7');
         localStorage.removeItem('dotaSave_v3_6');
         localStorage.removeItem('dotaSave_v3_5');
         localStorage.removeItem('dotaSave_v3_4');
@@ -1121,10 +1150,10 @@ function getHeroStats(heroData, dbHero) {
     let int = dbHero.baseInt + dbHero.gainInt * (lvl - 1) + b.int;
     let kettleHpMult = 1 + (state.kettleLevel || 0) * CONFIG.forest.kettleHpPctPerLvl;
     let maxHp = Math.floor((Math.floor(str * 22) + 200 + b.bonusHp) * kettleHpMult);
-    let maxMp = Math.floor(int * 12) + dbHero.baseMp + b.bonusMp;
+    let maxMp = Math.floor(int * (CONFIG.combat.intMpMult || 8)) + dbHero.baseMp + b.bonusMp;
     let hpRegen = Math.max(1, Math.floor(str * 0.1)) + b.hpRegen;
-    let mpRegenMult = CONFIG.combat.intMpRegenMult || 0.18;
-    let mpRegen = Math.max(4, Math.floor(int * mpRegenMult)) + (b.mpRegen || 0);
+    let mpRegenMult = CONFIG.combat.intMpRegenMult || 0.09;
+    let mpRegen = Math.max(3, Math.floor(int * mpRegenMult)) + (b.mpRegen || 0);
     let mainVal = (dbHero.mainAttr === 'str') ? str : int;
     let atk = Math.floor(20 + mainVal + b.dmg + (heroData.duelDmg || 0));
     let row = heroData.row || (dbHero.isMelee ? 'front' : 'back');

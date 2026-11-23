@@ -651,10 +651,17 @@ function openTeaModal() {
     if (kBox) {
         let kl = state.kettleLevel || 0;
         let maxK = CONFIG.forest.kettleMaxLevel;
+        let actCap = getKettleActCap();
         let kCost = getKettleUpgradeCost(kl);
-        let btn = kl >= maxK
-            ? `<span style="color:gold; font-size:8px;">MAX</span>`
-            : `<button ${(state.herbs || 0) >= kCost ? '' : 'disabled'} onclick="upgradeKettle()" style="background:#530; border-color:#ca0; font-size:8px;">${kCost} 🌿</button>`;
+        let btn = '';
+        if (kl >= maxK) {
+            btn = `<span style="color:gold; font-size:8px;">MAX</span>`;
+        } else if (kl >= actCap) {
+            btn = `<span style="color:#f88; font-size:7px; line-height:1.3; display:inline-block; max-width:130px; text-align:right;">🔒 Лимит Акта (макс. Ур. ${actCap}). Победите босса Акта, чтобы поднять лимит</span>`;
+        } else if (kCost) {
+            let canAfford = (state.herbs || 0) >= kCost.herbs && (state.gold || 0) >= kCost.gold;
+            btn = `<button ${canAfford ? '' : 'disabled'} onclick="upgradeKettle()" style="background:#530; border-color:#ca0; font-size:8px; padding:4px 6px;">${kCost.herbs} 🌿 + ${kCost.gold} G</button>`;
+        }
         kBox.innerHTML = `<div class="card milestone-card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <div style="flex:1; padding-right:6px;">
                 <div style="color:gold; font-size:8px; margin-bottom:3px;">🫖 Походный котелок (Ур. ${kl}/${maxK})</div>
@@ -700,10 +707,13 @@ function brewTea(teaId) {
 function upgradeKettle() {
     let kl = state.kettleLevel || 0;
     if (kl >= CONFIG.forest.kettleMaxLevel) return;
+    if (kl >= getKettleActCap()) return;
     let cost = getKettleUpgradeCost(kl);
-    if ((state.herbs || 0) < cost) return;
-    state.herbs -= cost;
+    if (!cost || (state.herbs || 0) < cost.herbs || (state.gold || 0) < cost.gold) return;
+    state.herbs -= cost.herbs;
+    state.gold -= cost.gold;
     state.kettleLevel = kl + 1;
     save();
     openTeaModal();
+    if (typeof updateUI === 'function') updateUI();
 }

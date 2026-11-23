@@ -119,6 +119,7 @@
             <div class="dbg-title">🌰 СЮЖЕТ И КВЕСТЫ (ШАМАН / ПУДЖ)</div>
             <div class="dbg-row">
                 <button class="dbg-btn ok" onclick="dbgGiveNutcracker()">🌰 Выдать Заколдованный орех</button>
+                <button class="dbg-btn ok" onclick="dbgGiveOrchidRecipe()">📜 Выдать Рецепт Орчида</button>
                 <button class="dbg-btn warn" onclick="dbgResetShamanPudge()">🔄 Сбросить Шамана/Пуджа</button>
             </div>
         </div>
@@ -238,12 +239,22 @@
         alert('🌰 Заколдованный орех добавлен в нейтральный инвентарь!');
     };
 
+    window.dbgGiveOrchidRecipe = function() {
+        if (!state.raidInv.includes('orchid_recipe')) {
+            state.raidInv.push('orchid_recipe');
+        }
+        if (typeof checkRaidCrafts === 'function') checkRaidCrafts();
+        save();
+        alert('📜 Рецепт Орчида добавлен в инвентарь!');
+    };
+
     window.dbgResetShamanPudge = function() {
         state.shamanFled = false;
+        state.shamanKilled = false;
         state.chickenKilled = false;
         state.nutcrackerDropped = false;
         state.act2CreepsKilled = 0;
-        state.seenStories = (state.seenStories || []).filter(s => !['stage3_shaman_intro', 'stage8_pudge_intro', 'pudge_join'].includes(s));
+        state.seenStories = (state.seenStories || []).filter(s => !['silence_tutorial', 'stage9_no_shaman', 'stage9_shaman_reveal', 'stage3_shaman_intro', 'stage8_pudge_intro', 'pudge_join'].includes(s));
         let pudge = state.heroes.find(h => h.dbId === 'pudge');
         if (pudge) {
             state.squad = state.squad.filter(id => id !== pudge.id);

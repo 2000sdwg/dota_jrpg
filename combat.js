@@ -1,10 +1,10 @@
-/* ===== БОЕВАЯ СИСТЕМА РЕЙДА И КАМПАНИИ v3.7 ===== */
+/* ===== БОЕВАЯ СИСТЕМА РЕЙДА И КАМПАНИИ v4.2 ===== */
 let combat = {
     active: false, stage: 1, contract: 'normal',
     turnQueue: [], currentIdx: 0, targets: [],
     actionCache: null, itemsUsedThisTurn: 0,
     aegisUsed: false, dawnTriggered: false, gabenTriggered: false,
-    summonCounter: 0, selectedTargetId: null
+    summonCounter: 0, selectedTargetId: null, shamanBonus: false
 };
 let fastMode = false;
 
@@ -124,18 +124,25 @@ function makeSpecialEnemy(key, idTag, contract) {
 
 function buildStageEnemies(stage, contract) {
     if (stage === 1)  return [makeSpecialEnemy('squirrel', 'e1', 'normal')];
-    if (stage === 2)  return [makeSpecialEnemy('bandit_thug', 'e1', contract), makeSpecialEnemy('traveler', 'e2', contract), makeSpecialEnemy('bandit_archer', 'e3', contract)];
-    if (stage === 3)  {
-        let shaman = makeSpecialEnemy('hermit_shaman_boss', 'e2', contract);
-        if (state.chickenKilled) {
-            shaman.shield = Math.max(1, shaman.shield - 1);
-            shaman.shieldMax = Math.max(1, shaman.shieldMax - 1);
-        }
-        return [makeSpecialEnemy('bandit_thug', 'e1', contract), shaman, makeSpecialEnemy('bandit_archer', 'e3', contract)];
-    }
     if (stage === 5)  return [makeSpecialEnemy('bandit_thug', 'e1', contract), makeSpecialEnemy('bounty_hunter', 'e2', contract), makeSpecialEnemy('bandit_archer', 'e3', contract)];
     if (stage === 6)  return [makeSpecialEnemy('bristleback', 'e1', contract)];
+    if (stage === 7)  return [makeSpecialEnemy('traveler', 'e1', contract)];
     if (stage === 8)  return [makeSpecialEnemy('bog_ghoul', 'e1', contract), makeSpecialEnemy('pudge_stage8', 'e2', contract), makeSpecialEnemy('poison_spider', 'e3', contract)];
+    if (stage === 9)  {
+        if (state.shamanKilled) {
+            return [
+                makeSpecialEnemy('bandit_thug', 'e1', contract),
+                makeSpecialEnemy('bandit_archer', 'e2', contract),
+                makeSpecialEnemy('bandit_thug', 'e3', contract)
+            ];
+        } else {
+            return [
+                makeSpecialEnemy('bandit_thug', 'e1', contract),
+                makeSpecialEnemy('hermit_shaman_boss', 'e2', contract),
+                makeSpecialEnemy('bandit_archer', 'e3', contract)
+            ];
+        }
+    }
     if (stage === 10) return [makeSpecialEnemy('io_boss', 'e1', contract), makeSpecialEnemy('tiny_boss', 'e2', contract), makeSpecialEnemy('lycan_boss', 'e3', contract)];
     if (stage === 11) return [makeSpecialEnemy('hoodwink', 'e1', contract)];
     if (stage === 15) return [makeSpecialEnemy('roshan_boss', 'e1', contract)];
@@ -145,7 +152,7 @@ function buildStageEnemies(stage, contract) {
     if (stage === 24) return [makeSpecialEnemy('ck_boss', 'e1', contract)];
     if (stage === 25) return [makeSpecialEnemy('throne_elder', 'e1', contract)];
 
-    // Обычные этапы кампании (4, 7, 9, 12–14, 17–19, 22–23)
+    // Обычные этапы кампании (2–4, 12–14, 17–19, 22–23)
     let act = getActForStage(stage);
     let actPool = ACT_ENEMY_POOLS[act.id] || ACT_ENEMY_POOLS[1];
     let count = (act.id <= 2) ? (Math.random() < 0.6 ? 2 : 3) : (Math.random() < 0.5 ? 3 : 4);
@@ -154,7 +161,7 @@ function buildStageEnemies(stage, contract) {
     let heroCount = Math.min(2, Math.max(1, Math.floor(count / 2)));
     let minionCount = count - heroCount;
 
-    let heroPool = actPool.heroes.filter(h => h.name !== 'Шаман-отшельник' || state.maxRaidCleared >= 3);
+    let heroPool = actPool.heroes.filter(h => h.name !== 'Шаман-отшельник' || state.maxRaidCleared >= 9);
     let shuffledHeroes = [...heroPool].sort(() => Math.random() - 0.5);
     let shuffledMinions = [...actPool.minions].sort(() => Math.random() - 0.5);
 
@@ -204,7 +211,7 @@ function buildStageEnemies(stage, contract) {
             isEnemy: true, isBoss: false, isMelee: u.isMelee,
             stunTurns: 0, buffs: [],
             shieldMax: sh, shield: sh,
-            turnCount: i % 2, skillCursor: 0,
+            turnCount: i % 3, skillCursor: 0,
             skills: u.skills || []
         };
         rollEnemyIntent(e);
@@ -221,8 +228,20 @@ function rollEnemyIntent(enemy) {
         };
         return;
     }
+    if (enemy.isChicken) {
+        let isSilenced = enemy.buffs && enemy.buffs.some(b => b.type === 'silence' || b.type === 'orchid');
+        if (isSilenced) {
+            enemy.nextIntent = { type: 'attack' };
+        } else {
+            enemy.nextIntent = {
+                type: 'skill',
+                skill: { name: 'Побег в кусты!', type: 'chicken_flee', mult: 0, desc: 'Курица расправляет крылья и готовится удрать в кусты на своём ходу!' }
+            };
+        }
+        return;
+    }
     enemy.turnCount = (enemy.turnCount || 0) + 1;
-    let interval = enemy.isBoss ? 2 : 2;
+    let interval = 3;
     if (enemy.skills && enemy.skills.length > 0 && enemy.turnCount % interval === 0) {
         let idx = (enemy.skillCursor || 0) % enemy.skills.length;
         let cand = enemy.skills[idx];
@@ -247,7 +266,15 @@ function startRaid(stage, contract = 'normal') {
         return;
     }
 
-    const introMap = { 3:'stage3_shaman_intro', 6:'stage6_intro', 8:'stage8_pudge_intro', 11:'stage11_intro', 16:'stage16_intro', 21:'stage21_intro', 25:'stage25_intro' };
+    if (stage === 9) {
+        let storyKey = state.shamanKilled ? 'stage9_no_shaman' : 'stage9_shaman_reveal';
+        if (!state.seenStories.includes(storyKey)) {
+            showStory(storyKey, () => launchCombat(stage, contract), true);
+            return;
+        }
+    }
+
+    const introMap = { 6:'stage6_intro', 8:'stage8_pudge_intro', 11:'stage11_intro', 16:'stage16_intro', 21:'stage21_intro', 25:'stage25_intro' };
     let storyKey = introMap[stage];
     if (storyKey && !state.seenStories.includes(storyKey)) {
         showStory(storyKey, () => launchCombat(stage, contract), true);
@@ -269,6 +296,7 @@ function launchCombat(stage, contract) {
     combat.gabenTriggered = false;
     combat.summonCounter = 0;
     combat.selectedTargetId = null;
+    combat.shamanBonus = false;
 
     document.getElementById('battle-log').innerHTML = '';
     document.getElementById('skills-submenu').style.display = 'none';
@@ -398,17 +426,18 @@ function renderUnitCard(t) {
     let hasHex = t.buffs && t.buffs.some(b => b.type === 'hex_vuln');
     let hasThorns = t.buffs && t.buffs.some(b => b.type === 'thorns');
     let isPrep = !t.isEnemy && !!t.preparing;
+    let isDefending = !t.isEnemy && t.buffs && t.buffs.some(b => b.type === 'defending');
 
     let leftBadge = '';
     if (t.isEnemy) {
         leftBadge = t.cataclysmCharging ? '☄️' : (hasHex ? '🐸' : (hasOrchid ? '🌺' : (hasSilence ? '🔇' : (hasRoot ? '❄️' : (hasThorns ? '🦔' : (hasXMark ? '❌' : (hasVeil ? '🟣' : (hasStunImm ? '⛓️' : (t.buffs && t.buffs.length > 0 ? '⬇️' : '')))))))));
     } else {
-        leftBadge = isPrep ? '⏳' : (hasSilence ? '🔇' : (hasGrave ? '✝️' : (hasBladeMail ? '🦔' : (hasBarrier ? '🪈' : (hasWard ? '🟢' : (hasRum ? '🍺' : (hasStunImm ? '⛓️' : (t.buffs && t.buffs.length > 0 ? '⬆️' : ''))))))));
+        leftBadge = isDefending ? '🛡️' : (isPrep ? '⏳' : (hasSilence ? '🔇' : (hasGrave ? '✝️' : (hasBladeMail ? '🦔' : (hasBarrier ? '🪈' : (hasWard ? '🟢' : (hasRum ? '🍺' : (hasStunImm ? '⛓️' : (t.buffs && t.buffs.length > 0 ? '⬆️' : '')))))))));
     }
     let buffIcon = leftBadge ? `<div style="position:absolute; top:-8px; left:-8px; font-size:12px;">${leftBadge}</div>` : '';
     let isBroken = t.buffs && t.buffs.some(b => b.type === 'broken');
 
-    let extraCls = isPrep ? 'prep-state' : (hasGrave ? 'grave-state' : (isBroken ? 'broken-state' : (hasXMark || hasOrchid || hasHex ? 'xmark-state' : (hasRum || hasBarrier ? 'rum-state' : ''))));
+    let extraCls = isDefending ? 'defending-state' : (isPrep ? 'prep-state' : (hasGrave ? 'grave-state' : (isBroken ? 'broken-state' : (hasXMark || hasOrchid || hasHex ? 'xmark-state' : (hasRum || hasBarrier ? 'rum-state' : '')))));
 
     if (t.isEnemy) {
         let enemySilenced = hasOrchid || hasSilence;
@@ -435,7 +464,9 @@ function renderUnitCard(t) {
         let rageHtml = `<div class="rage-bar-bg" style="width:44px; margin:1px auto;"><div class="rage-bar-fill" style="width:${Math.min(100, t.rage || 0)}%"></div></div>`;
         let illuTag = (t.dbId === 'pl' && t.illusions > 0) ? `<div style="font-size:6px; color:#0ef;">🔱×${t.illusions}</div>` : '';
         let prepBadge = isPrep ? `<div class="prep-badge">⏳ ${t.preparing.skillObj.name}</div>` : '';
+        let defBadge = isDefending ? `<div class="defending-badge">🛡️ БЛОК</div>` : '';
         return `<div style="text-align:center;">
+            ${defBadge}
             ${prepBadge}
             <div><div class="sprite ${extraCls}" id="sprite-${t.id}">${t.icon}${stun}${buffIcon}</div></div>
             <div style="font-size:7px; margin-top:3px; color:#ccc;">${t.name.split(' ')[0]}</div>
@@ -447,7 +478,41 @@ function renderUnitCard(t) {
     }
 }
 
+function renderTurnOrderBar() {
+    let bar = document.getElementById('turn-order-bar');
+    if (!bar) return;
+    if (!combat.active || !combat.turnQueue || combat.turnQueue.length === 0) {
+        bar.innerHTML = '';
+        bar.style.display = 'none';
+        return;
+    }
+    bar.style.display = 'flex';
+    let q = combat.turnQueue;
+    let n = Math.min(6, q.length);
+    let html = '';
+    for (let i = 0; i < n; i++) {
+        let idx = (combat.currentIdx + i) % q.length;
+        let u = q[idx];
+        let isHero = !u.isEnemy;
+        let isActive = (i === 0);
+        let cls = `turn-order-slot ${isHero ? 'hero' : 'enemy'}${isActive ? ' active' : ''}`;
+        let flame = (u.isEnemy && u.nextIntent && u.nextIntent.type === 'skill')
+            ? `<span class="intent-flame" title="${u.nextIntent.skill ? u.nextIntent.skill.name : 'Скилл'}">🔥</span>`
+            : '';
+        let defBadge = (!u.isEnemy && u.buffs && u.buffs.some(b => b.type === 'defending'))
+            ? `<span class="turn-def-badge">🛡️</span>`
+            : '';
+        html += `<div class="${cls}" title="${u.name} (Ход #${i + 1})">
+            <span class="slot-icon">${u.icon}</span>
+            ${flame}${defBadge}
+            <span class="slot-name">${u.name.split(' ')[0]}</span>
+        </div>`;
+    }
+    bar.innerHTML = html;
+}
+
 function renderArena() {
+    renderTurnOrderBar();
     const eDiv = document.getElementById('arena-enemies');
     const hDiv = document.getElementById('arena-heroes');
     if (!eDiv || !hDiv) return;
@@ -512,48 +577,53 @@ function checkHeroSurvival(hero) {
     }
 }
 
+function checkTravelerTransform(enemy) {
+    if (!enemy || !enemy.isEnemy || !enemy.isMysteriousTraveler || enemy.isChicken || enemy.hp <= 0) return false;
+    let shouldTransform = (enemy.hp <= enemy.maxHp * 0.65) || ((enemy.turnCount || 0) >= 2);
+    if (!shouldTransform) return false;
+
+    enemy.isChicken = true;
+    enemy.name = 'Курица-беглец';
+    enemy.icon = '🐔';
+    enemy.shield = 0;
+    enemy.shieldMax = 0;
+    enemy.skills = [{ name: 'Побег в кусты!', type: 'chicken_flee', mult: 0, desc: 'Курица расправляет крылья и готовится удрать в кусты на своём ходу!' }];
+    enemy.atk = 15;
+    enemy.nextIntent = {
+        type: 'skill',
+        skill: enemy.skills[0]
+    };
+    log('🧓 Путник сбрасывает плащ и в клубах дыма превращается в 🐔 Курицу-беглеца! Она готовится удрать в кусты на своём ходу!');
+    renderArena();
+
+    if (!state.seenStories.includes('silence_tutorial')) {
+        showStory('silence_tutorial', null, true);
+    }
+    return true;
+}
+
 function checkEnemyLethal(enemy) {
     if (!enemy || !enemy.isEnemy) return;
     if (enemy.isChicken) {
-        if (enemy.hp <= 0 && !state.chickenKilled) {
-            enemy.hp = 1;
-            log('🐔 Курица неуязвима к обычному урону! Только 🔇 Безмолвие уничтожит её!');
+        let isSilenced = enemy.buffs && enemy.buffs.some(b => b.type === 'silence' || b.type === 'orchid');
+        if (enemy.hp <= 0) {
+            if (isSilenced) {
+                state.shamanKilled = true;
+                state.shamanFled = false;
+                state.chickenKilled = true;
+                combat.shamanBonus = true;
+                save();
+                log('⚡ Зачарованная курица повержена под Безмолвием! Шаманские чары развеяны!');
+            } else {
+                enemy.hp = 1;
+                log('🐔 Курица неуязвима к обычному урону! Только 🔇 Безмолвие разрушит чары!');
+            }
         }
         return;
-    }
-    if (enemy.hp <= 0 && enemy.isTraveler && !enemy.isChicken) {
-        enemy.hp = 1;
-        enemy.maxHp = 1;
-        enemy.shield = 0;
-        enemy.shieldMax = 0;
-        enemy.isChicken = true;
-        enemy.name = 'Курица';
-        enemy.icon = '🐔';
-        enemy.skills = [];
-        enemy.atk = 5;
-        enemy.nextIntent = { type: 'attack' };
-        log('🧓 Путник сражён смертельным уроном, но в клубах дыма превращается в курицу 🐔! Её перья зачарованы: уничтожить её можно ТОЛЬКО Безмолвием (🔇)!');
-        renderArena();
     }
 }
 
 function checkSpecialEnemyEvents() {
-    // Курица на Этапе 2: если все остальные враги повержены, а курицу не убили безмолвием — она сбегает
-    let chicken = combat.targets.find(t => t.isEnemy && t.isChicken && t.hp > 0);
-    if (chicken) {
-        let otherEnemies = combat.targets.filter(t => t.isEnemy && !t.isChicken && t.hp > 0);
-        if (otherEnemies.length === 0) {
-            log('🐔 Оставшись без прикрытия разбойников, курица в панике улепётывает в кусты!');
-            combat.targets = combat.targets.filter(t => t.id !== chicken.id);
-            combat.turnQueue = combat.turnQueue.filter(t => t.id !== chicken.id);
-            state.shamanFled = true;
-            state.chickenKilled = false;
-            save();
-            renderArena();
-            winBattle(false);
-            return true;
-        }
-    }
 
     // Фаза 2 Рошана
     let rosh = combat.targets.find(t => t.isEnemy && t.roshanPhases && t.phase === 1 && t.hp <= 0);
@@ -720,6 +790,7 @@ function nextTurn() {
     }
 
     if (actor.isEnemy) {
+        if (actor.isMysteriousTraveler) checkTravelerTransform(actor);
         actor.mp = Math.min(actor.maxMp, actor.mp + (actor.mpRegen || 16));
     } else {
         let auraMp = getTeamArcaneAuraMp();
@@ -769,6 +840,7 @@ function nextTurn() {
             prep.isPrepRelease = true;
             document.getElementById('btn-attack').disabled = true;
             document.getElementById('btn-skills').disabled = true;
+            if (document.getElementById('btn-defend')) document.getElementById('btn-defend').disabled = true;
             document.getElementById('btn-items').disabled = true;
             log(`✨ ${actor.name} завершает подготовку и применяет «${prep.skillObj.name}»!`);
             setTimeout(() => executeHeroAction(prep), fastMode ? 350 : 700);
@@ -783,6 +855,7 @@ function nextTurn() {
             actor.buffs = actor.buffs.filter(b => b.type !== 'dueling');
         } else {
             document.getElementById('btn-skills').disabled = true;
+            if (document.getElementById('btn-defend')) document.getElementById('btn-defend').disabled = true;
             document.getElementById('btn-items').disabled = true;
             if (!actor.isEnemy) {
                 showModal('Атака (Дуэль)', duelTarget, actor.atk, 'phys', null, 0);
@@ -795,8 +868,10 @@ function nextTurn() {
     }
 
     let btnSkills = document.getElementById('btn-skills');
+    let btnDefend = document.getElementById('btn-defend');
     if (actor.isEnemy) {
         document.getElementById('btn-attack').disabled = true;
+        if (btnDefend) btnDefend.disabled = true;
         btnSkills.disabled = true;
         btnSkills.classList.remove('btn-rage-ready');
         btnSkills.innerText = 'СКИЛЛЫ';
@@ -804,6 +879,7 @@ function nextTurn() {
         document.getElementById('skills-submenu').style.display = 'none';
         setTimeout(() => enemyAI(actor), fastMode ? 450 : 900);
     } else {
+        if (btnDefend) btnDefend.disabled = false;
         let heroRooted = actor.buffs && actor.buffs.some(b => b.type === 'root');
         let btnAttack = document.getElementById('btn-attack');
         if (heroRooted) {
@@ -866,7 +942,25 @@ function getHeroTargetEnemy() {
 function raidAction(type) {
     let actor = combat.turnQueue[combat.currentIdx];
     if (!actor || actor.isEnemy) return;
-    if (type === 'attack') {
+    if (type === 'defend') {
+        let defMp = CONFIG.combat.defendMpGain || 25;
+        actor.buffs = actor.buffs.filter(b => b.type !== 'defending');
+        actor.buffs.push({ type: 'defending', turns: 1 });
+        actor.mp = Math.min(actor.maxMp, actor.mp + defMp);
+        actor.rage = Math.min(100, (actor.rage || 0) + 15);
+
+        if (document.getElementById('btn-attack')) document.getElementById('btn-attack').disabled = true;
+        if (document.getElementById('btn-skills')) document.getElementById('btn-skills').disabled = true;
+        if (document.getElementById('btn-defend')) document.getElementById('btn-defend').disabled = true;
+        if (document.getElementById('btn-items')) document.getElementById('btn-items').disabled = true;
+        document.getElementById('skills-submenu').style.display = 'none';
+
+        log(`🛡️ ${actor.name} встаёт в глухую защиту! (−50% входящего урона, +${defMp} МН, +15 Ярости, защита от казней и критов)`);
+        renderArena();
+        combat.currentIdx++;
+        setTimeout(nextTurn, fastMode ? 300 : 600);
+        return;
+    } else if (type === 'attack') {
         let target = getHeroTargetEnemy();
         let dmg = actor.atk;
         let atkBuff = actor.buffs && actor.buffs.find(b => b.type === 'atk');
@@ -888,7 +982,7 @@ function raidAction(type) {
                 has = true;
                 let dmg = sk.dmg[lvl - 1];
                 let stun = (sk.stun && sk.stun[lvl - 1]) || 0;
-                let cost = isRage ? 0 : sk.mp[lvl - 1];
+                let cost = sk.mp[lvl - 1];
                 let cdLeft = (actor.skillCooldowns && actor.skillCooldowns[sk.id]) || 0;
                 let canCast = actor.mp >= cost && cdLeft === 0;
                 let ampMult = (sk.type === 'magic' && actor.spellAmp > 0) ? (1 + actor.spellAmp) : 1;
@@ -911,7 +1005,7 @@ function raidAction(type) {
                 if (sk.breakHits >= 2 || sk.primaryBreakHits >= 2) infoTxt += (infoTxt ? ', ' : '') + `💥 −2🛡️`;
                 if (sk.type === 'duel') infoTxt = 'Дуэль 3х';
                 let prepTag = sk.prep ? (isRage ? ' <span style="color:#fc0;">[МГНОВЕННО!]</span>' : ` <span style="color:#0ef;">[⏳ ${sk.prep}х]</span>`) : '';
-                let rightTxt = cdLeft > 0 ? `<span style="float:right; color:#f66;">КД: ${cdLeft}х</span>` : `<span style="float:right; color:${isRage ? '#fc0' : '#0af'};">МН: ${cost}</span>`;
+                let rightTxt = cdLeft > 0 ? `<span style="float:right; color:#f66;">КД: ${cdLeft}х</span>` : `<span style="float:right; color:#0af;">МН: ${cost}</span>`;
                 menu.innerHTML += `<button class="skill-btn" ${canCast ? '' : 'disabled'} onclick="prepareSkill(${idx},${dmg},${stun},${cost})">
                     ${isRage ? '🔥' : '⚡'} ${sk.name}${prepTag} <span style="color:#0f0;">(${infoTxt || 'Бафф'})</span>
                     ${rightTxt}
@@ -1029,20 +1123,17 @@ function useItem(id) {
     } else if (id === 'orchid_malevolence') {
         let enemy = getHeroTargetEnemy();
         if (enemy) {
+            enemy.buffs = enemy.buffs.filter(b => b.type !== 'orchid' && b.type !== 'silence');
+            enemy.buffs.push({ type: 'orchid', turns: 2, accumDmg: 0 });
+            enemy.buffs.push({ type: 'silence', turns: 2 });
+            interruptUnitCast(enemy, '🌺 Орчид');
             if (enemy.isChicken) {
-                enemy.hp = 0;
-                state.chickenKilled = true;
-                state.shamanFled = false;
-                save();
-                log(`🌺 ${actor.name} накладывает Орчид на курицу 🐔! Безмолвие мгновенно разрушает шаманские чары — курица повержена!`);
-                renderArena();
-            } else {
-                enemy.buffs = enemy.buffs.filter(b => b.type !== 'orchid');
-                enemy.buffs.push({ type: 'orchid', turns: 2, accumDmg: 0 });
                 enemy.nextIntent = { type: 'attack' };
-                enemy.cataclysmCharging = false;
-                log(`🌺 ${actor.name} накладывает Орчид на ${enemy.name}: безмолвие (2 х.) и каст сбит!`);
+                log(`🌺 ${actor.name} накладывает Орчид на курицу 🐔! Побег сорван, Безмолвие (2 х.) развеяло защиту — добивайте её!`);
+            } else {
+                log(`🌺 ${actor.name} накладывает Орчид на ${enemy.name}: Безмолвие (2 х.) и каст сбит!`);
             }
+            renderArena();
         }
     } else if (id === 'enchanted_nut' || id === 'nutcracker') {
         let pudgeEnemy = combat.targets.find(t => t.isEnemy && t.pudgeRecruitable && t.hp > 0);
@@ -1258,13 +1349,20 @@ function showModal(name, target, baseDmg, type, skillObj, stunDur, cost = 0, use
         let red = (type === 'phys') ? getPhysicalReduction(arm) : getMagicReduction(target);
         let effBase = (skillObj && skillObj.guaranteedCrit) ? Math.floor(baseDmg * skillObj.guaranteedCrit[skillLvl - 1]) : baseDmg;
         let bb = (skillObj && skillObj.brokenBonus && target.buffs && target.buffs.some(b => b.type === 'broken')) ? (1 + skillObj.brokenBonus) : 1;
-        let fd = Math.floor(effBase * bb * (1 - red) * getIncomingDmgMult(target, type) * getThroneSealReduction(target));
+        let isRootCombo = (type === 'phys' && target.buffs && target.buffs.some(b => b.type === 'root'));
+        let fd = Math.floor(effBase * bb * (1 - red) * getIncomingDmgMult(target, type) * getThroneSealReduction(target) * (isRootCombo ? 1.25 : 1));
         desc = `<span style="color:#aaa;">Цель:</span> ${target.name}<br>
             <span style="color:#aaa;">БРО:</span> ${arm} (${Math.round(getPhysicalReduction(arm) * 100)}%) | <span style="color:#aaa;">МАГ.РЕЗ:</span> ${Math.round(getMagicReduction(target) * 100)}%<br>
             <span style="color:#aaa;">Итоговый срез:</span> ${Math.round(red * 100)}%<br><br>
             <b style="color:#fff; font-size:12px;">Итог: ${fd} урона${skillObj && skillObj.guaranteedCrit ? ' 💥' : ''}</b>`;
+        if (isRootCombo) desc += `<br><span style="color:#6cf;">❄️ Хрупкость: +25% физ. урона по оцепенелому врагу!</span>`;
         if (skillObj && skillObj.torrentWeaken) desc += `<br><span style="color:#0cf;">🌊 Ослабляет УРН врага (2 х.)</span>`;
         if (skillObj && skillObj.drainHeal) desc += `<br><span style="color:#0f0;">🟢 Лечит Пугну на 100% урона</span>`;
+    }
+
+    if (!skillObj) {
+        let mpGain = CONFIG.combat.attackMpGain || 18;
+        desc += `<br><span style="color:#0cf;">⚡ Обычная атака восстанавливает +${mpGain} МН</span>`;
     }
 
     if (skillObj && skillObj.prep && !usedRage) {
@@ -1339,11 +1437,11 @@ function applySilence(target, turns, sourceName) {
         return false;
     }
     if (target.isChicken) {
-        target.hp = 0;
-        state.chickenKilled = true;
-        state.shamanFled = false;
-        save();
-        log(`⚡ ${sourceName}: Безмолвие срывает маскировку с курицы 🐔! Шаманские чары рассеяны — курица повержена!`);
+        target.buffs = target.buffs.filter(b => b.type !== 'silence');
+        target.buffs.push({ type: 'silence', turns });
+        interruptUnitCast(target, sourceName);
+        target.nextIntent = { type: 'attack' };
+        log(`⚡ ${sourceName}: Безмолвие срывает маскировку и побег курицы 🐔! Защита снята — добивайте её!`);
         renderArena();
         return true;
     }
@@ -1495,6 +1593,7 @@ function confirmAction() {
         };
         document.getElementById('btn-attack').disabled = true;
         document.getElementById('btn-skills').disabled = true;
+        if (document.getElementById('btn-defend')) document.getElementById('btn-defend').disabled = true;
         document.getElementById('btn-items').disabled = true;
         document.getElementById('skills-submenu').style.display = 'none';
         log(`⏳ ${actor.name} начинает подготовку «${skillObj.name}» (сработает в след. ход)!`);
@@ -1525,8 +1624,15 @@ function executeHeroAction(act) {
         actor.rage = Math.min(100, (actor.rage || 0) + (skillObj ? 15 : 10));
     }
 
+    if (!skillObj && !isPrepRelease) {
+        let mpGain = CONFIG.combat.attackMpGain || 18;
+        actor.mp = Math.min(actor.maxMp, actor.mp + mpGain);
+        log(`⚡ Удар восстанавливает +${mpGain} МН!`);
+    }
+
     document.getElementById('btn-attack').disabled = true;
     document.getElementById('btn-skills').disabled = true;
+    if (document.getElementById('btn-defend')) document.getElementById('btn-defend').disabled = true;
     document.getElementById('btn-items').disabled = true;
     document.getElementById('skills-submenu').style.display = 'none';
 
@@ -1683,20 +1789,37 @@ function executeHeroAction(act) {
             let primaryEnemy = getHeroTargetEnemy();
             combat.targets.filter(t => t.isEnemy && t.hp > 0).forEach(e => {
                 if (e.isChicken) {
-                    log('🐔 Курица уворачивается от сплэша! Нужна немота (🔇)!');
-                    return;
+                    let isSilenced = e.buffs && e.buffs.some(b => b.type === 'silence' || b.type === 'orchid');
+                    if (!isSilenced) {
+                        log('🐔 Курица уворачивается от сплэша! Наложите 🔇 Безмолвие!');
+                        return;
+                    }
                 }
                 if (equipped.includes('desolator')) applyArmorDebuff(e, 'deso', 6, 2);
                 else if (equipped.includes('blight')) applyArmorDebuff(e, 'blight', 2, 2);
                 let arm = skillObj.ignoreArmor ? Math.floor(getEffectiveArmor(e) / 2) : getEffectiveArmor(e);
                 let d = Math.floor(cleaveBase * (1 - getPhysicalReduction(arm)) * getIncomingDmgMult(e, 'phys') * getThroneSealReduction(e));
+                if (e.buffs && e.buffs.some(b => b.type === 'root')) {
+                    d = Math.floor(d * 1.25);
+                    log(`❄️ Хрупкость +25% урона по ${e.name}!`);
+                }
                 e.hp -= d;
                 recordOrchidDmg(e, d);
                 totalPhys += d;
                 log(`${actor.icon} ${skillObj.name} → ${e.name}: ${d}${isCleaveCrit ? ' 💥 КРИТ!' : ''}`);
+                let extraBreak = 0;
+                if (e.buffs) {
+                    if (e.buffs.some(b => b.type === 'burn_dot' || b.type === 'burn')) {
+                        extraBreak++;
+                        log(`🔥 Прогар щита: −1 🛡️ у ${e.name}!`);
+                    } else if (e.buffs.some(b => b.type === 'poison_dot')) {
+                        extraBreak++;
+                        log(`🧪 Разъедание щита: −1 🛡️ у ${e.name}!`);
+                    }
+                }
                 let bHits = (primaryEnemy && e.id === primaryEnemy.id && skillObj.primaryBreakHits) ? skillObj.primaryBreakHits : 0;
                 if (isCleaveCrit) bHits = Math.max(bHits, 1);
-                if (bHits > 0) applyBreakCheck(e, bHits, actor);
+                if (bHits + extraBreak > 0) applyBreakCheck(e, bHits + extraBreak, actor);
                 if (stunDur > 0 && primaryEnemy && e.id === primaryEnemy.id && e.hp > 0) {
                     applyHardStun(e, stunDur, skillObj.name);
                 }
@@ -1704,6 +1827,7 @@ function executeHeroAction(act) {
                 applyThornsReflect(e, actor, d);
                 applyDuelDeathCheck(e);
                 checkEnemyLethal(e);
+                checkTravelerTransform(e);
             });
             applyPhysLifesteal(actor, totalPhys);
             if (lumiProc && totalPhys > 0) {
@@ -1718,8 +1842,11 @@ function executeHeroAction(act) {
                 if (e.buffs && e.buffs.some(b => b.type === 'bkb')) { log(`${e.name} блокирует магию (БКБ)!`); return; }
                 if (skillObj.silence) applySilence(e, skillObj.silence + durBonus, skillObj.name);
                 if (e.isChicken) {
-                    if (!skillObj.silence) log('🐔 Курица уворачивается от AoE магии! Нужна немота (🔇)!');
-                    return;
+                    let isSilenced = e.buffs && e.buffs.some(b => b.type === 'silence' || b.type === 'orchid');
+                    if (!isSilenced && !skillObj.silence) {
+                        log('🐔 Курица уворачивается от AoE магии! Наложите 🔇 Безмолвие!');
+                        return;
+                    }
                 }
                 let wasBroken = e.buffs && e.buffs.some(b => b.type === 'broken');
                 let bb = (skillObj.brokenBonus && wasBroken) ? (1 + skillObj.brokenBonus) : 1;
@@ -1728,7 +1855,17 @@ function executeHeroAction(act) {
                 recordOrchidDmg(e, d);
                 totalMagic += d;
                 log(`${actor.name} → ${e.name}: ${d} (AoE${bb > 1 ? ', +25% по пробитому' : ''})`);
-                applyBreakCheck(e, skillObj.breakHits || 1, actor);
+                let extraBreak = 0;
+                if (e.buffs) {
+                    if (e.buffs.some(b => b.type === 'burn_dot' || b.type === 'burn')) {
+                        extraBreak++;
+                        log(`🔥 Прогар щита: −1 🛡️ у ${e.name}!`);
+                    } else if (e.buffs.some(b => b.type === 'poison_dot')) {
+                        extraBreak++;
+                        log(`🧪 Разъедание щита: −1 🛡️ у ${e.name}!`);
+                    }
+                }
+                applyBreakCheck(e, (skillObj.breakHits || 1) + extraBreak, actor);
                 applyThornsReflect(e, actor, d);
                 if (skillObj.weaken && e.hp > 0) {
                     e.buffs = e.buffs.filter(b => b.type !== 'weaken');
@@ -1737,6 +1874,7 @@ function executeHeroAction(act) {
                 if (stunDur > 0 && e.hp > 0) applyHardStun(e, stunDur, skillObj.name);
                 applyDuelDeathCheck(e);
                 checkEnemyLethal(e);
+                checkTravelerTransform(e);
             });
             applySpellLifesteal(actor, totalMagic);
             if (skillObj.selfArmor && !isPrepRelease) {
@@ -1767,9 +1905,21 @@ function executeHeroAction(act) {
                 recordOrchidDmg(e, d);
                 totalMagic += d;
                 log(`${actor.name} → ${e.name}: ${d}${e.id === target.id ? ' (осн.)' : ' (сплэш)'}`);
-                if (e.id === target.id) applyBreakCheck(e, 1, actor);
+                let extraBreak = 0;
+                if (e.buffs) {
+                    if (e.buffs.some(b => b.type === 'burn_dot' || b.type === 'burn')) {
+                        extraBreak++;
+                        log(`🔥 Прогар щита: −1 🛡️ у ${e.name}!`);
+                    } else if (e.buffs.some(b => b.type === 'poison_dot')) {
+                        extraBreak++;
+                        log(`🧪 Разъедание щита: −1 🛡️ у ${e.name}!`);
+                    }
+                }
+                if (e.id === target.id) applyBreakCheck(e, 1 + extraBreak, actor);
                 applyThornsReflect(e, actor, d);
                 applyDuelDeathCheck(e);
+                checkEnemyLethal(e);
+                checkTravelerTransform(e);
             });
             applySpellLifesteal(actor, totalMagic);
         } else if (skillObj && skillObj.targets) {
@@ -1781,12 +1931,24 @@ function executeHeroAction(act) {
                 recordOrchidDmg(e, d);
                 totalMagic += d;
                 log(`${actor.name} → ${e.name}: ${d}`);
-                applyBreakCheck(e, 1, actor);
+                let extraBreak = 0;
+                if (e.buffs) {
+                    if (e.buffs.some(b => b.type === 'burn_dot' || b.type === 'burn')) {
+                        extraBreak++;
+                        log(`🔥 Прогар щита: −1 🛡️ у ${e.name}!`);
+                    } else if (e.buffs.some(b => b.type === 'poison_dot')) {
+                        extraBreak++;
+                        log(`🧪 Разъедание щита: −1 🛡️ у ${e.name}!`);
+                    }
+                }
+                applyBreakCheck(e, 1 + extraBreak, actor);
                 applyThornsReflect(e, actor, d);
                 if (skillObj.armorDebuff) {
                     applyArmorDebuff(e, 'poison_touch', skillObj.armorDebuff[skillLvl - 1], 2 + durBonus);
                 }
                 applyDuelDeathCheck(e);
+                checkEnemyLethal(e);
+                checkTravelerTransform(e);
             });
             applySpellLifesteal(actor, totalMagic);
             if (actor.dbId === 'lc') {
@@ -1819,15 +1981,7 @@ function executeHeroAction(act) {
                 let isSilenced = target.buffs && target.buffs.some(b => b.type === 'silence' || b.type === 'orchid');
                 let hasSilence = skillObj && (skillObj.silence || skillObj.hexAmp);
                 if (!isSilenced && !hasSilence) {
-                    log('🐔 Курица кудахчет и уворачивается от ударов! Её перья зачарованы: уничтожить её можно ТОЛЬКО Безмолвием (🔇)!');
-                    combat.currentIdx++; nextTurn(); return;
-                } else if (isSilenced && !hasSilence) {
-                    target.hp = 0;
-                    state.chickenKilled = true;
-                    state.shamanFled = false;
-                    save();
-                    log('⚡ Удар по безмолвной курице 🐔 добивает её! Шаманские чары рассеяны — курица повержена!');
-                    renderArena();
+                    log('🐔 Курица кудахчет и уворачивается от обычного урона! Наложите 🔇 Безмолвие, чтобы сделать её уязвимой!');
                     combat.currentIdx++; nextTurn(); return;
                 }
             }
@@ -1872,6 +2026,10 @@ function executeHeroAction(act) {
             let bb = (skillObj && skillObj.brokenBonus && wasBroken) ? (1 + skillObj.brokenBonus) : 1;
             let red = (type === 'phys') ? getPhysicalReduction(arm) : getMagicReduction(target);
             let d = Math.floor(baseDmg * bb * (1 - red) * getIncomingDmgMult(target, type) * getThroneSealReduction(target));
+            if (type === 'phys' && target.buffs && target.buffs.some(b => b.type === 'root')) {
+                d = Math.floor(d * 1.25);
+                log(`❄️ Хрупкость +25% урона по ${target.name}!`);
+            }
 
             if (type === 'magic' && target.buffs && target.buffs.some(b => b.type === 'bkb')) {
                 d = 0;
@@ -1882,12 +2040,23 @@ function executeHeroAction(act) {
             recordOrchidDmg(target, d);
             log(`${actor.name} → ${target.name}: ${d}${isCrit ? ' 💥 КРИТ!' : ''}`);
             checkEnemyLethal(target);
+            checkTravelerTransform(target);
 
             if (skillObj && skillObj.addIllusions) addPlIllusions(actor, skillObj.addIllusions);
             if (type === 'phys' && actor.dbId === 'pl' && actor.heroData.skillLevels[3] > 0) addPlIllusions(actor, 1);
 
+            let extraBreak = 0;
+            if (skillObj && target.buffs) {
+                if (target.buffs.some(b => b.type === 'burn_dot' || b.type === 'burn')) {
+                    extraBreak++;
+                    log(`🔥 Прогар щита: −1 🛡️ у ${target.name}!`);
+                } else if (target.buffs.some(b => b.type === 'poison_dot')) {
+                    extraBreak++;
+                    log(`🧪 Разъедание щита: −1 🛡️ у ${target.name}!`);
+                }
+            }
             let breakHits = (skillObj && skillObj.breakHits) ? skillObj.breakHits : ((type === 'magic' || isCrit) ? 1 : 0);
-            applyBreakCheck(target, breakHits, actor);
+            applyBreakCheck(target, breakHits + extraBreak, actor);
 
             // Безмолвие (сбивает каст и запрещает скиллы поверх щитов и иммунитета)
             if (skillObj && skillObj.silence && target.hp > 0) {
@@ -2052,6 +2221,34 @@ function enemyAI(actor, forcedTarget) {
         actor.cataclysmCharging = false;
     }
 
+    if (actor.isChicken) {
+        if (!isSilenced) {
+            log('🐔 Курица-беглец взмахивает крыльями и со всех ног удирает в кусты!');
+            combat.targets = combat.targets.filter(t => t.id !== actor.id);
+            combat.turnQueue = combat.turnQueue.filter(t => t.id !== actor.id);
+            state.shamanFled = true;
+            state.shamanKilled = false;
+            save();
+            renderArena();
+            winBattle(false);
+            return;
+        } else {
+            let target = pickEnemyTarget(actor, heroes, forcedTarget, null);
+            log(`🔇 Курица-беглец под Безмолвием не может взлететь и растерянно клюёт ${target.name}!`);
+            let red = getPhysicalReduction(getEffectiveArmor(target));
+            let d = Math.max(1, Math.floor(15 * (1 - red)));
+            if (target.buffs && target.buffs.some(b => b.type === 'defending')) d = Math.floor(d * 0.5);
+            target.hp -= d;
+            log(`🐔 Курица наносит ${d} урона.`);
+            checkHeroSurvival(target);
+            finishEnemyTurn(actor);
+            rollEnemyIntent(actor);
+            combat.currentIdx++;
+            nextTurn();
+            return;
+        }
+    }
+
     let target = pickEnemyTarget(actor, heroes, forcedTarget, sk);
     let effAtk = getEnemyOutgoingAtk(actor);
 
@@ -2145,8 +2342,9 @@ function enemyAI(actor, forcedTarget) {
                     return;
                 }
 
-                let rawDmg = Math.floor(effAtk * sk.mult);
-                if (sk.execute && h.hp < h.maxHp * 0.3) {
+                let rawDmg = Math.floor(effAtk * sk.mult * (CONFIG.combat.enemySkillDmgMult || 1.20));
+                let isDefending = h.buffs && h.buffs.some(b => b.type === 'defending');
+                if (sk.execute && h.hp < h.maxHp * 0.3 && !isDefending) {
                     rawDmg = Math.floor(rawDmg * 1.5);
                     log(`🪓 Казнь! У ${h.name} мало ЗД — урон увеличен!`);
                 }
@@ -2160,6 +2358,7 @@ function enemyAI(actor, forcedTarget) {
 
                 if (sk.type === 'phys' && actor.isMelee && h.row === 'back') d = Math.floor(d * 0.85);
                 if (h.buffs && h.buffs.some(b => b.type === 'rum')) d = Math.floor(d * 0.65);
+                if (isDefending) d = Math.floor(d * 0.5);
 
                 if (sk.type === 'magic' && d > 0 && h.buffs) {
                     let mb = h.buffs.find(b => b.type === 'magic_barrier' && b.shield > 0);
@@ -2242,6 +2441,7 @@ function enemyAI(actor, forcedTarget) {
 
             if (actor.isMelee && target.row === 'back') d = Math.floor(d * 0.85);
             if (target.buffs && target.buffs.some(b => b.type === 'rum')) d = Math.floor(d * 0.65);
+            if (target.buffs && target.buffs.some(b => b.type === 'defending')) d = Math.floor(d * 0.5);
 
             let plDodge = (target.dbId === 'pl' && target.illusions > 0) ? Math.min(0.4, target.illusions * 0.05) : 0;
             if (target.buffs && target.buffs.some(b => b.type === 'glimmer')) {
@@ -2323,6 +2523,24 @@ function winBattle(isScriptedVictory = false) {
     state.gold += baseGold;
 
     let extraHtml = '';
+    if (combat.shamanBonus) {
+        let bonusGold = Math.floor(baseGold * 0.80);
+        state.gold += bonusGold;
+        state.herbs = (state.herbs || 0) + 3;
+        extraHtml += `<br><span style="color:#d4af37;">🐔 НАГРАДА ЗА ПОИМКУ БЕГЛЕЦА: +${bonusGold} G (+80%) и +3 🌿 Травы!</span>`;
+    }
+
+    if (st === 5 && firstClear && !state.raidInv.includes('orchid_recipe') && !state.raidInv.includes('orchid_malevolence') && !state.heroes.some(h => (h.items || []).includes('orchid_malevolence'))) {
+        state.raidInv.push('orchid_recipe');
+        extraHtml += `<br><br><span style="color:#d4af37;">📜 ПОЛУЧЕН РЕЦЕПТ: 🌺 Рецепт Орчида!</span>`;
+        if (typeof checkRaidCrafts === 'function') {
+            let crafted = checkRaidCrafts();
+            if (crafted && crafted.length > 0) {
+                extraHtml += `<br><span style="color:#0f0;">✨ Автоматически собран артефакт: 🌺 Орчид Малеволенс!</span>`;
+            }
+        }
+    }
+
     if (st === 1 && !state.forestUnlocked) {
         state.forestUnlocked = true;
         extraHtml += `<br><span style="color:#0f0;">🌲 Открыты вкладки ЛЕС и ЛАВКА!</span>`;
@@ -2336,10 +2554,16 @@ function winBattle(isScriptedVictory = false) {
         extraHtml += `<br><br><span style="color:gold;">🏆 ПОЛУЧЕН ТРОФЕЙ: ${rel.icon} ${rel.name}</span><br><span style="color:#ccc; font-size:7px;">${rel.desc}</span>`;
     }
 
+    let recLvl = Math.max(1, Math.min(25, Math.ceil(st * 0.9)));
     state.squad.forEach(id => {
         let h = state.heroes.find(x => x.id === id);
         if (!h) return;
-        h.xp += baseXp;
+        let heroXp = baseXp;
+        let overleveled = (h.level >= recLvl + 3);
+        if (overleveled) {
+            heroXp = Math.max(1, Math.floor(heroXp * 0.3));
+        }
+        h.xp += heroXp;
         let lvled = false;
         while (h.level < 25 && h.xp >= xpNeeded(h.level)) {
             h.xp -= xpNeeded(h.level);
@@ -2347,7 +2571,12 @@ function winBattle(isScriptedVictory = false) {
             h.sp++;
             lvled = true;
         }
-        if (lvled) extraHtml += `<br>↑ ${DB.heroes.find(x => x.id === h.dbId).name} достиг ${h.level} ур.!`;
+        let dbH = DB.heroes.find(x => x.id === h.dbId);
+        let hName = dbH ? dbH.name : h.id;
+        if (overleveled) {
+            extraHtml += `<br><span style="color:#aaa;">${hName}: +${heroXp} опыта <span style="color:#f88;">(перекач −70% опыта)</span></span>`;
+        }
+        if (lvled) extraHtml += `<br>↑ ${hName} достиг ${h.level} ур.!`;
     });
 
     let neutralChance = combat.contract === 'ambush' ? CONFIG.neutrals.raidAmbushChance : CONFIG.neutrals.raidNormalChance;
